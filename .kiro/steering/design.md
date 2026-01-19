@@ -1,209 +1,416 @@
-# 🏗️ 設計ドキュメント
-
-> **Project**: [プロジェクト名]  
-> **Version**: 0.1.0  
-> **Last Updated**: YYYY-MM-DD
-
----
+# Canvas Studio - 設計書
 
 ## 1. アーキテクチャ概要
 
-### 1.1 システム構成
-
 ```
-[システム構成図をASCIIアートで記述]
 ┌─────────────────────────────────────────────────────────────┐
-│                        Application                          │
+│                        React App                            │
 ├─────────────────────────────────────────────────────────────┤
-│  Presentation Layer                                         │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐                    │
-│  │  Page1   │ │  Page2   │ │  Page3   │                    │
-│  └──────────┘ └──────────┘ └──────────┘                    │
+│  ┌─────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
+│  │ Toolbar │  │ SlideList   │  │      CanvasView         │  │
+│  │         │  │ (Sidebar)   │  │      (Fabric.js)        │  │
+│  └─────────┘  └─────────────┘  └─────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────┤
-│  Business Logic Layer                                        │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐                    │
-│  │ Service1 │ │ Service2 │ │ Service3 │                    │
-│  └──────────┘ └──────────┘ └──────────┘                    │
+│                     Zustand Stores                          │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
+│  │ slideStore   │ │ editorStore  │ │ historyStore         │ │
+│  └──────────────┘ └──────────────┘ └──────────────────────┘ │
 ├─────────────────────────────────────────────────────────────┤
-│  Data Layer                                                  │
-│  ┌──────────────────────┐ ┌────────────────────────────┐    │
-│  │     Data Store       │ │     External APIs          │    │
-│  └──────────────────────┘ └────────────────────────────┘    │
+│                     Custom Hooks                            │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
+│  │ useCanvas    │ │ useAuth      │ │ useExport            │ │
+│  └──────────────┘ └──────────────┘ └──────────────────────┘ │
+├─────────────────────────────────────────────────────────────┤
+│                     Firebase Services                       │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
+│  │ Auth         │ │ Firestore    │ │ Storage              │ │
+│  └──────────────┘ └──────────────┘ └──────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 設計原則
-
-| 原則 | 説明 |
-|------|------|
-| **単一責任 (SRP)** | 各モジュールは1つの責任のみを持つ |
-| **疎結合** | モジュール間は明確なインターフェースで連携 |
-| **ドキュメント駆動** | 仕様書とコードを同期 |
-
-### 1.3 Git/ブランチ戦略
-
-> ⚠️ **重要**: 機能開発を開始する前に、必ずフィーチャーブランチを作成すること。
-
-#### ブランチ命名規則
-
-```
-feature/<機能名>     # 新機能開発
-bugfix/<バグ名>      # バグ修正
-refactor/<対象>      # リファクタリング
-docs/<ドキュメント名>  # ドキュメント更新
-```
-
-#### ワークフロー
-
-```
-main (安定版)
-  ↓
-  ├── feature/xxx ← 開発
-  │     ↓
-  │   PR/マージ → main
-  │
-  ├── feature/yyy ← 並行開発
-  ...
-```
-
-#### フィーチャーブランチ対応表
-
-| ブランチ名 | 機能 | 状態 |
-|-----------|------|------|
-| `feature/xxx` | [機能名] | ⬜ 未着手 |
-| `feature/yyy` | [機能名] | ⬜ 未着手 |
-
 ---
 
-## 2. モジュール設計
-
-### 2.1 ディレクトリ構造
+## 2. ディレクトリ構成
 
 ```
-project/
+canvas-studio/
 ├── src/
-│   ├── main.ts              # エントリーポイント
-│   ├── components/          # UIコンポーネント
-│   ├── services/            # ビジネスロジック
-│   ├── utils/               # ユーティリティ
-│   └── types/               # 型定義
-├── public/
-│   └── assets/
+│   ├── components/
+│   │   ├── canvas/
+│   │   │   ├── CanvasView.tsx      # Fabric.js Canvas
+│   │   │   ├── Toolbar.tsx         # ツールバー
+│   │   │   └── PropertyPanel.tsx   # プロパティパネル
+│   │   ├── slides/
+│   │   │   ├── SlideList.tsx       # スライド一覧
+│   │   │   └── SlideThumb.tsx      # サムネイル
+│   │   ├── export/
+│   │   │   ├── ExportDialog.tsx    # エクスポートダイアログ
+│   │   │   └── CMYKPreview.tsx     # CMYKプレビュー
+│   │   ├── templates/
+│   │   │   └── TemplateSelector.tsx # テンプレート選択
+│   │   └── ui/
+│   │       ├── Button.tsx
+│   │       ├── Modal.tsx
+│   │       └── Toast.tsx
+│   ├── hooks/
+│   │   ├── useCanvas.ts            # Fabric.js操作
+│   │   ├── useAuth.ts              # Firebase Auth
+│   │   ├── useExport.ts            # エクスポート処理
+│   │   ├── useHistory.ts           # Undo/Redo
+│   │   └── useClipboard.ts         # コピー＆ペースト
+│   ├── stores/
+│   │   ├── slideStore.ts           # スライドデータ
+│   │   ├── editorStore.ts          # エディタUI状態
+│   │   └── historyStore.ts         # Undo/Redo履歴
+│   ├── services/
+│   │   ├── exportService.ts        # PDF/画像エクスポート
+│   │   ├── cmykService.ts          # CMYK変換（pdfeditor参考）
+│   │   └── businessCardService.ts  # 名刺PDF生成
+│   ├── types/
+│   │   ├── index.ts                # 共通型
+│   │   └── fabric.d.ts             # Fabric.js型拡張
+│   ├── lib/
+│   │   └── firebase.ts             # Firebase設定
+│   ├── pages/
+│   │   ├── Editor.tsx              # メインエディタ
+│   │   └── Home.tsx                # ホーム（認証）
+│   ├── constants/
+│   │   └── templates.ts            # テンプレート定義
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── tests/                          # テストファイル
 ├── docs/
-└── tests/
+│   ├── requirements.md
+│   ├── design.md
+│   └── tasks.md
+└── package.json
 ```
-
-### 2.2 モジュール一覧
-
-| モジュール | 役割 | 依存先 |
-|------------|------|--------|
-| [モジュール1] | [役割] | [依存先] |
-| [モジュール2] | [役割] | [依存先] |
 
 ---
 
-## 3. データ設計
+## 3. 型定義
 
-### 3.1 主要データ構造
+### 3.1 基本型
 
 ```typescript
-// 例: ユーザーデータ
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: Date;
+// src/types/index.ts
+
+// スライド
+export interface Slide {
+  id: string
+  canvasJson: string  // Fabric.js toJSON()
+  thumbnail?: string  // Base64サムネイル
+  createdAt: number
+  updatedAt: number
 }
 
-// 例: 設定データ
-interface Settings {
-  theme: 'light' | 'dark';
-  language: string;
-  notifications: boolean;
+// プロジェクト
+export interface Project {
+  id: string
+  title: string
+  slides: Slide[]
+  template: TemplateType
+  ownerId: string
+  createdAt: number
+  updatedAt: number
+}
+
+// テンプレート種別
+export type TemplateType = 
+  | '16:9'
+  | 'a4-portrait'
+  | 'a4-landscape'
+  | 'business-card'
+  | 'custom'
+
+// テンプレート設定
+export interface TemplateConfig {
+  type: TemplateType
+  width: number   // mm or px
+  height: number
+  unit: 'mm' | 'px'
+  dpi: number     // 印刷用DPI（デフォルト300）
+}
+
+// エディタ状態
+export interface EditorState {
+  currentSlideId: string | null
+  selectedObjectIds: string[]
+  activeTool: ToolType
+  zoom: number
+}
+
+// ツール種別
+export type ToolType = 
+  | 'select'
+  | 'rect'
+  | 'circle'
+  | 'text'
+  | 'image'
+
+// エクスポート設定
+export interface ExportOptions {
+  format: 'png' | 'jpeg' | 'pdf'
+  quality?: number        // 0-1
+  cmyk?: boolean          // CMYK変換
+  bleed?: number          // 塗り足し（mm）
+  trimMarks?: boolean     // トンボ
+}
+
+// Undo/Redoアクション
+export interface HistoryAction {
+  type: string
+  description: string
+  undo: () => void
+  redo: () => void
 }
 ```
 
-### 3.2 永続化データ
+### 3.2 Fabric.js型拡張
 
-| キー | 用途 | 形式 |
-|------|------|------|
-| `app_userdata` | ユーザーデータ | JSON |
-| `app_settings` | 設定 | JSON |
+```typescript
+// src/types/fabric.d.ts
+import 'fabric'
 
----
-
-## 4. UI設計
-
-### 4.1 解像度とスケーリング
-
-| 設定 | 値 |
-|------|-----|
-| 基本解像度 | [解像度] |
-| スケーリング | [スケーリング方法] |
-| ブレイクポイント | [ブレイクポイント] |
-
-### 4.2 画面一覧
-
-| 画面ID | 画面名 | 説明 |
-|--------|--------|------|
-| S-001 | [画面名] | [説明] |
-| S-002 | [画面名] | [説明] |
-
-### 4.3 カラーパレット
-
-```css
-/* メインカラー */
---color-primary: #xxx;
---color-secondary: #xxx;
---color-accent: #xxx;
-
-/* 背景 */
---color-bg-dark: #xxx;
---color-bg-light: #xxx;
-
-/* テキスト */
---color-text: #xxx;
---color-text-muted: #xxx;
+declare module 'fabric' {
+  interface FabricObject {
+    id?: string
+  }
+}
 ```
 
-### 4.4 フォント
+---
 
-- **UI/メニュー**: [フォント名]
-- **本文**: [フォント名]
+## 4. Zustandストア設計
+
+### 4.1 slideStore
+
+```typescript
+// src/stores/slideStore.ts
+interface SlideStore {
+  project: Project | null
+  currentSlideId: string | null
+  
+  // Actions
+  setProject: (project: Project) => void
+  setCurrentSlide: (slideId: string) => void
+  updateSlideCanvas: (slideId: string, canvasJson: string) => void
+  addSlide: () => void
+  deleteSlide: (slideId: string) => void
+  reorderSlides: (startIndex: number, endIndex: number) => void
+  duplicateSlide: (slideId: string) => void
+}
+```
+
+### 4.2 historyStore（Undo/Redo）
+
+```typescript
+// src/stores/historyStore.ts
+interface HistoryStore {
+  undoStack: HistoryAction[]
+  redoStack: HistoryAction[]
+  maxHistory: number  // 50
+  
+  // Actions
+  push: (action: HistoryAction) => void
+  undo: () => void
+  redo: () => void
+  clear: () => void
+  canUndo: boolean
+  canRedo: boolean
+}
+```
 
 ---
 
-## 5. API/外部連携設計
+## 5. サービス設計
 
-### 5.1 外部API
+### 5.1 cmykService（pdfeditor参考）
 
-| API | 用途 | 認証 |
-|-----|------|------|
-| [API名] | [用途] | [認証方法] |
+```typescript
+// src/services/cmykService.ts
+export class CMYKService {
+  // RGB → CMYK変換（ICC プロファイル考慮）
+  static rgbToCmyk(r: number, g: number, b: number): [number, number, number, number]
+  
+  // Canvas全体をCMYK変換
+  static convertCanvasToCMYK(canvas: HTMLCanvasElement): ImageData
+  
+  // CMYKプレビュー生成
+  static generatePreview(canvas: HTMLCanvasElement): string  // Base64
+}
+```
 
-### 5.2 エンドポイント
+### 5.2 businessCardService
 
-| メソッド | パス | 説明 |
-|----------|------|------|
-| GET | /api/xxx | [説明] |
-| POST | /api/yyy | [説明] |
+```typescript
+// src/services/businessCardService.ts
+export class BusinessCardService {
+  // 名刺サイズ定数
+  static readonly SIZE = { width: 91, height: 55 }  // mm
+  static readonly BLEED = 3  // mm
+  static readonly DPI = 300
+
+  // トンボ付きPDF生成
+  static generatePDF(canvas: fabric.Canvas, options: {
+    bleed: number
+    trimMarks: boolean
+    cmyk: boolean
+  }): Promise<Blob>
+
+  // トンボ描画
+  private static drawTrimMarks(ctx: CanvasRenderingContext2D, config: TemplateConfig): void
+}
+```
 
 ---
 
-## 6. 入力設計
+## 6. テンプレート定義
 
-### 6.1 キーボード操作
-
-| 入力 | アクション |
-|------|----------|
-| [キー] | [アクション] |
-
-### 6.2 タッチ/マウス操作
-
-| 操作 | アクション |
-|------|----------|
-| [操作] | [アクション] |
+```typescript
+// src/constants/templates.ts
+export const TEMPLATES: Record<TemplateType, TemplateConfig> = {
+  '16:9': {
+    type: '16:9',
+    width: 1920,
+    height: 1080,
+    unit: 'px',
+    dpi: 72
+  },
+  'a4-portrait': {
+    type: 'a4-portrait',
+    width: 210,
+    height: 297,
+    unit: 'mm',
+    dpi: 300
+  },
+  'a4-landscape': {
+    type: 'a4-landscape',
+    width: 297,
+    height: 210,
+    unit: 'mm',
+    dpi: 300
+  },
+  'business-card': {
+    type: 'business-card',
+    width: 91,
+    height: 55,
+    unit: 'mm',
+    dpi: 300
+  },
+  'custom': {
+    type: 'custom',
+    width: 800,
+    height: 600,
+    unit: 'px',
+    dpi: 72
+  }
+}
+```
 
 ---
 
-*このドキュメントは技術的な設計判断の記録として使用されます。*
+## 7. コンポーネント設計
+
+### 7.1 CanvasView
+
+```typescript
+// Fabric.js Canvasのラッパー
+// 責務: Canvas描画、オブジェクト操作、イベントハンドリング
+interface CanvasViewProps {
+  slideId: string
+}
+```
+
+### 7.2 Toolbar
+
+```typescript
+// ツールバー
+// 責務: ツール選択、オブジェクト追加ボタン
+interface ToolbarProps {
+  onAddRect: () => void
+  onAddCircle: () => void
+  onAddText: () => void
+  onAddImage: () => void
+  onUndo: () => void
+  onRedo: () => void
+  onExport: () => void
+}
+```
+
+### 7.3 SlideList
+
+```typescript
+// スライド一覧（サイドバー）
+// 責務: サムネイル表示、スライド選択、ドラッグ並べ替え
+interface SlideListProps {
+  slides: Slide[]
+  currentSlideId: string
+  onSelect: (slideId: string) => void
+  onReorder: (startIndex: number, endIndex: number) => void
+}
+```
+
+---
+
+## 8. テスト戦略
+
+### 8.1 テスト種別
+
+| 種別 | ツール | 対象 |
+|------|--------|------|
+| 単体テスト | Vitest | サービス、ユーティリティ |
+| コンポーネントテスト | Vitest + RTL | Reactコンポーネント |
+| E2Eテスト | Playwright | 主要ユーザーフロー |
+
+### 8.2 テスト方針
+
+- サービス（CMYKService等）は必ず単体テスト
+- Zustandストアは単体テスト
+- 主要フロー（スライド作成→編集→エクスポート）はE2Eテスト
+
+---
+
+## 9. Firebase設計
+
+### 9.1 Firestoreコレクション
+
+```
+users/{userId}
+  - email: string
+  - displayName: string
+  - createdAt: timestamp
+
+projects/{projectId}
+  - title: string
+  - ownerId: string
+  - template: string
+  - slides: array
+  - createdAt: timestamp
+  - updatedAt: timestamp
+```
+
+### 9.2 セキュリティルール
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null 
+        && request.auth.uid == resource.data.ownerId;
+    }
+  }
+}
+```
+
+---
+
+## 10. pdfeditor参考ファイル
+
+| 機能 | pdfeditorパス | 備考 |
+|------|--------------|------|
+| CMYK変換 | `src/services/CMYKService.ts` | RGB→CMYK変換ロジック |
+| Undo/Redo | `src/services/UndoManager.ts` | 履歴管理パターン |
+| PDF出力 | `src/services/PDFService.ts` | pdf-lib使用 |

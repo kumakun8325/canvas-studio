@@ -1,100 +1,100 @@
 ---
 name: debug
-description: "バグの原因を特定し修正を提案。エラーメッセージ、スタックトレース、再現手順から問題を分析。"
+description: "Identify bug causes and suggest fixes. Analyze errors from messages, stack traces, and reproduction steps."
 ---
 
-# デバッグ スキル
+# Debug Skill
 
-## 使い方
+## Usage
 
 ```
-このエラーを調べてください:
+Investigate this error:
 TypeError: Cannot read property 'map' of undefined
   at Dashboard.tsx:45
 ```
 
-または
+or
 
 ```
-この問題をデバッグしてください:
-ボタンをクリックしても何も起きない
+Debug this issue:
+Nothing happens when clicking the button
 ```
 
-## デバッグプロセス
+## Debug Process
 
-### 1. 情報収集
-
-```
-📋 チェックリスト:
-- エラーメッセージ
-- スタックトレース
-- 再現手順
-- 期待される動作
-- 実際の動作
-- 関連するコード変更
-```
-
-### 2. 仮説立案
+### 1. Gather Information
 
 ```
-🔍 可能性のある原因:
-1. [最も可能性が高い原因]
-2. [次に考えられる原因]
-3. [その他の可能性]
+📋 Checklist:
+- Error message
+- Stack trace
+- Reproduction steps
+- Expected behavior
+- Actual behavior
+- Related code changes
 ```
 
-### 3. 検証と修正
+### 2. Hypothesize
 
 ```
-✅ 原因特定:
-[原因の説明]
-
-🔧 修正案:
-[具体的な修正コード]
+🔍 Possible causes:
+1. [Most likely cause]
+2. [Second possibility]
+3. [Other possibilities]
 ```
 
-## よくあるエラーパターン
+### 3. Verify and Fix
+
+```
+✅ Root cause identified:
+[Explanation of cause]
+
+🔧 Fix proposal:
+[Specific fix code]
+```
+
+## Common Error Patterns
 
 ### TypeScript / JavaScript
 
-| エラー | 原因 | 解決策 |
-|--------|------|--------|
-| `Cannot read property 'x' of undefined` | null/undefinedアクセス | オプショナルチェイニング `?.` |
-| `x is not a function` | 型の不一致 | typeof チェック |
-| `Maximum call stack exceeded` | 無限再帰 | 終了条件を確認 |
-| `Cannot find module` | パス/インポート誤り | パスを確認 |
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Cannot read property 'x' of undefined` | null/undefined access | Optional chaining `?.` |
+| `x is not a function` | Type mismatch | typeof check |
+| `Maximum call stack exceeded` | Infinite recursion | Check exit condition |
+| `Cannot find module` | Path/import error | Verify path |
 
 ### React
 
-| 現象 | 原因 | 解決策 |
-|------|------|--------|
-| 無限ループ | useEffectの依存配列 | 依存配列を修正 |
-| 状態が更新されない | 直接変更 | 新しいオブジェクトを作成 |
-| イベントが発火しない | バインド忘れ | アロー関数を使用 |
-| 子コンポーネントが更新されない | key不足 | 一意のkeyを設定 |
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Infinite loop | useEffect dependencies | Fix dependency array |
+| State not updating | Direct mutation | Create new object |
+| Event not firing | Binding issue | Use arrow function |
+| Child not updating | Missing key | Set unique key |
 
-### 非同期処理
+### Async Operations
 
-| 現象 | 原因 | 解決策 |
-|------|------|--------|
-| データがundefined | await忘れ | async/awaitを確認 |
-| 競合状態 | 複数のリクエスト | AbortController使用 |
-| メモリリーク | クリーンアップ忘れ | useEffectのreturn |
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Data is undefined | Missing await | Check async/await |
+| Race condition | Multiple requests | Use AbortController |
+| Memory leak | Missing cleanup | useEffect return |
 
-## デバッグツール
+## Debug Tools
 
-### ブラウザ
+### Browser
 
 ```javascript
-// コンソールログ
+// Console logging
 console.log('value:', value)
 console.table(array)
 console.trace('call stack')
 
-// ブレークポイント
+// Breakpoint
 debugger
 
-// パフォーマンス測定
+// Performance measurement
 console.time('label')
 // ... code
 console.timeEnd('label')
@@ -103,14 +103,14 @@ console.timeEnd('label')
 ### React DevTools
 
 ```javascript
-// コンポーネントの再レンダリング確認
+// Check component re-renders
 import { useEffect } from 'react'
 
 useEffect(() => {
   console.log('Component rendered')
 })
 
-// 依存配列の変化確認
+// Check dependency changes
 useEffect(() => {
   console.log('deps changed:', dep1, dep2)
 }, [dep1, dep2])
@@ -119,56 +119,56 @@ useEffect(() => {
 ### Node.js
 
 ```javascript
-// 詳細なエラースタック
+// Detailed error stack
 Error.stackTraceLimit = 50
 
-// 環境変数でデバッグモード
+// Debug mode with env var
 DEBUG=app:* node server.js
 ```
 
-## 出力フォーマット
+## Output Format
 
 ```
-# デバッグレポート
+# Debug Report
 
-## エラー内容
-[エラーメッセージ]
+## Error Details
+[Error message]
 
-## 原因分析
+## Analysis
 
-### 調査
-1. [調査した内容]
-2. [確認した箇所]
+### Investigation
+1. [What was investigated]
+2. [Where was checked]
 
-### 原因
-[特定した原因]
+### Root Cause
+[Identified cause]
 
-## 修正案
+## Fix Proposal
 
-### ファイル: `path/to/file.ts` 行 XX
+### File: `path/to/file.ts` Line XX
 
 **Before:**
 ```typescript
-// 問題のあるコード
+// Problematic code
 ```
 
 **After:**
 ```typescript
-// 修正後のコード
+// Fixed code
 ```
 
-### 理由
-[修正理由の説明]
+### Reason
+[Explanation of fix]
 
 ---
 
-修正を適用しますか？
+Apply fix?
 ```
 
-## 予防策
+## Prevention
 
-- [ ] 型を厳密に定義する
-- [ ] nullチェックを徹底する
-- [ ] エラーハンドリングを実装する
-- [ ] テストを書く
-- [ ] コードレビューを受ける
+- [ ] Define strict types
+- [ ] Always check for null
+- [ ] Implement error handling
+- [ ] Write tests
+- [ ] Get code review

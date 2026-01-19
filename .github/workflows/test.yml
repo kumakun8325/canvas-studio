@@ -1,0 +1,40 @@
+# Automated Test Execution
+#
+# Features:
+# - Runs tests on PR creation/update
+# - Runs tests on push to main
+# - Blocks merge on test failure (with Branch Protection)
+
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run lint
+      run: npm run lint
+      continue-on-error: true # Warning only initially
+      
+    - name: Run type check
+      run: npx tsc --noEmit
+      
+    - name: Run unit tests
+      run: npm test

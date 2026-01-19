@@ -1,75 +1,75 @@
 ---
 name: testing
-description: "テストコードを生成。Vitest + Testing Library / Jest / Playwright に対応。単体テスト・統合テストをAAAパターンで作成。"
+description: "Generate test code. Supports Vitest + Testing Library / Jest / Playwright. Creates unit/integration tests using AAA pattern."
 ---
 
-# テスト生成 スキル
+# Test Generation Skill
 
-## 使い方
-
-```
-このファイルのテストを書いてください: src/hooks/useAuth.ts
-```
-
-または
+## Usage
 
 ```
-このコンポーネントのテストを生成: src/components/Button.tsx
+Write tests for this file: src/hooks/useAuth.ts
 ```
 
-## 対応フレームワーク
+or
 
-| フレームワーク | 用途 | ファイル命名 |
-|---------------|------|-------------|
-| Vitest + RTL | React コンポーネント | `*.spec.tsx` |
-| Vitest | 関数・フック | `*.spec.ts` |
+```
+Generate tests for this component: src/components/Button.tsx
+```
+
+## Supported Frameworks
+
+| Framework | Use Case | File Naming |
+|-----------|----------|-------------|
+| Vitest + RTL | React components | `*.spec.tsx` |
+| Vitest | Functions/hooks | `*.spec.ts` |
 | Jest | Node.js | `*.test.ts` |
 | Playwright | E2E | `*.e2e.ts` |
 
-## 核心原則
+## Core Principles
 
-### 1. AAA パターン（Arrange-Act-Assert）
+### 1. AAA Pattern (Arrange-Act-Assert)
 
 ```typescript
 it('should disable button when loading', () => {
-  // Arrange: セットアップ
+  // Arrange: Setup
   render(<Button loading />)
   
-  // Act: アクション実行
+  // Act: Execute action
   const button = screen.getByRole('button')
   
-  // Assert: 検証
+  // Assert: Verify
   expect(button).toBeDisabled()
 })
 ```
 
-### 2. ブラックボックステスト
+### 2. Black Box Testing
 
-- 実装詳細ではなく、観察可能な動作をテスト
-- セマンティッククエリを使用（`getByRole`, `getByLabelText`）
-- 内部状態を直接テストしない
+- Test observable behavior, not implementation details
+- Use semantic queries (`getByRole`, `getByLabelText`)
+- Don't test internal state directly
 
 ```typescript
-// ❌ 悪い例: ハードコードされたテキスト
+// ❌ Bad: Hardcoded text
 expect(screen.getByText('Loading...')).toBeInTheDocument()
 
-// ✅ 良い例: ロールベース
+// ✅ Good: Role-based
 expect(screen.getByRole('status')).toBeInTheDocument()
 
-// ✅ 良い例: パターンマッチング
+// ✅ Good: Pattern matching
 expect(screen.getByText(/loading/i)).toBeInTheDocument()
 ```
 
-### 3. 1テスト1動作
+### 3. One Test, One Behavior
 
 ```typescript
-// ✅ 良い例: 1つの動作
+// ✅ Good: Single behavior
 it('should disable button when loading', () => {
   render(<Button loading />)
   expect(screen.getByRole('button')).toBeDisabled()
 })
 
-// ❌ 悪い例: 複数の動作
+// ❌ Bad: Multiple behaviors
 it('should handle loading state', () => {
   render(<Button loading />)
   expect(screen.getByRole('button')).toBeDisabled()
@@ -78,7 +78,7 @@ it('should handle loading state', () => {
 })
 ```
 
-### 4. セマンティックな命名
+### 4. Semantic Naming
 
 ```typescript
 it('should show error message when validation fails')
@@ -86,25 +86,23 @@ it('should call onSubmit when form is valid')
 it('should disable input when isReadOnly is true')
 ```
 
-## 必須テストシナリオ
+## Required Test Scenarios
 
-### 常に必要
+### Always Required
+- [ ] Initial rendering
+- [ ] User interaction (click, input)
+- [ ] Edge cases (empty, null, undefined)
+- [ ] Error states
 
-- [ ] 初期レンダリング
-- [ ] ユーザーインタラクション（クリック、入力）
-- [ ] エッジケース（空、null、undefined）
-- [ ] エラー状態
+### Conditional
+- [ ] Async operations (API calls)
+- [ ] Loading states
+- [ ] Form validation
+- [ ] Accessibility
 
-### 条件付き
+## Test Templates
 
-- [ ] 非同期処理（API呼び出し）
-- [ ] ローディング状態
-- [ ] フォームバリデーション
-- [ ] アクセシビリティ
-
-## テストテンプレート
-
-### React コンポーネント
+### React Component
 
 ```typescript
 import { render, screen } from '@testing-library/react'
@@ -113,14 +111,14 @@ import { describe, it, expect, vi } from 'vitest'
 import { ComponentName } from './ComponentName'
 
 describe('ComponentName', () => {
-  describe('初期レンダリング', () => {
+  describe('Initial Rendering', () => {
     it('should render correctly', () => {
       render(<ComponentName />)
       expect(screen.getByRole('...')).toBeInTheDocument()
     })
   })
 
-  describe('ユーザーインタラクション', () => {
+  describe('User Interaction', () => {
     it('should call onClick when button is clicked', async () => {
       const onClick = vi.fn()
       render(<ComponentName onClick={onClick} />)
@@ -131,7 +129,7 @@ describe('ComponentName', () => {
     })
   })
 
-  describe('エッジケース', () => {
+  describe('Edge Cases', () => {
     it('should handle empty data', () => {
       render(<ComponentName data={[]} />)
       expect(screen.getByText(/no data/i)).toBeInTheDocument()
@@ -140,7 +138,7 @@ describe('ComponentName', () => {
 })
 ```
 
-### カスタムフック
+### Custom Hook
 
 ```typescript
 import { renderHook, act } from '@testing-library/react'
@@ -165,10 +163,10 @@ describe('useCustomHook', () => {
 })
 ```
 
-## カバレッジ目標
+## Coverage Targets
 
-| カテゴリ | 目標 |
-|---------|------|
-| 行カバレッジ | 80%+ |
-| 分岐カバレッジ | 70%+ |
-| 関数カバレッジ | 90%+ |
+| Category | Target |
+|----------|--------|
+| Line coverage | 80%+ |
+| Branch coverage | 70%+ |
+| Function coverage | 90%+ |

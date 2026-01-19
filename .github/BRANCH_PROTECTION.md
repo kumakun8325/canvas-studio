@@ -1,36 +1,36 @@
-# Branch Protection ルール設定ガイド
+# Branch Protection Rules Setup Guide
 #
-# GitHub UIでの設定が必要です。
-# このファイルは設定手順のドキュメントです。
+# Configuration is done through GitHub UI.
+# This file documents the setup procedure.
 
-## 設定手順
+## Setup Procedure
 
-1. **リポジトリ Settings → Branches → Add branch protection rule**
+1. **Repository Settings → Branches → Add branch protection rule**
 
 2. **Branch name pattern**: `main`
 
-3. **以下をチェック**:
+3. **Check the following**:
 
    - [x] **Require a pull request before merging**
-     - [x] Require approvals (1以上を推奨)
+     - [x] Require approvals (1+ recommended)
      - [x] Dismiss stale pull request approvals when new commits are pushed
    
    - [x] **Require status checks to pass before merging**
      - [x] Require branches to be up to date before merging
      - Status checks to require:
        - `Analyze (javascript-typescript)` (CodeQL)
-       - `test` (テストがある場合)
-       - `build` (ビルドがある場合)
+       - `test` (if available)
+       - `build` (if available)
    
    - [x] **Require conversation resolution before merging**
    
    - [x] **Do not allow bypassing the above settings**
 
-4. **Create**をクリック
+4. Click **Create**
 
 ---
 
-## GitHub CLI での設定（オプション）
+## GitHub CLI Setup (Optional)
 
 ```bash
 gh api repos/{owner}/{repo}/branches/main/protection \
@@ -42,11 +42,11 @@ gh api repos/{owner}/{repo}/branches/main/protection \
 
 ---
 
-## 推奨ルール
+## Recommended Rules
 
-| 設定 | 推奨値 | 理由 |
-|------|--------|------|
-| Require approvals | 1 | 最低1人のレビュー |
-| Require status checks | ON | CI通過必須 |
-| Require up to date | ON | マージ前に最新化 |
-| Include administrators | ON | 例外なし |
+| Setting | Recommended | Reason |
+|---------|-------------|--------|
+| Require approvals | 1 | At least one review |
+| Require status checks | ON | CI must pass |
+| Require up to date | ON | Update before merge |
+| Include administrators | ON | No exceptions |

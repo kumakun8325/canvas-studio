@@ -1,9 +1,9 @@
-# CodeQL セキュリティスキャン
+# CodeQL Security Scan
 #
-# 機能:
-# - コードの脆弱性を自動検出
-# - PRごとにスキャン実行
-# - 問題があればAlertを作成
+# Features:
+# - Automatically detects code vulnerabilities
+# - Runs scan on each PR
+# - Creates alerts for issues found
 
 name: CodeQL Security Scan
 
@@ -13,7 +13,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # 毎週月曜日の朝9時（JST）に定期スキャン
+    # Weekly scan on Monday at 9AM JST
     - cron: '0 0 * * 1'
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         language: [javascript-typescript]
-        # 他の言語を使う場合は追加
+        # Add other languages as needed
         # language: [javascript-typescript, python]
 
     steps:
@@ -41,8 +41,6 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          # カスタムクエリを使用する場合
-          # queries: security-extended,security-and-quality
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3

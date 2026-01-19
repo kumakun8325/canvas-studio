@@ -1,42 +1,42 @@
 ---
 name: refactoring
-description: "コードのリファクタリングを提案・実行。関数分割、命名改善、重複排除など。"
+description: "Suggest and execute code refactoring. Function extraction, naming improvements, duplicate removal, etc."
 ---
 
-# リファクタリング スキル
+# Refactoring Skill
 
-## 使い方
-
-```
-このファイルをリファクタリングしてください: src/components/Dashboard.tsx
-```
-
-または
+## Usage
 
 ```
-この関数が長すぎるので分割してください: handleSubmit
+Refactor this file: src/components/Dashboard.tsx
 ```
 
-## リファクタリングパターン
+or
 
-### 1. 関数の抽出（Extract Function）
+```
+This function is too long, please split it: handleSubmit
+```
+
+## Refactoring Patterns
+
+### 1. Extract Function
 
 **Before:**
 ```typescript
 function processOrder(order: Order) {
-  // バリデーション（10行）
+  // Validation (10 lines)
   if (!order.items.length) throw new Error('Empty order')
   if (!order.customer) throw new Error('No customer')
   // ... more validation
   
-  // 計算（10行）
+  // Calculation (10 lines)
   let total = 0
   for (const item of order.items) {
     total += item.price * item.quantity
   }
   // ... more calculation
   
-  // 保存（10行）
+  // Save (10 lines)
   // ...
 }
 ```
@@ -54,7 +54,7 @@ function calculateTotal(order: Order): number { /* ... */ }
 async function saveOrder(order: Order, total: number) { /* ... */ }
 ```
 
-### 2. 早期リターン（Guard Clause）
+### 2. Guard Clause (Early Return)
 
 **Before:**
 ```typescript
@@ -84,7 +84,7 @@ function getDiscount(user: User) {
 }
 ```
 
-### 3. マジックナンバーの排除
+### 3. Eliminate Magic Numbers
 
 **Before:**
 ```typescript
@@ -101,7 +101,7 @@ if (status === STATUS_ACTIVE) { /* ... */ }
 if (retries > MAX_RETRIES) { /* ... */ }
 ```
 
-### 4. 重複コードの排除（DRY）
+### 4. Remove Duplicate Code (DRY)
 
 **Before:**
 ```typescript
@@ -130,60 +130,60 @@ const createUser = (data) => createEntity(data, validateUser)
 const createProduct = (data) => createEntity(data, validateProduct)
 ```
 
-### 5. 条件分岐の簡素化
+### 5. Simplify Conditionals
 
 **Before:**
 ```typescript
 let message
 if (status === 'success') {
-  message = '成功しました'
+  message = 'Success'
 } else if (status === 'error') {
-  message = 'エラーが発生しました'
+  message = 'An error occurred'
 } else if (status === 'pending') {
-  message = '処理中です'
+  message = 'Processing'
 } else {
-  message = '不明な状態です'
+  message = 'Unknown status'
 }
 ```
 
 **After:**
 ```typescript
 const messages: Record<string, string> = {
-  success: '成功しました',
-  error: 'エラーが発生しました',
-  pending: '処理中です',
+  success: 'Success',
+  error: 'An error occurred',
+  pending: 'Processing',
 }
-const message = messages[status] ?? '不明な状態です'
+const message = messages[status] ?? 'Unknown status'
 ```
 
-## リファクタリングチェックリスト
+## Refactoring Checklist
 
-- [ ] 関数は50行以下か
-- [ ] ネストは3レベル以下か
-- [ ] 関数のパラメータは4つ以下か
-- [ ] 重複コードはないか
-- [ ] 命名は意図を表しているか
-- [ ] マジックナンバーはないか
+- [ ] Functions are under 50 lines
+- [ ] Nesting is 3 levels or less
+- [ ] Function parameters are 4 or fewer
+- [ ] No duplicate code
+- [ ] Names express intent
+- [ ] No magic numbers
 
-## 出力フォーマット
+## Output Format
 
 ```
-# リファクタリング提案
+# Refactoring Proposal
 
-## 問題点
+## Issues Found
 
-1. `handleSubmit` 関数が80行で長すぎる
-2. ネストが4レベル
-3. 重複コードあり
+1. `handleSubmit` function is 80 lines - too long
+2. 4 levels of nesting
+3. Duplicate code found
 
-## 提案
+## Proposals
 
-### 1. 関数を3つに分割
-- `validateForm()` - バリデーション
-- `submitData()` - API呼び出し
-- `handleResponse()` - レスポンス処理
+### 1. Split function into 3
+- `validateForm()` - Validation
+- `submitData()` - API call
+- `handleResponse()` - Response handling
 
-### 2. 早期リターンでネスト削減
+### 2. Reduce nesting with early returns
 
-変更を適用しますか？
+Apply changes?
 ```

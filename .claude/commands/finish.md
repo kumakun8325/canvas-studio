@@ -6,87 +6,87 @@ model: inherit
 
 # /finish - Complete Implementation
 
-実装を完了し、Antigravityに検証を引き継ぐ。
+Complete implementation and hand off to Antigravity for verification.
 
-## 自動品質チェック
+## Automatic Quality Checks
 
-> **重要**: 以下のスキルを順番に自動実行する。問題があれば修正してから次へ進む。
+> **Important**: Execute the following skills in order. Fix issues before proceeding to next.
 
-### Step 1: コードレビュー（自動）
+### Step 1: Code Review (Auto)
 
-変更されたファイルに対して `code-review` スキルを実行：
-
-```
-変更されたファイルをレビューしてください
-```
-
-チェック項目：
-- [ ] 品質問題なし
-- [ ] パフォーマンス問題なし
-- [ ] セキュリティ問題なし
-
-**緊急の問題があれば修正してから次へ。**
-
-### Step 2: ドキュメント確認（自動）
-
-新規/変更した関数・クラスに `docstring` スキルを実行：
+Run `code-review` skill on changed files:
 
 ```
-新しく追加した関数にドキュメントを追加してください
+Review the changed files
 ```
 
-チェック項目：
-- [ ] 公開関数にJSDoc/docstringあり
-- [ ] パラメータと戻り値の説明あり
+Checklist:
+- [ ] No quality issues
+- [ ] No performance issues
+- [ ] No security issues
 
-### Step 3: テスト確認（自動）
+**Fix critical issues before proceeding.**
 
-テストがない場合、`testing` スキルを実行：
+### Step 2: Documentation Check (Auto)
+
+Run `docstring` skill on new/changed functions and classes:
 
 ```
-新しい機能のテストを生成してください
+Add documentation to newly added functions
 ```
 
-その後テストを実行：
+Checklist:
+- [ ] Public functions have JSDoc/docstring
+- [ ] Parameters and return values documented
+
+### Step 3: Test Check (Auto)
+
+If tests are missing, run `testing` skill:
+
+```
+Generate tests for new features
+```
+
+Then run tests:
 ```bash
 npm run test
 ```
 
-チェック項目：
-- [ ] テストが存在する
-- [ ] テストがパスする
+Checklist:
+- [ ] Tests exist
+- [ ] Tests pass
 
-### Step 4: リファクタリング確認（自動）
+### Step 4: Refactoring Check (Auto)
 
-長すぎる関数や重複コードがあれば `refactoring` スキルを実行：
+For long functions or duplicate code, run `refactoring` skill:
 
 ```
-このファイルをリファクタリングしてください
+Refactor this file
 ```
 
-チェック項目：
-- [ ] 関数は50行以下
-- [ ] 重複コードなし
+Checklist:
+- [ ] Functions are under 50 lines
+- [ ] No duplicate code
 
 ---
 
-## 手動チェック
+## Manual Checks
 
-### 5. ビルド確認
+### 5. Build Verification
 ```bash
 npm run lint
 npm run build
 ```
 
-### 6. タスクドキュメント更新
-`docs/task_XX.md` を編集：
-- 完了したステップに `[x]` をつける
+### 6. Update Task Document
+Edit `docs/task_XX.md`:
+- Mark completed steps with `[x]`
 
-### 7. ドキュメント更新（必要に応じて）
-- `docs/requirements.md` - 新しい要件IDを追加
-- `docs/design.md` - アーキテクチャ/型を更新
+### 7. Update Documentation (if needed)
+- `docs/requirements.md` - Add new requirement IDs
+- `docs/design.md` - Update architecture/types
 
-### 8. handoff.md 更新
+### 8. Update handoff.md
 
 ```markdown
 ## Current Task
@@ -95,72 +95,72 @@ npm run build
 
 ## Handoff: Claude → Antigravity
 ### Completed Work
-- [実装した内容]
+- [What was implemented]
 
 ### Changed Files
 - path/to/file1.ts
 - path/to/file2.ts
 
 ### Test Instructions
-1. `npm run dev` を実行
-2. http://localhost:5173/ を開く
-3. [テスト手順]
+1. Run `npm run dev`
+2. Open http://localhost:5173/
+3. [Test steps]
 
 ### Known Issues
-- [制限事項や既知の問題]
+- [Limitations or known issues]
 ```
 
-### 9. SESSION_LOG.md 更新
+### 9. Update SESSION_LOG.md
 
 ```markdown
 ## YYYY-MM-DD
 
 ### Completed
-- Task #XX: [説明]
+- Task #XX: [Description]
 
 ### Changed Files
 - file1.ts
 - file2.ts
 ```
 
-### 10. 動作確認
+### 10. Verify Functionality
 ```bash
 npm run dev
 ```
 
-### 11. コミット＆プッシュ
+### 11. Commit & Push
 ```bash
 git add .
 git commit -m "feat: Implement #XX - description"
 git push -u origin HEAD
 ```
 
-### 12. PR作成
+### 12. Create PR
 ```bash
 gh pr create --title "feat: description" --body "Closes #XX"
 ```
 
 ---
 
-## チェックリスト（最終確認）
+## Final Checklist
 
-### 自動スキル
-- [ ] code-review 実行済み
-- [ ] docstring 確認済み
-- [ ] testing 確認済み
-- [ ] refactoring 確認済み
+### Auto Skills
+- [ ] code-review executed
+- [ ] docstring verified
+- [ ] testing verified
+- [ ] refactoring verified
 
-### ビルド＆テスト
-- [ ] lint パス
-- [ ] build パス
-- [ ] test パス
+### Build & Test
+- [ ] lint passed
+- [ ] build passed
+- [ ] test passed
 
-### ドキュメント
-- [ ] タスクドキュメント更新
-- [ ] handoff.md 更新
-- [ ] SESSION_LOG.md 更新
+### Documentation
+- [ ] Task document updated
+- [ ] handoff.md updated
+- [ ] SESSION_LOG.md updated
 
-### 完了
-- [ ] 動作確認OK
-- [ ] コミット済み
-- [ ] PR作成済み
+### Completion
+- [ ] Functionality verified
+- [ ] Committed
+- [ ] PR created

@@ -1,205 +1,205 @@
 ---
-description: 仕様駆動開発（SDD）のワークフロー。requirements.md → design.md → tasks.md の流れでプロジェクトを進める
+description: Specification-Driven Development (SDD) workflow. Progress project via requirements.md → design.md → tasks.md flow
 ---
 
-# /sdd ワークフロー（仕様駆動開発）
+# /sdd Workflow (Specification-Driven Development)
 
-## 概要
-仕様駆動開発（Specification-Driven Development）は、以下の3つのドキュメントを軸にプロジェクトを進める手法です：
+## Overview
+Specification-Driven Development advances projects through three key documents:
 
-1. **requirements.md** - 要件定義（何を作るか / Why）
-2. **design.md** - 設計書（どう作るか / How）
-3. **tasks.md** - タスク管理（進捗管理）
+1. **requirements.md** - Requirements definition (What / Why)
+2. **design.md** - Design document (How)
+3. **tasks.md** - Task management (Progress tracking)
 
-### SDDの核心思想
-- **仕様がSSoT（唯一の正しい情報源）**: すべての実装は仕様に基づく
-- **仕様は対話から生まれる**: 深掘り質問で隠れた要件を引き出す
-- **仕様は実行可能**: AIが理解できる構造化されたフォーマット
-- **仕様は検証可能**: テストコードで準拠性を確認
-- **仕様はガードレール**: AIの暴走を防ぐ
+### SDD Core Philosophy
+- **Specs are SSoT (Single Source of Truth)**: All implementation is based on specs
+- **Specs emerge from dialogue**: Deep questions reveal hidden requirements
+- **Specs are executable**: Structured format AI can understand
+- **Specs are verifiable**: Compliance verified through tests
+- **Specs are guardrails**: Prevent AI from going off track
 
-参考:
-- SDD基礎: https://zenn.dev/beagle/articles/fd60745bc54de1
-- 対話的ヒアリング: https://zenn.dev/kenfdev/articles/ba5507f7532418
-
----
-
-## ワークフロー
-
-### Phase 1: プロジェクト初期化（/sdd init）
-1. プロジェクトディレクトリを確認
-2. 以下のファイルを作成：
-   - `requirements.md` - 要件定義テンプレート
-   - `design.md` - 設計書テンプレート
-   - `tasks.md` - タスク管理テンプレート
-   - `test-spec.md` - テスト仕様書テンプレート（新規追加）
-3. ユーザーに「requirements.md を編集してプロジェクトの目的・要件を記入してください」と案内
-
-### Phase 1.5: 対話的ヒアリング（/sdd interview）【新規追加】
-初期仕様を深掘りし、隠れた要件・制約・前提を明確化するフェーズ：
-1. `requirements.md` の初期版を読み込む（簡潔な仕様でも可）
-2. 以下の観点から深掘り質問を生成：
-   - **技術実装**: アーキテクチャ、技術スタック、パフォーマンス要件
-   - **UI/UX**: ユーザー体験、アクセシビリティ、レスポンシブ対応
-   - **懸念点**: セキュリティ、プライバシー、スケーラビリティ
-   - **トレードオフ**: 開発速度 vs 品質、シンプルさ vs 機能性
-   - **ビジネス**: 収益モデル、ターゲットユーザー、競合分析
-3. 表面的・自明な質問は除外し、本質的な質問のみを抽出（15〜40個程度）
-4. `notify_user` で質問リストをカテゴリ別に提示
-5. ユーザーの回答を元に `requirements.md` を更新
-6. 不明点が残っていれば追加質問を実施（継続的インタビュー）
-7. すべての前提・要件・意思決定の背景が明確になったら Phase 2 へ
-
-### Phase 2: 要件定義（/sdd req）
-1. `requirements.md` を読み込む
-2. ユーザーの入力を元に要件を整理・追記
-3. 機能要件・非機能要件を明確化
-4. **受け入れ基準（Acceptance Criteria）を明記**
-5. 要件が確定したら「design.md の作成に進みますか？」と確認
-
-### Phase 3: 設計（/sdd design）
-1. `requirements.md` を参照
-2. `design.md` を読み込む
-3. 要件に基づいてアーキテクチャ・技術選定・構造を設計
-4. **テスト戦略を定義（単体テスト/統合テスト/E2Eテストの範囲）**
-5. 設計が確定したら「tasks.md のタスク分解に進みますか？」と確認
-
-### Phase 4: タスク分解（/sdd tasks）
-1. `requirements.md` と `design.md` を参照
-2. `tasks.md` を読み込む
-3. 設計を実装タスクに分解
-4. **各タスクにテストタスクを含める**
-5. 各タスクに優先度・依存関係を設定
-6. 「最初に着手するタスクを選んでください」と案内
-
-### Phase 5: 実装（/sdd impl）
-1. `tasks.md` から次のタスクを取得
-2. `design.md` を参照しながら実装
-3. **実装と同時にテストコードも作成**
-4. 実装完了後、`tasks.md` を更新
-5. 「次のタスクに進みますか？」と確認
-
-### Phase 6: 状態確認（/sdd status）
-1. `requirements.md`, `design.md`, `tasks.md` を読み込む
-2. 進捗サマリーを表示：
-   - 要件の充足状況
-   - 設計の完成度
-   - タスクの完了率
-   - **テストカバレッジ状況**
-3. 次のアクションを提案
-
-### Phase 7: 仕様同期（/sdd sync）
-コードを直接変更した場合に、仕様との同期を取るフェーズ：
-1. 変更されたコードを確認
-2. 影響を受ける仕様ドキュメントを特定
-3. 仕様を更新し、変更理由を明記
-4. テスト仕様も同期して更新
-
-### Phase 8: 仕様レビュー（/sdd review）【新規追加】
-外部で作成した仕様（スマホでメモしたアイデアなど）を評価するフェーズ：
-1. `requirements.md` または入力テキストを読み込む
-2. 以下の観点から妥当性を評価：
-   - **技術的実現可能性**: 選定技術で実装可能か
-   - **スコープの明確さ**: 曖昧な要件がないか
-   - **整合性**: 矛盾する要件がないか
-   - **リスク**: セキュリティ、パフォーマンス、スケーラビリティ
-   - **抜け漏れ**: 見落としている要件がないか
-3. 評価結果を出力：
-   - ✅ 良い点
-   - ⚠️ 改善提案
-   - ❓ 追加で確認が必要な点
-4. 必要に応じて `requirements.md` を更新
-
-### Phase 9: クイックスタート（/sdd kickstart）【新規追加】
-interview → req → design を連続実行するショートカット：
-1. `/sdd interview` を実行 → ユーザー確認
-2. `/sdd req` を実行 → ユーザー確認
-3. `/sdd design` を実行 → ユーザー確認
-4. 全フェーズ完了後、`/plan` への移行を提案
-
-> **Note**: 各フェーズ間でユーザー確認を挟むため、
-> 完全自動ではなく「ガイド付き連続実行」となる
+References:
+- SDD Basics: https://zenn.dev/beagle/articles/fd60745bc54de1
+- Interactive Interviews: https://zenn.dev/kenfdev/articles/ba5507f7532418
 
 ---
 
-## コマンド一覧
+## Workflow
 
-| コマンド | 説明 |
-|---------|------|
-| `/sdd init` | プロジェクト初期化（テンプレート作成） |
-| `/sdd interview` | 対話的ヒアリング（深掘り質問） |
-| `/sdd req` | 要件定義の編集・確認 |
-| `/sdd design` | 設計書の編集・確認 |
-| `/sdd tasks` | タスク分解・更新 |
-| `/sdd impl` | 次のタスクを実装 |
-| `/sdd status` | 進捗状況の確認 |
-| `/sdd sync` | 仕様とコードの同期確認 |
-| `/sdd review` | **既存仕様の妥当性評価** |
-| `/sdd kickstart` | **interview→req→designを連続実行** |
+### Phase 1: Project Initialization (/sdd init)
+1. Verify project directory
+2. Create the following files:
+   - `requirements.md` - Requirements template
+   - `design.md` - Design template
+   - `tasks.md` - Task management template
+   - `test-spec.md` - Test spec template
+3. Prompt user to "Edit requirements.md and fill in project goals/requirements"
+
+### Phase 1.5: Interactive Interview (/sdd interview)
+Deep-dive into initial specs to clarify hidden requirements, constraints, and assumptions:
+1. Load initial `requirements.md` (brief specs are OK)
+2. Generate deep questions from these perspectives:
+   - **Technical**: Architecture, tech stack, performance requirements
+   - **UI/UX**: User experience, accessibility, responsive design
+   - **Concerns**: Security, privacy, scalability
+   - **Trade-offs**: Dev speed vs quality, simplicity vs features
+   - **Business**: Revenue model, target users, competitive analysis
+3. Exclude surface-level/obvious questions, extract essential ones only (15-40 questions)
+4. Present question list by category via `notify_user`
+5. Update `requirements.md` based on user answers
+6. Ask follow-up questions if unclear points remain
+7. Proceed to Phase 2 when all assumptions/requirements/decisions are clear
+
+### Phase 2: Requirements Definition (/sdd req)
+1. Load `requirements.md`
+2. Organize and add requirements based on user input
+3. Clarify functional and non-functional requirements
+4. **Specify acceptance criteria**
+5. Confirm "Proceed to design.md creation?"
+
+### Phase 3: Design (/sdd design)
+1. Reference `requirements.md`
+2. Load `design.md`
+3. Design architecture, tech choices, and structure based on requirements
+4. **Define test strategy (unit/integration/E2E scope)**
+5. Confirm "Proceed to tasks.md decomposition?"
+
+### Phase 4: Task Breakdown (/sdd tasks)
+1. Reference `requirements.md` and `design.md`
+2. Load `tasks.md`
+3. Decompose design into implementation tasks
+4. **Include test tasks for each item**
+5. Set priority and dependencies for each task
+6. Prompt "Choose the first task to start"
+
+### Phase 5: Implementation (/sdd impl)
+1. Get next task from `tasks.md`
+2. Implement while referencing `design.md`
+3. **Create test code alongside implementation**
+4. Update `tasks.md` after completion
+5. Confirm "Proceed to next task?"
+
+### Phase 6: Status Check (/sdd status)
+1. Load `requirements.md`, `design.md`, `tasks.md`
+2. Display progress summary:
+   - Requirements fulfillment status
+   - Design completeness
+   - Task completion rate
+   - **Test coverage status**
+3. Suggest next actions
+
+### Phase 7: Spec Sync (/sdd sync)
+When code was directly modified, sync with specs:
+1. Check changed code
+2. Identify affected spec documents
+3. Update specs and note change reasons
+4. Sync test specs as well
+
+### Phase 8: Spec Review (/sdd review)
+Evaluate externally created specs (phone notes, etc.):
+1. Load `requirements.md` or input text
+2. Evaluate from these perspectives:
+   - **Technical feasibility**: Can selected tech implement this?
+   - **Scope clarity**: Any ambiguous requirements?
+   - **Consistency**: Any contradicting requirements?
+   - **Risks**: Security, performance, scalability
+   - **Gaps**: Any overlooked requirements?
+3. Output evaluation results:
+   - ✅ Good points
+   - ⚠️ Improvement suggestions
+   - ❓ Points needing clarification
+4. Update `requirements.md` as needed
+
+### Phase 9: Kickstart (/sdd kickstart)
+Shortcut to run interview → req → design in sequence:
+1. Run `/sdd interview` → User confirmation
+2. Run `/sdd req` → User confirmation
+3. Run `/sdd design` → User confirmation
+4. After all phases complete, suggest transition to `/plan`
+
+> **Note**: User confirmation is required between phases,
+> so this is "guided sequential execution" not fully automatic
 
 ---
 
-## ファイル構成
+## Command Reference
+
+| Command | Description |
+|---------|-------------|
+| `/sdd init` | Project initialization (create templates) |
+| `/sdd interview` | Interactive interview (deep questions) |
+| `/sdd req` | Edit/verify requirements |
+| `/sdd design` | Edit/verify design document |
+| `/sdd tasks` | Task breakdown/updates |
+| `/sdd impl` | Implement next task |
+| `/sdd status` | Check progress status |
+| `/sdd sync` | Sync specs with code |
+| `/sdd review` | **Evaluate existing spec validity** |
+| `/sdd kickstart` | **Run interview→req→design sequentially** |
+
+---
+
+## File Structure
 
 ```
 project/
 ├── docs/
-│   ├── requirements.md   # 要件定義（SSoT）
-│   ├── design.md         # 設計書
-│   ├── tasks.md          # タスク管理
-│   └── test-spec.md      # テスト仕様書
-├── src/                  # ソースコード
-└── tests/                # テストコード
+│   ├── requirements.md   # Requirements (SSoT)
+│   ├── design.md         # Design document
+│   ├── tasks.md          # Task management
+│   └── test-spec.md      # Test spec
+├── src/                  # Source code
+└── tests/                # Test code
 ```
 
 ---
 
-## 双方向同期ルール
+## Bidirectional Sync Rules
 
-### 基本原則
-- **仕様 → コード** が原則（コードは仕様を表現したもの）
-- コードを直接変更した場合は、必ず仕様に反映
+### Basic Principles
+- **Specs → Code** is the default (code expresses specs)
+- When code is directly modified, always reflect in specs
 
-### コード直接変更時のフロー
-1. 変更理由を記録（緊急バグ修正など）
-2. `/sdd sync` を実行
-3. 影響を受ける仕様を更新
-4. テストを更新・実行
+### Flow When Code is Directly Modified
+1. Record change reason (emergency bug fix, etc.)
+2. Run `/sdd sync`
+3. Update affected specs
+4. Update and run tests
 
-### 禁止事項
-- 仕様を更新せずにコードだけ変更して放置する
-- 仕様とコードの乖離を放置する
+### Prohibited Actions
+- Changing code without updating specs
+- Leaving spec-code divergence unaddressed
 
 ---
 
-## テスト仕様の書き方
+## How to Write Test Specs
 
 ```markdown
-## テストケース: [機能名]
+## Test Case: [Feature Name]
 
-### 正常系
-| ID | 入力 | 期待結果 |
-|----|------|----------|
-| TC-001 | [入力] | [期待結果] |
+### Normal Cases
+| ID | Input | Expected Result |
+|----|-------|-----------------|
+| TC-001 | [Input] | [Expected result] |
 
-### 異常系
-| ID | 入力 | 期待結果 |
-|----|------|----------|
-| TC-002 | [不正な入力] | [エラーメッセージ] |
+### Error Cases
+| ID | Input | Expected Result |
+|----|-------|-----------------|
+| TC-002 | [Invalid input] | [Error message] |
 
-### 受け入れ基準
-- [ ] [基準1]
-- [ ] [基準2]
+### Acceptance Criteria
+- [ ] [Criterion 1]
+- [ ] [Criterion 2]
 ```
 
 ---
 
-## 注意事項
+## Notes
 
-- 各フェーズで前のドキュメントを必ず参照すること
-- 要件変更があれば requirements.md を更新し、影響範囲を確認
-- タスク完了時は必ず tasks.md を更新
-- **仕様とコードの同期を常に維持すること**
-- **テストは仕様の一部として扱うこと**
+- Always reference previous documents at each phase
+- If requirements change, update requirements.md and verify impact
+- Always update tasks.md when task completes
+- **Always maintain spec-code sync**
+- **Treat tests as part of specs**
 
 // turbo-all

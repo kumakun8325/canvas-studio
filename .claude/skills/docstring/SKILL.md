@@ -1,43 +1,43 @@
 ---
 name: docstring
-description: "関数・クラス・モジュールにドキュメント（docstring/JSDoc/TSDoc）を自動生成。"
+description: "Auto-generate documentation (docstring/JSDoc/TSDoc) for functions, classes, and modules."
 ---
 
-# ドキュメント生成 スキル
+# Documentation Generation Skill
 
-## 使い方
-
-```
-このファイルにドキュメントを追加してください: src/utils/helpers.ts
-```
-
-または
+## Usage
 
 ```
-この関数のJSDocを書いてください: calculateTotal
+Add documentation to this file: src/utils/helpers.ts
 ```
 
-## 対応フォーマット
+or
 
-| 言語 | フォーマット | 例 |
-|------|-------------|-----|
+```
+Write JSDoc for this function: calculateTotal
+```
+
+## Supported Formats
+
+| Language | Format | Example |
+|----------|--------|---------|
 | TypeScript | TSDoc/JSDoc | `/** @param ... */` |
 | JavaScript | JSDoc | `/** @param ... */` |
 | Python | Google/NumPy docstring | `"""..."""` |
 | Rust | rustdoc | `/// ...` |
 
-## TSDoc/JSDoc テンプレート
+## TSDoc/JSDoc Templates
 
-### 関数
+### Function
 
 ```typescript
 /**
- * 合計金額を計算する
+ * Calculate total amount
  * 
- * @param items - 商品リスト
- * @param taxRate - 税率（デフォルト: 0.1）
- * @returns 税込み合計金額
- * @throws {Error} itemsが空の場合
+ * @param items - List of items
+ * @param taxRate - Tax rate (default: 0.1)
+ * @returns Total amount including tax
+ * @throws {Error} When items is empty
  * 
  * @example
  * ```typescript
@@ -50,11 +50,11 @@ function calculateTotal(items: Item[], taxRate = 0.1): number {
 }
 ```
 
-### クラス
+### Class
 
 ```typescript
 /**
- * ユーザー認証を管理するサービス
+ * Service for managing user authentication
  * 
  * @example
  * ```typescript
@@ -64,12 +64,12 @@ function calculateTotal(items: Item[], taxRate = 0.1): number {
  */
 class AuthService {
   /**
-   * ユーザーをログインさせる
+   * Log in a user
    * 
-   * @param email - メールアドレス
-   * @param password - パスワード
-   * @returns 認証トークン
-   * @throws {AuthError} 認証失敗時
+   * @param email - Email address
+   * @param password - Password
+   * @returns Authentication token
+   * @throws {AuthError} On authentication failure
    */
   async login(email: string, password: string): Promise<string> {
     // ...
@@ -77,21 +77,21 @@ class AuthService {
 }
 ```
 
-### React コンポーネント
+### React Component
 
 ```typescript
 /**
- * ボタンコンポーネント
+ * Button component
  * 
- * @param props - コンポーネントのプロパティ
- * @param props.variant - ボタンのスタイル（'primary' | 'secondary'）
- * @param props.disabled - 無効状態
- * @param props.onClick - クリックハンドラ
+ * @param props - Component properties
+ * @param props.variant - Button style ('primary' | 'secondary')
+ * @param props.disabled - Disabled state
+ * @param props.onClick - Click handler
  * 
  * @example
  * ```tsx
  * <Button variant="primary" onClick={() => console.log('clicked')}>
- *   送信
+ *   Submit
  * </Button>
  * ```
  */
@@ -100,21 +100,21 @@ export function Button({ variant, disabled, onClick, children }: ButtonProps) {
 }
 ```
 
-## Python docstring テンプレート（Google Style）
+## Python docstring Template (Google Style)
 
 ```python
 def calculate_total(items: list[Item], tax_rate: float = 0.1) -> float:
-    """合計金額を計算する
+    """Calculate total amount
 
     Args:
-        items: 商品リスト
-        tax_rate: 税率（デフォルト: 0.1）
+        items: List of items
+        tax_rate: Tax rate (default: 0.1)
 
     Returns:
-        税込み合計金額
+        Total amount including tax
 
     Raises:
-        ValueError: itemsが空の場合
+        ValueError: When items is empty
 
     Example:
         >>> calculate_total([Item(price=100), Item(price=200)])
@@ -123,25 +123,25 @@ def calculate_total(items: list[Item], tax_rate: float = 0.1) -> float:
     pass
 ```
 
-## ドキュメント生成ルール
+## Documentation Rules
 
-1. **何をするか**を最初の1行で説明
-2. **パラメータ**の型と説明を記載
-3. **戻り値**の型と説明を記載
-4. **例外**がある場合は記載
-5. **使用例**を含める（複雑な場合）
+1. **What it does** in the first line
+2. **Parameters** with type and description
+3. **Return value** with type and description
+4. **Exceptions** if any
+5. **Usage example** (for complex cases)
 
-## 出力フォーマット
+## Output Format
 
 ```
-# ドキュメント追加
+# Documentation Added
 
-以下のファイルにドキュメントを追加しました:
+Added documentation to the following file:
 
-## 変更内容
+## Changes
 
-- `functionA`: パラメータと戻り値のドキュメントを追加
-- `ClassB`: クラスと全メソッドのドキュメントを追加
+- `functionA`: Added parameter and return value docs
+- `ClassB`: Added class and all method docs
 
-変更を適用しますか？
+Apply changes?
 ```

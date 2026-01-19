@@ -1,95 +1,95 @@
 ---
 name: code-review
-description: "コードレビューを実行。ファイルパスを指定して品質・パフォーマンス・セキュリティをチェック。"
+description: "Run code review. Check quality, performance, and security of specified file."
 ---
 
-# コードレビュー スキル
+# Code Review Skill
 
-## 使い方
-
-```
-このファイルをレビューしてください: src/components/Button.tsx
-```
-
-または
+## Usage
 
 ```
-変更をレビューしてください（git diff）
+Review this file: src/components/Button.tsx
 ```
 
-## レビュー観点
-
-### 1. コード品質
-- [ ] 関数が単一責任原則に従っているか
-- [ ] 適切な命名（変数、関数、クラス）
-- [ ] マジックナンバーがないか
-- [ ] 重複コードがないか
-- [ ] エラーハンドリングが適切か
-
-### 2. パフォーマンス
-- [ ] 不要な再レンダリングがないか（React）
-- [ ] メモ化が適切か（useMemo, useCallback）
-- [ ] 重い計算がメインスレッドをブロックしていないか
-- [ ] 適切なデータ構造を使用しているか
-
-### 3. セキュリティ
-- [ ] XSS脆弱性がないか
-- [ ] SQLインジェクションの可能性がないか
-- [ ] 機密情報がハードコードされていないか
-- [ ] 適切な入力バリデーションがあるか
-
-### 4. 保守性
-- [ ] テストが書きやすい構造か
-- [ ] ドキュメント/コメントが適切か
-- [ ] 依存関係が明確か
-
-## 出力フォーマット
-
-### Template A（問題あり）
+or
 
 ```
-# コードレビュー
+Review the changes (git diff)
+```
 
-## 🚨 緊急の問題（N件）
+## Review Criteria
 
-### 1. [問題の概要]
-ファイル: `path/to/file.ts` 行 XX
+### 1. Code Quality
+- [ ] Functions follow single responsibility principle
+- [ ] Appropriate naming (variables, functions, classes)
+- [ ] No magic numbers
+- [ ] No duplicate code
+- [ ] Proper error handling
+
+### 2. Performance
+- [ ] No unnecessary re-renders (React)
+- [ ] Proper memoization (useMemo, useCallback)
+- [ ] No heavy computation blocking main thread
+- [ ] Using appropriate data structures
+
+### 3. Security
+- [ ] No XSS vulnerabilities
+- [ ] No SQL injection risks
+- [ ] No hardcoded sensitive data
+- [ ] Proper input validation
+
+### 4. Maintainability
+- [ ] Testable structure
+- [ ] Adequate documentation/comments
+- [ ] Clear dependencies
+
+## Output Format
+
+### Template A (Issues Found)
+
+```
+# Code Review
+
+## 🚨 Critical Issues (N items)
+
+### 1. [Issue Summary]
+File: `path/to/file.ts` Line XX
 ```code
-問題のあるコード
+Problematic code
 ```
 
-**修正案:**
+**Fix:**
 ```code
-修正後のコード
+Fixed code
 ```
 
 ---
 
-## 💡 改善提案（M件）
+## 💡 Suggestions (M items)
 
-### 1. [提案の概要]
-ファイル: `path/to/file.ts` 行 XX
+### 1. [Suggestion Summary]
+File: `path/to/file.ts` Line XX
 
-**提案:**
-[改善内容]
+**Suggestion:**
+[Improvement details]
 
 ---
 
-修正を適用しますか？
+Apply fixes?
 ```
 
-### Template B（問題なし）
+### Template B (No Issues)
 
 ```
-# コードレビュー
+# Code Review
 
-✅ 問題は見つかりませんでした。
+✅ No issues found.
 ```
 
-## レビュープロセス
+## Review Process
 
-1. 対象ファイルを開く
-2. 各チェック項目を確認
-3. 問題を緊急度別に分類
-4. 修正案を提示
-5. ユーザーに確認
+1. Open target file
+2. Check each criteria
+3. Classify issues by severity
+4. Provide fix suggestions
+5. Confirm with user

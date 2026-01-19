@@ -1,12 +1,12 @@
-# 自動コードレビュー (Claude Code)
+# Auto Code Review (Claude Code)
 #
-# 機能:
-# - PR作成時にClaude Codeが自動でコードレビュー
-# - code-reviewスキルを使用
-# - レビュー結果をPRにコメント
+# Features:
+# - Automatically runs Claude Code review on PR creation
+# - Uses code-review skill
+# - Posts review results as PR comment
 #
-# 設定:
-# - ANTHROPIC_API_KEY または ZAI_API_KEY を設定
+# Configuration:
+# - Set ANTHROPIC_API_KEY or ZAI_API_KEY
 
 name: Auto Code Review
 
@@ -16,7 +16,7 @@ on:
 
 jobs:
   claude-review:
-    # ドラフトPRは除外
+    # Skip draft PRs
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     
@@ -48,16 +48,15 @@ jobs:
         if: steps.changed.outputs.files != ''
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # GLM API を使用する場合
+          # For GLM API:
           # ANTHROPIC_API_KEY: ${{ secrets.ZAI_API_KEY }}
           # ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
-          echo "変更されたファイルをレビューしています..."
+          echo "Reviewing changed files..."
           
-          # code-review スキルを使用してレビュー
-          claude --print "以下のファイルをレビューしてください。品質、パフォーマンス、セキュリティの観点でチェックしてください: ${{ steps.changed.outputs.files }}" > review_output.txt 2>&1 || true
+          # Use code-review skill
+          claude --print "Review the following files for quality, performance, and security: ${{ steps.changed.outputs.files }}" > review_output.txt 2>&1 || true
           
-          # 結果を保存
           echo "::group::Review Output"
           cat review_output.txt
           echo "::endgroup::"
@@ -70,10 +69,10 @@ jobs:
           body: |
             ## 🤖 Claude Code Review
             
-            変更されたファイル: `${{ steps.changed.outputs.files }}`
+            Changed files: `${{ steps.changed.outputs.files }}`
             
             <details>
-            <summary>レビュー結果</summary>
+            <summary>Review Results</summary>
             
             ```
             $(cat review_output.txt | head -100)
@@ -86,4 +85,4 @@ jobs:
       
       - name: No files to review
         if: steps.changed.outputs.files == ''
-        run: echo "レビュー対象のファイルがありません"
+        run: echo "No files to review"

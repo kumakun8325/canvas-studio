@@ -1,9 +1,9 @@
-# 自動リリース作成
+# Auto Release
 #
-# 機能:
-# - mainへのマージ時に自動でリリースを作成
-# - Conventional Commitsからバージョンを決定
-# - CHANGELOGを自動生成
+# Features:
+# - Automatically creates releases on merge to main
+# - Determines version from Conventional Commits
+# - Auto-generates CHANGELOG
 
 name: Release Automation
 
@@ -28,12 +28,10 @@ jobs:
       - name: Create Release
         uses: googleapis/release-please-action@v4
         with:
-          # リリースタイプ（node, python, go など）
+          # Release type (node, python, go, etc.)
           release-type: node
-          # パッケージ名（package.jsonから自動取得）
-          # package-name: your-package-name
           
-          # Conventional Commitsのプレフィックス
+          # Conventional Commits prefixes:
           # feat: → minor version
           # fix: → patch version
           # BREAKING CHANGE: → major version
