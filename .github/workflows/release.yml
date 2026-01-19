@@ -1,0 +1,39 @@
+# 自動リリース作成
+#
+# 機能:
+# - mainへのマージ時に自動でリリースを作成
+# - Conventional Commitsからバージョンを決定
+# - CHANGELOGを自動生成
+
+name: Release Automation
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Release
+        uses: googleapis/release-please-action@v4
+        with:
+          # リリースタイプ（node, python, go など）
+          release-type: node
+          # パッケージ名（package.jsonから自動取得）
+          # package-name: your-package-name
+          
+          # Conventional Commitsのプレフィックス
+          # feat: → minor version
+          # fix: → patch version
+          # BREAKING CHANGE: → major version

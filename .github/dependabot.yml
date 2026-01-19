@@ -1,0 +1,44 @@
+# Dependabot 設定
+# 依存関係の自動更新を管理します
+#
+# 機能:
+# - npm/yarn パッケージの更新を監視
+# - セキュリティ脆弱性を検出
+# - 自動でPRを作成
+
+version: 2
+updates:
+  # npm/yarn の依存関係
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps)"
+    # セキュリティアップデートは即時
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions の更新
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "ci"
+      - "automated"
+    commit-message:
+      prefix: "ci(deps)"

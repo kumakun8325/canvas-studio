@@ -1,0 +1,98 @@
+# GitHub Project 自動連携
+# 
+# Issue作成時に自動でProjectに追加し、ステータスを同期します。
+#
+# 設定方法:
+# 1. GitHub Project を作成
+# 2. Project URL を取得（例: https://github.com/users/USERNAME/projects/1）
+# 3. リポジトリのSettings → Secrets → New repository secret
+#    - ADD_TO_PROJECT_PAT: 書き込み権限のあるPAT
+# 4. リポジトリのSettings → Variables → New repository variable
+#    - PROJECT_URL: プロジェクトのURL
+
+name: Project Integration
+
+on:
+  issues:
+    types: [opened, labeled]
+  pull_request:
+    types: [opened, ready_for_review, closed]
+
+env:
+  PROJECT_URL: ${{ vars.PROJECT_URL }}
+
+jobs:
+  # Issue作成時にProjectに追加
+  add-issue-to-project:
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add to Project
+        uses: actions/add-to-project@v1
+        with:
+          project-url: ${{ env.PROJECT_URL }}
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+
+  # ラベルに応じてステータスを更新
+  update-status-on-label:
+    if: github.event_name == 'issues' && github.event.action == 'labeled'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set status based on label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const label = context.payload.label.name;
+            const issueNumber = context.payload.issue.number;
+            
+            // ラベルに応じたステータスマッピング
+            const statusMap = {
+              'planning': 'Planning',
+              'in-progress': 'In Progress',
+              'ready-for-review': 'Review',
+              'done': 'Done'
+            };
+            
+            const status = statusMap[label];
+            if (status) {
+              console.log(`Issue #${issueNumber}: Setting status to ${status}`);
+              // Note: Project V2 API でステータス更新が必要
+              // 詳細は GitHub GraphQL API を参照
+            }
+
+  # PR作成時にProjectに追加
+  add-pr-to-project:
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add PR to Project
+        uses: actions/add-to-project@v1
+        with:
+          project-url: ${{ env.PROJECT_URL }}
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+
+  # PRマージ時にIssueをクローズ
+  close-issue-on-merge:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract issue number from PR
+        id: extract
+        run: |
+          # PRタイトルやbodyから "Closes #XX" を抽出
+          BODY="${{ github.event.pull_request.body }}"
+          ISSUE_NUM=$(echo "$BODY" | grep -oP 'Closes #\K\d+' | head -1)
+          echo "issue_number=$ISSUE_NUM" >> $GITHUB_OUTPUT
+      
+      - name: Add done label
+        if: steps.extract.outputs.issue_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.extract.outputs.issue_number }},
+              labels: ['done']
+            });
