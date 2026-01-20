@@ -1,83 +1,101 @@
 # Handoff Document
 
 ## Current Task
-**Status**: `READY_FOR_VERIFY`
-**Assigned To**: Antigravity
-**Task Document**: [task_01.md](./task_01.md)
+**Status**: `READY_FOR_CLAUDE`
+**Assigned To**: Claude Code (Multiple Workers)
 
 ---
 
-## Handoff: Antigravity → Claude
+## Parallel Tasks Available
 
-### Task Summary
-Initialize canvas-studio project with Vite + React + TypeScript and install all dependencies.
-
-### What to Do
-1. Read `docs/task_01.md` for detailed step-by-step instructions
-2. Execute each command in order
-3. Verify setup with build and test commands
-4. Mark checklist items as complete
-
-### Key Files to Create
-- `vite.config.ts` - Vite configuration with Tailwind
-- `vitest.config.ts` - Test configuration
-- `src/types/index.ts` - Type definitions
-- `src/types/fabric.d.ts` - Fabric.js type extensions
-- `src/test/setup.ts` - Test setup
-
-### Expected Outcome
-- Dev server runs at http://localhost:5173
-- `npm run build` passes
-- `npm run test:run` passes
-- Directory structure matches design.md
-
-### Notes
-- Use exact package versions specified in task_01.md
-- Tailwind CSS v4 uses new `@import "tailwindcss"` syntax
-- Fabric.js 6.x has new API, use version 6.5.4
+| Task | Worker | Branch | Dependencies |
+|------|--------|--------|--------------|
+| [task_02.md](./task_02.md) | Worker 1 | `feature/task-02-canvas` | None |
+| [task_03.md](./task_03.md) | Worker 2 | `feature/task-03-slides` | Uses slideStore from Task 02 |
+| [task_04.md](./task_04.md) | Worker 3 | `feature/task-04-undo` | Integrates with useCanvas from Task 02 |
 
 ---
 
-## Handoff: Claude → Antigravity
+## Recommended Execution Order
 
-### Completed Work
-- Vite + React + TypeScript project initialized
-- All dependencies installed (React 19, Tailwind CSS v4, Vitest, Fabric.js 6.5.4, Zustand, Firebase, pdf-lib)
-- ESLint 9.x configuration created with typescript-eslint
-- Tailwind CSS v4 configured with @import syntax
-- Vitest configured with jsdom environment and @testing-library/jest-dom
-- Complete directory structure created (components, hooks, stores, services, types, lib, pages, constants, test)
-- Type definitions created (Slide, Project, EditorState, ToolType, ExportOptions, HistoryAction, TemplateConfig)
-- Fabric.js type extensions added for custom `id` property
+### Option A: Sequential (Safer)
+```
+Task 02 → Merge → Task 03 + Task 04 (parallel) → Merge
+```
 
-### Changed Files
-- package.json - Project dependencies and scripts
-- vite.config.ts - Vite configuration with Tailwind CSS plugin
-- vitest.config.ts - Vitest configuration with Tailwind CSS plugin
-- tsconfig.json, tsconfig.app.json, tsconfig.node.json - TypeScript configuration
-- eslint.config.js - ESLint 9.x flat config (newly created)
-- src/index.css - Tailwind CSS v4 import
-- src/main.tsx - React entry point
-- src/App.tsx - Demo app with Tailwind classes
-- src/types/index.ts - Core type definitions
-- src/types/fabric.d.ts - Fabric.js module augmentation
-- src/test/setup.ts - Vitest setup with jest-dom
-- index.html - HTML entry point
-- docs/task_01.md - Completion checklist updated
+### Option B: Parallel with Coordination
+All three workers start simultaneously:
+- Worker 1: Task 02 (full implementation, will have store conflicts to resolve)
+- Worker 2: Task 03 (creates slide components, imports stores)
+- Worker 3: Task 04 (creates history system, toolbar integration)
 
-### Test Instructions
-1. Run `npm run dev` - Dev server should start at http://localhost:5173
-2. Run `npm run build` - Build should complete without errors
-3. Run `npm run lint` - ESLint should pass
-4. Run `npm run test:run` - Vitest should run (no test files yet, but setup is working)
+**Note**: Task 03 and 04 depend on stores from Task 02. If running in parallel:
+- Each worker creates their own branch
+- Worker 1 (Task 02) merges first
+- Workers 2 and 3 rebase on main after Task 02 merges
 
-### Known Issues
-- **npm audit**: 2 high-severity vulnerabilities in transitive dependency `tar` (via @mapbox/node-pre-gyp). This is a known issue with some native modules and affects build-time dependencies only. The fix requires upstream package updates.
+---
+
+## Worker Instructions
+
+### Worker 1 (Task 02: Canvas)
+```
+/start 02
+```
+Create branch: `feature/task-02-canvas`
+
+### Worker 2 (Task 03: Slides)
+```
+/start 03
+```
+Create branch: `feature/task-03-slides`
+
+### Worker 3 (Task 04: Undo/Redo)
+```
+/start 04
+```
+Create branch: `feature/task-04-undo`
 
 ---
 
 ## After Completion
-Run `/verify` to:
-1. Review changes
-2. Verify build/test
-3. Approve for merge
+
+Each worker runs `/finish` which:
+1. Runs code-review
+2. Verifies build/lint
+3. Commits and pushes
+4. Creates PR
+
+Antigravity will:
+1. Review PRs
+2. Merge in order (02 → 03 → 04)
+3. Resolve any conflicts
+
+---
+
+## Task Summaries
+
+### Task 02: Basic Canvas
+- Zustand stores (editorStore, slideStore)
+- useCanvas hook with Fabric.js
+- CanvasView component
+- Toolbar component
+- Editor page
+
+### Task 03: Slide Management
+- SlideThumb component
+- SlideList component with drag reorder
+- Slide add/delete/switch
+
+### Task 04: Undo/Redo
+- historyStore with undo/redo stacks
+- useHistory hook with Ctrl+Z/Y
+- UndoRedoButtons component
+- Toolbar integration
+
+---
+
+## Notes
+- Use exact code from task documents
+- Follow module structure in design.md
+- Test manually before /finish
