@@ -1,9 +1,9 @@
 # Claude Code GitHub Actions Integration
-# 
+#
 # Trigger methods:
 # 1. @claude mention in Issue/PR comments
 # 2. Label 'claude-auto' or 'claude-tdd' on Issue
-# 
+#
 # Setup:
 # 1. Repository Settings → Secrets and variables → Actions
 # 2. Add the following Secrets:
@@ -28,33 +28,33 @@ jobs:
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'issues' && github.event.action == 'opened' && contains(github.event.issue.body, '@claude')) ||
-      (github.event_name == 'issues' && github.event.action == 'labeled' && 
+      (github.event_name == 'issues' && github.event.action == 'labeled' &&
        (github.event.label.name == 'claude-auto' || github.event.label.name == 'claude-tdd'))
-    
+
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
       issues: write
       pull-requests: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install dependencies
         run: npm ci || npm install
-      
+
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
-      
+
       - name: Determine execution mode
         id: mode
         run: |
@@ -68,7 +68,7 @@ jobs:
             echo "mode=auto" >> $GITHUB_OUTPUT
           fi
           echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-      
+
       - name: Extract task
         id: extract
         env:
@@ -78,45 +78,45 @@ jobs:
         run: |
           # Remove @claude mention from body
           CLEAN_BODY=$(echo "$ISSUE_BODY" | sed 's/@claude//g')
-          
+
           # Write task to file to avoid shell escaping issues
           {
             echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
             echo ""
             echo "${CLEAN_BODY}"
           } > task_prompt.txt
-          
+
           echo "task_file=task_prompt.txt" >> $GITHUB_OUTPUT
-      
+
       - name: Create branch
         run: |
           BRANCH_NAME="claude/issue-${{ steps.mode.outputs.issue_number }}"
-          
+
           # Delete remote branch if it exists (cleanup from previous runs)
           git push origin --delete $BRANCH_NAME 2>/dev/null || true
-          
+
           # Delete local branch if it exists
           git branch -D $BRANCH_NAME 2>/dev/null || true
-          
+
           # Create fresh branch
           git checkout -b $BRANCH_NAME
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
-      
+
       - name: Comment on issue (started)
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ steps.mode.outputs.issue_number }}
           body: |
             🤖 **Claude Code has started**
-            
+
             **Mode**: ${{ steps.mode.outputs.mode == 'tdd' && '🧪 TDD (Test-Driven Development)' || '🤖 Auto Implementation' }}
             **Branch**: `${{ env.branch_name }}`
-            
+
             Working on this issue...
-            
+
             ---
             [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-      
+
       - name: Run Claude Code (TDD Mode)
         if: steps.mode.outputs.mode == 'tdd'
         env:
@@ -136,12 +136,13 @@ jobs:
             echo "3. Refactor while keeping tests green (REFACTOR)"
             echo "4. Ensure 80%+ test coverage"
           } > tdd_prompt.txt
-          
-          claude --print "$(cat tdd_prompt.txt)" > claude_response.txt 2>&1 || true
-          
+
+
+          claude --dangerously-skip-permissions --print "$(cat tdd_prompt.txt)" > claude_response.txt 2>&1 || true
+
           echo "## 🧪 Claude TDD Response" >> $GITHUB_STEP_SUMMARY
           cat claude_response.txt >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Run Claude Code (Auto Mode)
         if: steps.mode.outputs.mode == 'auto'
         env:
@@ -149,34 +150,34 @@ jobs:
           # For GLM API, uncomment the following:
           ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
-          claude --print "$(cat task_prompt.txt)" > claude_response.txt 2>&1 || true
-          
+          claude --dangerously-skip-permissions --print "$(cat task_prompt.txt)" > claude_response.txt 2>&1 || true
+
           echo "## 🤖 Claude Response" >> $GITHUB_STEP_SUMMARY
           cat claude_response.txt >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Run tests
         continue-on-error: true
         run: |
           npm test 2>&1 | tee test_results.txt || true
-          
+
           echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
           cat test_results.txt >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Check coverage
         if: steps.mode.outputs.mode == 'tdd'
         continue-on-error: true
         run: |
           npm run test:coverage 2>&1 | tee coverage_results.txt || true
-          
+
           echo "## 📊 Coverage Report" >> $GITHUB_STEP_SUMMARY
           cat coverage_results.txt >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Commit changes
         id: commit
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           if [ -n "$(git status --porcelain)" ]; then
             git add .
             if [ "${{ steps.mode.outputs.mode }}" == "tdd" ]; then
@@ -193,7 +194,7 @@ jobs:
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Create Pull Request
         if: steps.commit.outputs.has_changes == 'true'
         env:
@@ -212,7 +213,7 @@ jobs:
             MODE_TEXT="🤖 **Auto Implementation** by Claude Code"
             LABEL_ARGS="--label claude-auto"
           fi
-          
+
           # Create PR body file
           {
             echo "## Summary"
@@ -236,7 +237,7 @@ jobs:
             echo ""
             echo "> 🤖 Auto-generated by [Claude Code GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           } > pr_body.txt
-          
+
           # Create PR
           gh pr create \
             --title "$TITLE" \
@@ -244,7 +245,7 @@ jobs:
             --base main \
             --head "$BRANCH_NAME" \
             $LABEL_ARGS
-      
+
       - name: Comment on issue (completed)
         if: steps.commit.outputs.has_changes == 'true'
         uses: peter-evans/create-or-update-comment@v4
@@ -252,16 +253,16 @@ jobs:
           issue-number: ${{ steps.mode.outputs.issue_number }}
           body: |
             ✅ **Claude Code has completed**
-            
+
             **Mode**: ${{ steps.mode.outputs.mode == 'tdd' && '🧪 TDD' || '🤖 Auto' }}
             **Branch**: `${{ env.branch_name }}`
             **Status**: PR created
-            
+
             Please review the Pull Request.
-            
+
             ---
             [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-      
+
       - name: Comment on issue (no changes)
         if: steps.commit.outputs.has_changes == 'false'
         uses: peter-evans/create-or-update-comment@v4
@@ -269,13 +270,13 @@ jobs:
           issue-number: ${{ steps.mode.outputs.issue_number }}
           body: |
             ⚠️ **Claude Code completed without changes**
-            
+
             No code changes were made. This could mean:
             - The feature already exists
             - The task requires clarification
             - There was an error during execution
-            
+
             Please check the Actions log for details.
-            
+
             ---
             [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
