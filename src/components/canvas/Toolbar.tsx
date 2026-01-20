@@ -1,13 +1,9 @@
+import { useCanvas } from '../../hooks/useCanvas'
 import { useEditorStore } from '../../stores/editorStore'
 import type { ToolType } from '../../types'
 
-interface ToolbarProps {
-  onAddRect: () => void
-  onAddCircle: () => void
-  onAddText: () => void
-}
-
-export function Toolbar({ onAddRect, onAddCircle, onAddText }: ToolbarProps) {
+export function Toolbar() {
+  const { addRect, addCircle, addText } = useCanvas('main-canvas')
   const { activeTool, setActiveTool } = useEditorStore()
 
   const tools: { id: ToolType; label: string; icon: string }[] = [
@@ -19,9 +15,9 @@ export function Toolbar({ onAddRect, onAddCircle, onAddText }: ToolbarProps) {
 
   const handleToolClick = (tool: ToolType) => {
     setActiveTool(tool)
-    if (tool === 'rect') onAddRect()
-    if (tool === 'circle') onAddCircle()
-    if (tool === 'text') onAddText()
+    if (tool === 'rect') addRect()
+    if (tool === 'circle') addCircle()
+    if (tool === 'text') addText()
   }
 
   return (
