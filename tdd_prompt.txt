@@ -1,0 +1,18 @@
+/tdd
+
+Issue #21: [CLAUDE-TDD] add関数の実装
+
+## Feature Description
+
+2つの数値を足し合わせる \dd(a, b)\ 関数を \src/utils/math.ts\ に実装してください。
+
+## Acceptance Criteria
+
+- \dd(1, 2)\ は \3\ を返す
+- \dd(-1, 1)\ は \
+
+Requirements:
+1. Write failing tests first (RED)
+2. Implement minimal code to pass (GREEN)
+3. Refactor while keeping tests green (REFACTOR)
+4. Ensure 80%+ test coverage
