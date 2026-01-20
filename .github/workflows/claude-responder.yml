@@ -158,19 +158,23 @@ jobs:
       - name: Run tests
         continue-on-error: true
         run: |
-          npm test 2>&1 | tee test_results.txt || true
+          npm test -- --no-color 2>&1 | tee test_results.txt || true
 
           echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           cat test_results.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Check coverage
         if: steps.mode.outputs.mode == 'tdd'
         continue-on-error: true
         run: |
-          npm run test:coverage 2>&1 | tee coverage_results.txt || true
+          npm run test:coverage -- --no-color 2>&1 | tee coverage_results.txt || true
 
           echo "## 📊 Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           cat coverage_results.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Commit changes
         id: commit
