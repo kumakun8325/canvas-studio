@@ -1,6 +1,8 @@
 # Claude Code GitHub Actions Integration
 # 
-# Mention @claude in Issue or PR comments to trigger automatic Claude Code response.
+# Trigger methods:
+# 1. @claude mention in Issue/PR comments
+# 2. Label 'claude-auto' or 'claude-tdd' on Issue
 # 
 # Setup:
 # 1. Repository Settings → Secrets and variables → Actions
@@ -17,15 +19,17 @@ on:
   pull_request_review_comment:
     types: [created]
   issues:
-    types: [opened]
+    types: [opened, labeled]
 
 jobs:
   claude-response:
-    # Only run if @claude is mentioned
+    # Run if @claude mentioned OR claude-auto/claude-tdd label added
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
+      (github.event_name == 'issues' && github.event.action == 'opened' && contains(github.event.issue.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.action == 'labeled' && 
+       (github.event.label.name == 'claude-auto' || github.event.label.name == 'claude-tdd'))
     
     runs-on: ubuntu-latest
     
@@ -45,89 +49,203 @@ jobs:
         with:
           node-version: '20'
       
+      - name: Install dependencies
+        run: npm ci || npm install
+      
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
       
-      - name: Extract task from comment/issue
+      - name: Determine execution mode
+        id: mode
+        run: |
+          if [ "${{ github.event.action }}" == "labeled" ]; then
+            if [ "${{ github.event.label.name }}" == "claude-tdd" ]; then
+              echo "mode=tdd" >> $GITHUB_OUTPUT
+            else
+              echo "mode=auto" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "mode=auto" >> $GITHUB_OUTPUT
+          fi
+          echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+      
+      - name: Extract task
         id: extract
         run: |
-          if [ "${{ github.event_name }}" == "issues" ]; then
-            TASK="${{ github.event.issue.body }}"
-            ISSUE_NUMBER="${{ github.event.issue.number }}"
-          else
-            TASK="${{ github.event.comment.body }}"
-            ISSUE_NUMBER="${{ github.event.issue.number }}"
-          fi
+          TITLE="${{ github.event.issue.title }}"
+          BODY="${{ github.event.issue.body }}"
           
           # Remove @claude mention
-          TASK=$(echo "$TASK" | sed 's/@claude//g')
+          BODY=$(echo "$BODY" | sed 's/@claude//g')
+          
+          # Combine title and body for context
+          TASK="Issue #${{ github.event.issue.number }}: $TITLE
+
+          $BODY"
           
           echo "task<<EOF" >> $GITHUB_OUTPUT
           echo "$TASK" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
       
       - name: Create branch
         run: |
-          BRANCH_NAME="claude/issue-${{ steps.extract.outputs.issue_number }}"
+          BRANCH_NAME="claude/issue-${{ steps.mode.outputs.issue_number }}"
           git checkout -b $BRANCH_NAME || git checkout $BRANCH_NAME
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
       
-      - name: Run Claude Code
+      - name: Comment on issue (started)
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ steps.mode.outputs.issue_number }}
+          body: |
+            🤖 **Claude Code has started**
+            
+            **Mode**: ${{ steps.mode.outputs.mode == 'tdd' && '🧪 TDD (Test-Driven Development)' || '🤖 Auto Implementation' }}
+            **Branch**: `${{ env.branch_name }}`
+            
+            Working on this issue...
+            
+            ---
+            [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+      
+      - name: Run Claude Code (TDD Mode)
+        if: steps.mode.outputs.mode == 'tdd'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # For GLM API, set the following:
+          # For GLM API, uncomment the following:
           # ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
-          # Run Claude Code in non-interactive mode
-          claude --print "${{ steps.extract.outputs.task }}" > claude_response.txt 2>&1 || true
+          # TDD モードでは /tdd コマンドを使用
+          PROMPT="/tdd 
+
+          ${{ steps.extract.outputs.task }}
           
-          # Save results
-          echo "Claude Response:" >> $GITHUB_STEP_SUMMARY
+          Requirements:
+          1. Write failing tests first (RED)
+          2. Implement minimal code to pass (GREEN)
+          3. Refactor while keeping tests green (REFACTOR)
+          4. Ensure 80%+ test coverage"
+          
+          claude --print "$PROMPT" > claude_response.txt 2>&1 || true
+          
+          echo "## 🧪 Claude TDD Response" >> $GITHUB_STEP_SUMMARY
           cat claude_response.txt >> $GITHUB_STEP_SUMMARY
       
+      - name: Run Claude Code (Auto Mode)
+        if: steps.mode.outputs.mode == 'auto'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # For GLM API, uncomment the following:
+          # ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
+        run: |
+          claude --print "${{ steps.extract.outputs.task }}" > claude_response.txt 2>&1 || true
+          
+          echo "## 🤖 Claude Response" >> $GITHUB_STEP_SUMMARY
+          cat claude_response.txt >> $GITHUB_STEP_SUMMARY
+      
+      - name: Run tests
+        continue-on-error: true
+        run: |
+          npm test 2>&1 | tee test_results.txt || true
+          
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          cat test_results.txt >> $GITHUB_STEP_SUMMARY
+      
+      - name: Check coverage
+        if: steps.mode.outputs.mode == 'tdd'
+        continue-on-error: true
+        run: |
+          npm run test:coverage 2>&1 | tee coverage_results.txt || true
+          
+          echo "## 📊 Coverage Report" >> $GITHUB_STEP_SUMMARY
+          cat coverage_results.txt >> $GITHUB_STEP_SUMMARY
+      
       - name: Commit changes
+        id: commit
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
           if [ -n "$(git status --porcelain)" ]; then
             git add .
-            git commit -m "feat: Claude implementation for #${{ steps.extract.outputs.issue_number }}"
+            if [ "${{ steps.mode.outputs.mode }}" == "tdd" ]; then
+              git commit -m "feat(tdd): Implementation for #${{ steps.mode.outputs.issue_number }}
+
+              - Tests written first (TDD)
+              - Implementation follows tests
+              - Refactored for quality"
+            else
+              git commit -m "feat: Implementation for #${{ steps.mode.outputs.issue_number }}"
+            fi
             git push origin ${{ env.branch_name }}
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
       
       - name: Create Pull Request
-        if: success()
+        if: steps.commit.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.branch_name }}
-          title: "feat: Claude implementation for #${{ steps.extract.outputs.issue_number }}"
+          title: "${{ steps.mode.outputs.mode == 'tdd' && '🧪' || '🤖' }} Implementation for #${{ steps.mode.outputs.issue_number }}"
           body: |
             ## Summary
-            Auto-implementation by Claude Code for Issue #${{ steps.extract.outputs.issue_number }}.
+            
+            ${{ steps.mode.outputs.mode == 'tdd' && '🧪 **TDD Implementation** - Tests written before code' || '🤖 **Auto Implementation** by Claude Code' }}
+            
+            Closes #${{ steps.mode.outputs.issue_number }}
             
             ## Task
+            
             ${{ steps.extract.outputs.task }}
             
-            ## Claude Response
-            See Actions Log for details.
+            ## Checklist
+            
+            - [ ] Tests pass
+            - [ ] Coverage meets requirements (80%+)
+            - [ ] Code review completed
+            - [ ] Documentation updated (if needed)
             
             ---
-            🤖 Auto-generated by Claude Code GitHub Actions
-          labels: claude-auto
+            
+            > 🤖 Auto-generated by [Claude Code GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          labels: |
+            claude-auto
+            ${{ steps.mode.outputs.mode == 'tdd' && 'tdd' || '' }}
       
-      - name: Comment on issue
+      - name: Comment on issue (completed)
+        if: steps.commit.outputs.has_changes == 'true'
         uses: peter-evans/create-or-update-comment@v4
         with:
-          issue-number: ${{ steps.extract.outputs.issue_number }}
+          issue-number: ${{ steps.mode.outputs.issue_number }}
           body: |
-            🤖 **Claude Code has responded**
+            ✅ **Claude Code has completed**
             
-            Started work on branch `${{ env.branch_name }}`.
+            **Mode**: ${{ steps.mode.outputs.mode == 'tdd' && '🧪 TDD' || '🤖 Auto' }}
+            **Branch**: `${{ env.branch_name }}`
+            **Status**: PR created
             
-            A PR will be created automatically when complete.
+            Please review the Pull Request.
             
             ---
-            Actions: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+      
+      - name: Comment on issue (no changes)
+        if: steps.commit.outputs.has_changes == 'false'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ steps.mode.outputs.issue_number }}
+          body: |
+            ⚠️ **Claude Code completed without changes**
+            
+            No code changes were made. This could mean:
+            - The feature already exists
+            - The task requires clarification
+            - There was an error during execution
+            
+            Please check the Actions log for details.
+            
+            ---
+            [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

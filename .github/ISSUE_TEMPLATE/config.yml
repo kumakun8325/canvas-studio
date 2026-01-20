@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/kumakun8325/canvas-studio#readme
+    about: Check the documentation before creating an issue
