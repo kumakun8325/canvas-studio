@@ -122,7 +122,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # For GLM API, uncomment the following:
-          # ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
           # Create TDD prompt from task file
           {
@@ -147,7 +147,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # For GLM API, uncomment the following:
-          # ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
           claude --print "$(cat task_prompt.txt)" > claude_response.txt 2>&1 || true
           
