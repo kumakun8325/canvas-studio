@@ -71,21 +71,22 @@ jobs:
       
       - name: Extract task
         id: extract
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
-          TITLE="${{ github.event.issue.title }}"
-          BODY="${{ github.event.issue.body }}"
+          # Remove @claude mention from body
+          CLEAN_BODY=$(echo "$ISSUE_BODY" | sed 's/@claude//g')
           
-          # Remove @claude mention
-          BODY=$(echo "$BODY" | sed 's/@claude//g')
-          
-          # Combine title and body for context
-          TASK="Issue #${{ github.event.issue.number }}: $TITLE
-
-          $BODY"
-          
-          echo "task<<EOF" >> $GITHUB_OUTPUT
-          echo "$TASK" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Write task to output using delimiter to handle special characters
+          {
+            echo "task<<TASK_EOF"
+            echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+            echo ""
+            echo "${CLEAN_BODY}"
+            echo "TASK_EOF"
+          } >> $GITHUB_OUTPUT
       
       - name: Create branch
         run: |
