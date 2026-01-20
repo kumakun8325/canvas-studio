@@ -260,7 +260,7 @@ jobs:
             --body-file pr_body.txt \
             --base main \
             --head "$BRANCH_NAME" \
-            $LABEL_ARGS
+            $LABEL_ARGS || echo "PR likely already exists, skipping creation."
 
       - name: Comment on issue (completed)
         if: steps.commit.outputs.has_changes == 'true'
