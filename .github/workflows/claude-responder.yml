@@ -79,14 +79,14 @@ jobs:
           # Remove @claude mention from body
           CLEAN_BODY=$(echo "$ISSUE_BODY" | sed 's/@claude//g')
           
-          # Write task to output using delimiter to handle special characters
+          # Write task to file to avoid shell escaping issues
           {
-            echo "task<<TASK_EOF"
             echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
             echo ""
             echo "${CLEAN_BODY}"
-            echo "TASK_EOF"
-          } >> $GITHUB_OUTPUT
+          } > task_prompt.txt
+          
+          echo "task_file=task_prompt.txt" >> $GITHUB_OUTPUT
       
       - name: Create branch
         run: |
@@ -116,18 +116,20 @@ jobs:
           # For GLM API, uncomment the following:
           # ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
-          # TDD モードでは /tdd コマンドを使用
-          PROMPT="/tdd 
-
-          ${{ steps.extract.outputs.task }}
+          # Create TDD prompt from task file
+          {
+            echo "/tdd"
+            echo ""
+            cat task_prompt.txt
+            echo ""
+            echo "Requirements:"
+            echo "1. Write failing tests first (RED)"
+            echo "2. Implement minimal code to pass (GREEN)"
+            echo "3. Refactor while keeping tests green (REFACTOR)"
+            echo "4. Ensure 80%+ test coverage"
+          } > tdd_prompt.txt
           
-          Requirements:
-          1. Write failing tests first (RED)
-          2. Implement minimal code to pass (GREEN)
-          3. Refactor while keeping tests green (REFACTOR)
-          4. Ensure 80%+ test coverage"
-          
-          claude --print "$PROMPT" > claude_response.txt 2>&1 || true
+          claude --print "$(cat tdd_prompt.txt)" > claude_response.txt 2>&1 || true
           
           echo "## 🧪 Claude TDD Response" >> $GITHUB_STEP_SUMMARY
           cat claude_response.txt >> $GITHUB_STEP_SUMMARY
@@ -139,7 +141,7 @@ jobs:
           # For GLM API, uncomment the following:
           # ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
-          claude --print "${{ steps.extract.outputs.task }}" > claude_response.txt 2>&1 || true
+          claude --print "$(cat task_prompt.txt)" > claude_response.txt 2>&1 || true
           
           echo "## 🤖 Claude Response" >> $GITHUB_STEP_SUMMARY
           cat claude_response.txt >> $GITHUB_STEP_SUMMARY
