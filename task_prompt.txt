@@ -1,0 +1,18 @@
+Issue #23: feat: Basic Canvas Implementation (Task 02)
+
+
+
+**Objective**: 詳細なタスク定義書 task 02 に基づき、基本的なキャンバス機能を実装してください。
+
+**Reference**: docs/task_02.md 
+
+**Tasks**:
+- [ ] src/stores/editorStore.ts の実装
+- [ ] src/stores/slideStore.ts の実装
+- [ ] src/hooks/useCanvas.ts の実装
+- [ ] src/components/canvas/CanvasView.tsx の実装
+- [ ] src/components/canvas/Toolbar.tsx の実装
+- [ ] src/pages/Editor.tsx の実装
+- [ ] src/App.tsx の更新
+
+docs/task_02.md に記載されている実装詳細に従ってください。
