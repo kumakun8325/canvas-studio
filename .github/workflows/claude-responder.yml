@@ -101,7 +101,7 @@ jobs:
           if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
             echo "Branch $BRANCH_NAME exists remotely. Checking out..."
             git fetch origin $BRANCH_NAME
-            git checkout -B $BRANCH_NAME origin/$BRANCH_NAME
+            git checkout -B $BRANCH_NAME FETCH_HEAD
           else
             echo "Creating new branch $BRANCH_NAME..."
             git checkout -b $BRANCH_NAME
