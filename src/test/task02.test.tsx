@@ -16,9 +16,9 @@ describe("Editor Store", () => {
   it("should change active tool", () => {
     const { setActiveTool } = useEditorStore.getState();
     act(() => {
-      setActiveTool("rectangle");
+      setActiveTool("rect");
     });
-    expect(useEditorStore.getState().activeTool).toBe("rectangle");
+    expect(useEditorStore.getState().activeTool).toBe("rect");
   });
 
   it("should update zoom level", () => {
