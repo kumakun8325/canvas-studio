@@ -47,7 +47,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: npm ci || npm install
@@ -84,6 +84,8 @@ jobs:
             echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
             echo ""
             echo "${CLEAN_BODY}"
+            echo ""
+            echo "IMPORTANT: Please think in English, but output all explanations, comments, and PR descriptions in Japanese."
           } > task_prompt.txt
 
           echo "task_file=task_prompt.txt" >> $GITHUB_OUTPUT
@@ -135,6 +137,8 @@ jobs:
             echo "2. Implement minimal code to pass (GREEN)"
             echo "3. Refactor while keeping tests green (REFACTOR)"
             echo "4. Ensure 80%+ test coverage"
+            echo ""
+            echo "IMPORTANT: Please think in English, but output all explanations, comments, and PR descriptions in Japanese."
           } > tdd_prompt.txt
 
 
