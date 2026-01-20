@@ -85,7 +85,9 @@ jobs:
             echo ""
             echo "${CLEAN_BODY}"
             echo ""
-            echo "IMPORTANT: Please think in English, but output all explanations, comments, and PR descriptions in Japanese."
+            echo "IMPORTANT Guidelines:"
+            echo "1. Think in English, but output all explanations, comments, and PR descriptions in Japanese."
+            echo "2. Perform a self-review of your code before finishing. Check for potential bugs and type errors."
           } > task_prompt.txt
 
           echo "task_file=task_prompt.txt" >> $GITHUB_OUTPUT
@@ -138,7 +140,9 @@ jobs:
             echo "3. Refactor while keeping tests green (REFACTOR)"
             echo "4. Ensure 80%+ test coverage"
             echo ""
-            echo "IMPORTANT: Please think in English, but output all explanations, comments, and PR descriptions in Japanese."
+            echo "IMPORTANT Guidelines:"
+            echo "1. Think in English, but output all explanations, comments, and PR descriptions in Japanese."
+            echo "2. Perform a self-review of your code before finishing. Check for potential bugs and type errors."
           } > tdd_prompt.txt
 
 
