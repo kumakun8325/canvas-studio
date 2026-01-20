@@ -87,23 +87,26 @@ jobs:
             echo ""
             echo "IMPORTANT Guidelines:"
             echo "1. Think in English, but output all explanations, comments, and PR descriptions in Japanese."
-            echo "2. Perform a self-review of your code before finishing. Check for potential bugs and type errors."
+            echo "2. Load and read the skill defined in `.claude/skills/code-review/SKILL.md` to review your code."
+            echo "3. Perform a self-review using the above skill before finishing."
           } > task_prompt.txt
 
           echo "task_file=task_prompt.txt" >> $GITHUB_OUTPUT
 
-      - name: Create branch
+      - name: Checkout or Create branch
         run: |
           BRANCH_NAME="claude/issue-${{ steps.mode.outputs.issue_number }}"
 
-          # Delete remote branch if it exists (cleanup from previous runs)
-          git push origin --delete $BRANCH_NAME 2>/dev/null || true
+          # Check if remote branch exists
+          if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
+            echo "Branch $BRANCH_NAME exists remotely. Checking out..."
+            git fetch origin $BRANCH_NAME
+            git checkout -B $BRANCH_NAME origin/$BRANCH_NAME
+          else
+            echo "Creating new branch $BRANCH_NAME..."
+            git checkout -b $BRANCH_NAME
+          fi
 
-          # Delete local branch if it exists
-          git branch -D $BRANCH_NAME 2>/dev/null || true
-
-          # Create fresh branch
-          git checkout -b $BRANCH_NAME
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Comment on issue (started)
@@ -142,7 +145,8 @@ jobs:
             echo ""
             echo "IMPORTANT Guidelines:"
             echo "1. Think in English, but output all explanations, comments, and PR descriptions in Japanese."
-            echo "2. Perform a self-review of your code before finishing. Check for potential bugs and type errors."
+            echo "2. Load and read the skill defined in `.claude/skills/code-review/SKILL.md` to review your code."
+            echo "3. Perform a self-review using the above skill before finishing."
           } > tdd_prompt.txt
 
 
