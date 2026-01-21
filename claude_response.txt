@@ -1,30 +1,53 @@
-## 実装完了
+## コードレビュー結果
 
-Task 04のアンドゥ/リドゥシステムの実装が完了しました。
+✅ **すべてのファイルで問題は見つかりませんでした。**
 
-### 作成・変更したファイル
+---
 
-| ファイル | アクション | 説明 |
-|---------|----------|------|
-| `src/stores/historyStore.ts` | 新規作成 | 履歴スタック管理のZustandストア |
-| `src/hooks/useHistory.ts` | 新規作成 | キーボードショートカット（Ctrl+Z/Ctrl+Y）とアクション記録のフック |
-| `src/components/ui/UndoRedoButtons.tsx` | 新規作成 | 元に戻す/やり直しボタンコンポーネント |
-| `src/components/canvas/Toolbar.tsx` | 変更 | ツールバーにアンドゥ/リドゥボタンを追加 |
-| `src/components/canvas/CanvasView.tsx` | 変更 | 未使用のfabricインポートを削除（lintエラー修正） |
+## 実装完了状況
 
-### 実装内容
+### 作成されたファイル:
 
-1. **HistoryStore** - undo/redoスタックを管理し、最大50件の履歴を保持
-2. **useHistory Hook** - キーボードショートカット（Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z）を実装
-3. **UndoRedoButtons** - ツールバーに配置される元に戻す/やり直しボタン
-4. **Toolbar更新** - アンドゥ/リドゥ機能をツールバーに統合
+| ファイル | ステータス |
+|---------|----------|
+| `src/components/slides/SlideThumb.tsx` | ✅ 完了 |
+| `src/components/slides/SlideList.tsx` | ✅ 完了 |
+| `src/pages/Editor.tsx` | ✅ 更新済み |
 
-### 検証結果
+### 機能:
 
-- ✅ ビルド成功 (dist/485.32 kB)
-- ✅ Lintパス（エラーなし）
-- ✅ TypeScript型チェックパス
+| 機能 | ステータス |
+|------|----------|
+| スライド追加 | ✅ 実装済み |
+| スライド削除 | ✅ 実装済み |
+| スライド選択 | ✅ 実装済み |
+| ドラッグ＆ドロップでの並べ替え | ✅ 実装済み |
 
-### 次のステップ
+### 検証:
 
-この実装でインフラストラクチャが整いました。次のタスクでは、`useCanvas.ts`内のキャンバス操作（オブジェクトの追加、移動、削除など）から`recordAction`を呼び出して、実際にアンドゥ/リドゥが機能するようにします。
+| 検証項目 | ステータス |
+|---------|----------|
+| ビルド (`npm run build`) | ✅ 通過 |
+| Lint (`npm run lint`) | ✅ 通過 |
+
+---
+
+## 機能の詳細説明
+
+### SlideThumb コンポーネント (`src/components/slides/SlideThumb.tsx`)
+- スライド番号を左上に表示
+- サムネイル画像またはプレースホルダーを表示
+- アクティブなスライドには青い枠を表示
+- ホバー時に削除ボタン（×）を表示
+
+### SlideList コンポーネント (`src/components/slides/SlideList.tsx`)
+- `useCallback` でパフォーマンス最適化
+- 最後の1枚は削除不可（エッジケース処理）
+- 現在のスライドを削除する場合、隣のスライドを自動選択
+- HTML5 ドラッグ＆ドロップ API で並べ替え
+
+### Editor ページ (`src/pages/Editor.tsx`)
+- `SlideList` をレイアウトに統合
+- 初期スライドの自動選択
+
+実装は完了しており、すべての要件を満たしています。

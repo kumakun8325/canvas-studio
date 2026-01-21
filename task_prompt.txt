@@ -1,19 +1,18 @@
-Issue #26: feat: Undo/Redo System (Task 04)
+Issue #25: feat: Slide Management (Task 03)
 
 
 
-**Objective**: Implement undo/redo functionality with history stack management.
+**Objective**: Implement slide list sidebar with thumbnails, add/delete/reorder functionality.
 
-**Reference**: \docs/task_04.md\
+**Reference**: \docs/task_03.md\
 
 **Tasks**:
-- [ ] Create \src/stores/historyStore.ts\
-- [ ] Create \src/hooks/useHistory.ts\
-- [ ] Create \src/components/ui/UndoRedoButtons.tsx\
-- [ ] Update \src/components/canvas/Toolbar.tsx\ with undo/redo buttons
-- [ ] Verify Ctrl+Z and Ctrl+Y work
+- [ ] Create \src/components/slides/SlideThumb.tsx\
+- [ ] Create \src/components/slides/SlideList.tsx\
+- [ ] Update \src/pages/Editor.tsx\ to include SlideList
+- [ ] Verify add/delete/switch/reorder works
 
-Follow the implementation details in \docs/task_04.md\.
+Follow the implementation details in \docs/task_03.md\.
 
 **IMPORTANT**:
 1. Think in English, but output all explanations, comments, and PR descriptions in Japanese.
@@ -22,8 +21,6 @@ Follow the implementation details in \docs/task_04.md\.
 4. Run \
 pm run build\ and \
 pm run lint\ to verify.
-
-**Note**: Do NOT integrate recordAction into useCanvas.ts yet - that will be done in a follow-up task after both Phase 3 and 4 merge.
 
 IMPORTANT Guidelines:
 1. Think in English, but output all explanations, comments, and PR descriptions in Japanese.
