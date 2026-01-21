@@ -9,6 +9,8 @@ export function useCanvas(canvasId: string) {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousSlideIdRef = useRef<string | null>(null);
   const currentSlideIdRef = useRef<string | null>(null);
+  // 内部更新中かどうかを判定するフラグ（イベントループ防止）
+  const isInternalUpdateRef = useRef(false);
 
   const { setSelectedObjects } = useEditorStore();
   const { slides, updateSlide } = useSlideStore();
@@ -42,22 +44,28 @@ export function useCanvas(canvasId: string) {
             type: "canvas:modified",
             description: "キャンバス操作",
             undo: () => {
+              isInternalUpdateRef.current = true;
               updateSlide(slideId, previousJson);
               // キャンバスに反映
               const canvas = canvasRef.current;
               if (canvas) {
-                canvas.loadFromJSON(JSON.parse(previousJson), () => {
+                canvas.loadFromJSON(JSON.parse(previousJson)).then(() => {
                   canvas.renderAll();
+                  previousStateRef.current = previousJson;
+                  isInternalUpdateRef.current = false;
                 });
               }
             },
             redo: () => {
+              isInternalUpdateRef.current = true;
               updateSlide(slideId, json);
               // キャンバスに反映
               const canvas = canvasRef.current;
               if (canvas) {
-                canvas.loadFromJSON(JSON.parse(json), () => {
+                canvas.loadFromJSON(JSON.parse(json)).then(() => {
                   canvas.renderAll();
+                  previousStateRef.current = json;
+                  isInternalUpdateRef.current = false;
                 });
               }
             },
@@ -85,20 +93,26 @@ export function useCanvas(canvasId: string) {
       canvas.clear();
       canvas.backgroundColor = "#ffffff";
 
+      // 内部更新開始
+      isInternalUpdateRef.current = true;
+
       // If there is saved JSON, load it
       if (slide.canvasJson && slide.canvasJson !== "{}") {
         try {
           const json = JSON.parse(slide.canvasJson);
           canvas.loadFromJSON(json).then(() => {
             canvas.renderAll();
+            isInternalUpdateRef.current = false;
           });
         } catch (e) {
           console.error("Failed to load canvas state:", e);
           canvas.renderAll();
+          isInternalUpdateRef.current = false;
         }
       } else {
         // Empty canvas (default background)
         canvas.renderAll();
+        isInternalUpdateRef.current = false;
       }
 
       // 読み込んだ状態を記録（履歴用のベースライン）
@@ -167,6 +181,9 @@ export function useCanvas(canvasId: string) {
 
     // Auto-save events
     const handleSave = () => {
+      // 内部更新中は保存しない
+      if (isInternalUpdateRef.current) return;
+
       const slideId = currentSlideIdRef.current;
       if (slideId) {
         saveCanvasToSlide(slideId, true);
