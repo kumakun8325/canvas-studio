@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { act, renderHook } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import { useHistoryStore } from "../stores/historyStore";
 import { useSlideStore } from "../stores/slideStore";
 import { useEditorStore } from "../stores/editorStore";

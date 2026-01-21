@@ -1,27 +1,20 @@
-⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
-⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
-すべてのテストがパスしました。
+修正が完了しました。
 
-## 修正完了
+## 修正内容のまとめ
 
-Issue #33 のバグ修正が完了しました。
+**Issue #33: Undoボタンが有効にならないバグの修正**
+
+### 問題の原因
+`useCanvas.ts` の `handleSave` クロージャが古い `currentSlideId` を参照していたため、スライド切り替え後にオブジェクトを追加しても履歴が正しく記録されませんでした。
 
 ### 修正内容
+1. `currentSlideIdRef` ref を追加して、常に最新の `currentSlideId` を保持するようにしました
+2. `handleSave` を `currentSlideId` に依存せず、`currentSlideIdRef.current` 経由で最新の値を取得するように変更しました
 
-**ファイル**: `src/hooks/useCanvas.ts`
-
-**問題**: `handleSave` クロージャが古い `currentSlideId` を参照していたため、スライド切り替え後にオブジェクトを追加しても Undo が正しく動作しませんでした。
-
-**修正**: 
-1. `handleSave` 関数を `useEffect` の外に移動し、`useCallback` で定義しました
-2. 依存配列に `currentSlideId` と `saveCanvasToSlide` を含めました
-3. これにより、`currentSlideId` が変更されるたびに `handleSave` が再作成され、最新のスライドIDを参照するようになります
+### 変更ファイル
+- `src/hooks/useCanvas.ts` (20-22行目、129-134行目)
 
 ### テスト
-
-新しいテストファイル `src/test/task33-slide-switch-history.test.tsx` を作成し、以下のテストケースを追加しました：
-- スライド切り替え後に正しいスライドで履歴が記録されること
-- `currentSlideId` の変更が正しく追跡されること
-- 複数回のスライド切り替えが正しく処理されること
-
-すべてのテストがパスしています（35 passed, 1 skipped）。
+- 新しいテストファイル `src/test/task33-undo-button-not-enabled.test.tsx` を追加しました
+- すべてのテストがパスしました（37 passed, 1 skipped）
+- TypeScript の型チェックとビルドも成功しました

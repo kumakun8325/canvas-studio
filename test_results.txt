@@ -5,13 +5,14 @@
 
  RUN  v3.2.4 /home/runner/work/canvas-studio/canvas-studio
 
- ✓ src/test/task33-slide-switch-history.test.tsx (4 tests) 7ms
- ✓ src/test/task29-undo-redo.test.tsx (9 tests | 1 skipped) 41ms
- ✓ src/test/slides.test.tsx (19 tests) 260ms
- ✓ src/test/task02.test.tsx (4 tests) 4ms
+ ✓ src/test/task33-slide-switch-history.test.tsx (4 tests) 9ms
+ ✓ src/test/task29-undo-redo.test.tsx (9 tests | 1 skipped) 52ms
+ ✓ src/test/slides.test.tsx (19 tests) 291ms
+ ✓ src/test/task33-undo-button-not-enabled.test.tsx (2 tests) 6ms
+ ✓ src/test/task02.test.tsx (4 tests) 6ms
 
- Test Files  4 passed (4)
-      Tests  35 passed | 1 skipped (36)
-   Start at  05:45:31
-   Duration  1.98s (transform 208ms, setup 266ms, collect 779ms, tests 312ms, environment 2.29s, prepare 384ms)
+ Test Files  5 passed (5)
+      Tests  37 passed | 1 skipped (38)
+   Start at  06:00:50
+   Duration  2.09s (transform 251ms, setup 387ms, collect 863ms, tests 364ms, environment 2.77s, prepare 476ms)
 

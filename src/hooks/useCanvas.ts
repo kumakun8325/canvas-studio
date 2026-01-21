@@ -17,6 +17,10 @@ export function useCanvas(canvasId: string) {
   // 操作前のキャンバス状態を保持（履歴用）
   const previousStateRef = useRef<string | null>(null);
 
+  // currentSlideId の最新値を ref に保持（handleSave で使用）
+  const currentSlideIdRef = useRef<string | null>(null);
+  currentSlideIdRef.current = currentSlideId;
+
   // Save current canvas state to slide store
   const saveCanvasToSlide = useCallback(
     (slideId: string, recordHistory: boolean = true) => {
@@ -120,12 +124,14 @@ export function useCanvas(canvasId: string) {
     previousSlideIdRef.current = currentSlideId;
   }, [currentSlideId]); // Dependencies intentionally limited to avoid loops on save
 
-  // Auto-save handler - defined outside useEffect to capture current currentSlideId
+  // Auto-save handler - uses ref to always access latest currentSlideId
+  // This avoids recreating the handler when currentSlideId changes
   const handleSave = useCallback(() => {
-    if (currentSlideId) {
-      saveCanvasToSlide(currentSlideId, true);
+    const slideId = currentSlideIdRef.current;
+    if (slideId) {
+      saveCanvasToSlide(slideId, true);
     }
-  }, [currentSlideId, saveCanvasToSlide]);
+  }, [saveCanvasToSlide]);
 
   // Initialize canvas and setup event listeners
   useEffect(() => {
