@@ -1,25 +1,17 @@
-Issue #29: Feature: Undo/Redo 統合
+Issue #35: Bug: Undo が動作しない (currentSlideIdRef 修正)
 
-## 概要
+## バグ
 
-Task 04 は基盤作成（historyStore, useHistory, UndoRedoButtons）のみ完了。
-本タスクで実際のキャンバス操作を履歴システムに接続する。
+矩形を追加してもUndoボタンが有効にならない。履歴が記録されていない。
 
-## 要件
+## 原因（調査済み）
 
-- useCanvas.ts に useHistory を組み込む
-- object:added, object:modified, object:removed イベントで recordAction を呼び出す
-- スライド操作（追加・削除・並べ替え）も recordAction で記録する
+src/hooks/useCanvas.ts の handleSave クロージャが初期化時の currentSlideId をキャプチャしている。
+currentSlideId が後から設定されても、handleSave は古い値（undefined または初期値）を参照し続ける。
 
-## 重要
+## 修正方針
 
-- **TDDで「操作後にUndoしたら戻るか」のテストを先に書くこと**
-
-## 検証
-
-- ブラウザで矩形を追加→移動→Undo で戻るか確認
-- npm run test が通ること
-- npm run build が通ること
+useRef を使用して currentSlideId の最新値を常に参照できるようにする。
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:
