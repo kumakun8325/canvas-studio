@@ -1,50 +1,53 @@
-## Self-Review Summary
+Excellent! All tests pass and the build is successful. Let me create a summary of what was implemented:
 
-### Code Quality Checklist
+## 実装完了サマリー
 
-| Criteria | Status | Notes |
-|----------|--------|-------|
-| **TypeScript types** | ✅ | Properly typed using existing `Project` and `TemplateType` |
-| **Error handling** | ✅ | Firestore errors propagate correctly (tested) |
-| **Code organization** | ✅ | Clear separation of concerns, helper function `generateProjectId` |
-| **Naming conventions** | ✅ | Descriptive function names following the pattern `verbNoun` |
-| **Documentation** | ✅ | JSDoc comments for all exported functions |
-| **Test coverage** | ✅ | 100% coverage (statements, branches, functions, lines) |
-| **No duplication** | ✅ | DRY principle followed |
-| **Security** | ✅ | No security vulnerabilities, proper Firestore usage |
-| **Performance** | ✅ | Efficient queries with `where` clause |
-| **Requirements** | ✅ | All required functions implemented |
+Phase 5: 自動保存 + App.tsx ルーティング統合が正常に完了しました。
 
-### Implementation Review
+### 実装内容
 
-**Implemented functions:**
-- `saveProject()` - Saves project with merge option
-- `loadProject()` - Loads project, returns null if not found
-- `listProjects()` - Lists user's projects with query filtering
-- `deleteProject()` - Deletes project by ID
-- `createNewProject()` - Creates new project with generated ID
+#### 1. **自動保存フック** (`src/hooks/useAutoSave.ts`)
+- slideStore の変更を監視し、Firestore に自動保存
+- デフォルト2000msのデバウンスタイムを実装
+- 保存状態（保存中・保存済み・エラー）を管理
+- プロジェクトの `updatedAt` タイムスタンプを自動更新
+- 11個のテストケースを追加し、すべてのテストが合格
 
-**Firestore collection structure matches requirements:**
+#### 2. **App.tsx ルーティング更新** (`src/App.tsx`)
+- 認証状態に応じた条件分岐を実装
+- 未認証ユーザー: `Home` コンポーネントを表示
+- 認証済みユーザー: `Editor` コンポーネントを表示
+- react-router を使用せず、シンプルな条件分岐で実装
+- ローディング状態の表示を追加
+
+#### 3. **保存状態インジケーター** (`src/components/canvas/Toolbar.tsx`)
+- ツールバーの右側に保存状態を表示
+- 3つの状態を視覚的に表現:
+  - **保存中...**: グレー色のテキスト
+  - **保存済み (X分前)**: 緑色のテキスト、相対時間表示
+  - **保存エラー**: 赤色のテキスト
+- 日本語のユーザーフレンドリーな時間表示
+
+#### 4. **Editor統合** (`src/pages/Editor.tsx`)
+- `useAutoSave` フックを統合
+- 保存状態を Toolbar コンポーネントに渡す
+
+### テスト結果
+- **77個のテストが全て合格** (1個スキップ)
+- カバレッジ要件を満たす
+- ビルドも正常に成功
+
+### ファイル構成
 ```
-projects/{projectId}
-  - id: string
-  - title: string
-  - ownerId: string (ユーザーUID)
-  - template: TemplateType
-  - slides: Slide[]
-  - createdAt: number
-  - updatedAt: number
+src/
+├── hooks/
+│   ├── useAutoSave.ts          # 新規: 自動保存フック
+│   └── useAutoSave.test.ts     # 新規: 11個のテスト
+├── pages/
+│   ├── App.tsx                 # 更新: 認証ベースのルーティング
+│   └── Editor.tsx              # 更新: useAutoSave統合
+└── components/canvas/
+    └── Toolbar.tsx             # 更新: 保存状態インジケーター追加
 ```
 
-**Test quality:**
-- AAA pattern (Arrange-Act-Assert) followed
-- Descriptive test names
-- Edge cases covered (errors, missing data)
-- Proper mocking of Firebase Firestore SDK
-
-**Build verification:**
-- `npm run build` ✅
-- `npm test` ✅
-- Coverage meets 100% requirement
-
-The implementation is complete and ready for use. All requirements have been met.
+すべての要件を満たし、`npm run build` と `npm run test` が両方成功しています！
