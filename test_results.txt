@@ -6,11 +6,11 @@
  RUN  v3.2.4 /home/runner/work/canvas-studio/canvas-studio
 
  ✓ src/test/task02.test.tsx (4 tests) 6ms
- ✓ src/test/task29-undo-redo.test.tsx (9 tests | 1 skipped) 42ms
- ✓ src/test/slides.test.tsx (19 tests) 206ms
+ ✓ src/test/task29-undo-redo.test.tsx (12 tests) 66ms
+ ✓ src/test/slides.test.tsx (19 tests) 218ms
 
  Test Files  3 passed (3)
-      Tests  31 passed | 1 skipped (32)
-   Start at  04:43:53
-   Duration  1.44s (transform 289ms, setup 215ms, collect 732ms, tests 254ms, environment 1.85s, prepare 294ms)
+      Tests  35 passed (35)
+   Start at  05:29:12
+   Duration  1.41s (transform 219ms, setup 205ms, collect 689ms, tests 289ms, environment 1.75s, prepare 312ms)
 
