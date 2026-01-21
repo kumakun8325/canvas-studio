@@ -6,10 +6,75 @@ import { useSlideStore } from "../stores/slideStore";
 export function useCanvas(canvasId: string) {
   const canvasRef = useRef<fabric.Canvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const previousSlideIdRef = useRef<string | null>(null);
 
   const { setSelectedObjects } = useEditorStore();
-  const { updateSlide } = useSlideStore();
+  const { slides, updateSlide } = useSlideStore();
   const currentSlideId = useEditorStore((s) => s.currentSlideId);
+
+  // Save current canvas state to slide store
+  const saveCanvasToSlide = useCallback(
+    (slideId: string) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      // Use toJSON to save the canvas state
+      const json = JSON.stringify(canvas.toJSON());
+      updateSlide(slideId, json);
+    },
+    [updateSlide],
+  );
+
+  // Load canvas state from slide store
+  const loadCanvasFromSlide = useCallback(
+    (slideId: string) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const slide = slides.find((s) => s.id === slideId);
+      if (!slide) return;
+
+      // Clear canvas first
+      canvas.clear();
+      canvas.backgroundColor = "#ffffff";
+
+      // If there is saved JSON, load it
+      if (slide.canvasJson && slide.canvasJson !== "{}") {
+        try {
+          const json = JSON.parse(slide.canvasJson);
+          canvas.loadFromJSON(json).then(() => {
+            canvas.renderAll();
+          });
+        } catch (e) {
+          console.error("Failed to load canvas state:", e);
+          canvas.renderAll();
+        }
+      } else {
+        // Empty canvas (default background)
+        canvas.renderAll();
+      }
+    },
+    [slides],
+  );
+
+  // Handle slide switching
+  useEffect(() => {
+    if (!currentSlideId) return;
+
+    // 1. Save state of the previous slide before switching
+    if (
+      previousSlideIdRef.current &&
+      previousSlideIdRef.current !== currentSlideId
+    ) {
+      saveCanvasToSlide(previousSlideIdRef.current);
+    }
+
+    // 2. Load state of the new slide
+    loadCanvasFromSlide(currentSlideId);
+
+    // 3. Update previous ID
+    previousSlideIdRef.current = currentSlideId;
+  }, [currentSlideId]); // Dependencies intentionally limited to avoid loops on save
 
   // Initialize canvas
   useEffect(() => {
@@ -18,8 +83,6 @@ export function useCanvas(canvasId: string) {
     ) as HTMLCanvasElement;
     if (!canvasElement) return;
 
-    // Skip if already initialized by checking parent wrapper
-    // Fabric.js wraps the canvas in a div with class "canvas-container"
     if (canvasElement.parentElement?.classList.contains("canvas-container")) {
       return;
     }
@@ -33,6 +96,13 @@ export function useCanvas(canvasId: string) {
 
     canvasRef.current = canvas;
 
+    // Initialize previousSlideIdRef
+    if (currentSlideId) {
+      previousSlideIdRef.current = currentSlideId;
+      // Also try to load initial state if available
+      loadCanvasFromSlide(currentSlideId);
+    }
+
     // Selection event
     canvas.on("selection:created", (e) => {
       const ids = e.selected
@@ -45,18 +115,22 @@ export function useCanvas(canvasId: string) {
       setSelectedObjects([]);
     });
 
-    // Save on modification
-    canvas.on("object:modified", () => {
+    // Auto-save events
+    const handleSave = () => {
       if (currentSlideId) {
-        updateSlide(currentSlideId, JSON.stringify(canvas.toJSON()));
+        saveCanvasToSlide(currentSlideId);
       }
-    });
+    };
+
+    canvas.on("object:modified", handleSave);
+    canvas.on("object:added", handleSave);
+    canvas.on("object:removed", handleSave);
 
     return () => {
       canvas.dispose();
       canvasRef.current = null;
     };
-  }, [canvasId, currentSlideId, setSelectedObjects, updateSlide]);
+  }, [canvasId, setSelectedObjects]); // Removed currentSlideId from deps to allow manual handling in the other useEffect
 
   // Add rectangle
   const addRect = useCallback(() => {
