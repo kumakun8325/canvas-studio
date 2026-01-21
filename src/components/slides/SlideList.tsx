@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { SlideThumb } from './SlideThumb'
 import { useSlideStore } from '../../stores/slideStore'
 import { useEditorStore } from '../../stores/editorStore'
@@ -15,37 +16,53 @@ export function SlideList() {
    * 最後の1枚は削除できない
    * 現在のスライドを削除する場合は、隣のスライドを選択
    */
-  const handleDelete = (slideId: string) => {
-    // 最後の1枚は削除不可
-    if (slides.length <= 1) return
+  const handleDelete = useCallback(
+    (slideId: string) => {
+      // 最後の1枚は削除不可
+      if (slides.length <= 1) return
 
-    // 現在のスライドを削除する場合、別のスライドを選択
-    if (slideId === currentSlideId) {
-      const index = slides.findIndex((s) => s.id === slideId)
-      const newIndex = index > 0 ? index - 1 : 1
-      setCurrentSlide(slides[newIndex].id)
-    }
+      // 現在のスライドを削除する場合、別のスライドを選択
+      if (slideId === currentSlideId) {
+        const index = slides.findIndex((s) => s.id === slideId)
+        const newIndex = index > 0 ? index - 1 : 1
+        setCurrentSlide(slides[newIndex].id)
+      }
 
-    deleteSlide(slideId)
-  }
+      deleteSlide(slideId)
+    },
+    [slides, currentSlideId, setCurrentSlide, deleteSlide]
+  )
+
+  /**
+   * スライドを選択
+   */
+  const handleSelect = useCallback(
+    (slideId: string) => {
+      setCurrentSlide(slideId)
+    },
+    [setCurrentSlide]
+  )
 
   /**
    * ドラッグ開始ハンドラー
    */
-  const handleDragStart = (e: React.DragEvent, index: number) => {
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('slideIndex', String(index))
-  }
+  }, [])
 
   /**
    * ドロップハンドラー
    * スライドの並べ替えを実行
    */
-  const handleDrop = (e: React.DragEvent, toIndex: number) => {
-    const fromIndex = Number(e.dataTransfer.getData('slideIndex'))
-    if (fromIndex !== toIndex) {
-      reorderSlides(fromIndex, toIndex)
-    }
-  }
+  const handleDrop = useCallback(
+    (e: React.DragEvent, toIndex: number) => {
+      const fromIndex = Number(e.dataTransfer.getData('slideIndex'))
+      if (fromIndex !== toIndex) {
+        reorderSlides(fromIndex, toIndex)
+      }
+    },
+    [reorderSlides]
+  )
 
   return (
     <div className="w-40 bg-gray-50 border-r p-2 overflow-y-auto">
@@ -63,7 +80,7 @@ export function SlideList() {
               index={index}
               isActive={slide.id === currentSlideId}
               thumbnail={slide.thumbnail}
-              onSelect={() => setCurrentSlide(slide.id)}
+              onSelect={() => handleSelect(slide.id)}
               onDelete={() => handleDelete(slide.id)}
             />
           </div>
