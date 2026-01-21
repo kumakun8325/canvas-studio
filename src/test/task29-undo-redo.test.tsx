@@ -519,6 +519,139 @@ describe("Task 29: Undo/Redo Integration", () => {
   });
 
   /**
+   * Issue #31: 初回操作時の履歴記録バグ
+   *
+   * バグの内容:
+   * 矩形を追加しても Undo ボタンが有効にならない。
+   * 原因: previousStateRef.current が null の場合、履歴が記録されない。
+   *
+   * このテストはバグを再現し、修正後に通るようになります。
+   */
+  describe("Issue #31: First operation history recording bug", () => {
+    it("should record history when first object is added to empty canvas", () => {
+      const { result } = renderHook(() => useHistory());
+
+      // Arrange: 空のキャンバス（canvasJson は "{}"）を準備
+      const slideId = "slide-1";
+      const emptyCanvasJson = "{}";
+
+      useSlideStore.setState({
+        slides: [
+          {
+            id: slideId,
+            canvasJson: emptyCanvasJson,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
+        ],
+      });
+      useEditorStore.setState({ currentSlideId: slideId });
+
+      // 初期状態では canUndo は false
+      expect(result.current.canUndo()).toBe(false);
+
+      // Act: 最初の矩形を追加
+      const afterAddJson = JSON.stringify({
+        version: "6.0.0",
+        objects: [
+          {
+            type: "rect",
+            left: 100,
+            top: 100,
+            width: 100,
+            height: 100,
+            fill: "#3b82f6",
+          },
+        ],
+      });
+
+      act(() => {
+        result.current.recordAction({
+          type: "canvas:modified",
+          description: "キャンバス操作",
+          undo: () => {
+            useSlideStore.getState().updateSlide(slideId, emptyCanvasJson);
+          },
+          redo: () => {
+            useSlideStore.getState().updateSlide(slideId, afterAddJson);
+          },
+        });
+      });
+
+      act(() => {
+        useSlideStore.getState().updateSlide(slideId, afterAddJson);
+      });
+
+      // Assert: 履歴が記録され、canUndo が true になるべき
+      expect(result.current.canUndo()).toBe(true);
+
+      // Undo で元に戻せるはず
+      act(() => {
+        result.current.undo();
+      });
+
+      const slide = useSlideStore.getState().slides.find((s) => s.id === slideId);
+      expect(slide?.canvasJson).toBe(emptyCanvasJson);
+    });
+
+    it("should record history when first object is added to new slide (null canvasJson)", () => {
+      const { result } = renderHook(() => useHistory());
+
+      // Arrange: canvasJson が null の新しいスライドを準備
+      const slideId = "slide-new";
+
+      useSlideStore.setState({
+        slides: [
+          {
+            id: slideId,
+            canvasJson: null as unknown as string,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
+        ],
+      });
+      useEditorStore.setState({ currentSlideId: slideId });
+
+      expect(result.current.canUndo()).toBe(false);
+
+      // Act: 最初の矩形を追加
+      const afterAddJson = JSON.stringify({
+        version: "6.0.0",
+        objects: [
+          {
+            type: "rect",
+            left: 100,
+            top: 100,
+            width: 100,
+            height: 100,
+            fill: "#3b82f6",
+          },
+        ],
+      });
+
+      act(() => {
+        result.current.recordAction({
+          type: "canvas:modified",
+          description: "キャンバス操作",
+          undo: () => {
+            useSlideStore.getState().updateSlide(slideId, "{}");
+          },
+          redo: () => {
+            useSlideStore.getState().updateSlide(slideId, afterAddJson);
+          },
+        });
+      });
+
+      act(() => {
+        useSlideStore.getState().updateSlide(slideId, afterAddJson);
+      });
+
+      // Assert: 履歴が記録されるべき
+      expect(result.current.canUndo()).toBe(true);
+    });
+  });
+
+  /**
    * 実際の統合テスト
    * これらのテストは useCanvas が useHistory と統合された後に通るようになります
    *
