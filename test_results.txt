@@ -5,10 +5,11 @@
 
  RUN  v3.2.4 /home/runner/work/canvas-studio/canvas-studio
 
- ✓ src/test/task02.test.tsx (4 tests) 4ms
+ ✓ src/test/task02.test.tsx (4 tests) 6ms
+ ✓ src/test/slides.test.tsx (19 tests) 199ms
 
- Test Files  1 passed (1)
-      Tests  4 passed (4)
-   Start at  01:51:19
-   Duration  882ms (transform 60ms, setup 67ms, collect 110ms, tests 4ms, environment 450ms, prepare 76ms)
+ Test Files  2 passed (2)
+      Tests  23 passed (23)
+   Start at  02:12:49
+   Duration  1.17s (transform 118ms, setup 118ms, collect 353ms, tests 205ms, environment 972ms, prepare 177ms)
 
