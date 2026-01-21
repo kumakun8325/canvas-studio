@@ -5,7 +5,7 @@
  * このテストはFabric.jsがテスト環境で正しく動作することを検証する
  */
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { Canvas, Rect } from 'fabric'
 
 describe('Issue #39: Test Environment (node-canvas missing)', () => {
@@ -94,6 +94,7 @@ describe('Issue #39: Test Environment (node-canvas missing)', () => {
       // Act - toDataURLは実際のCanvas描画を必要とする
       // node-canvasがインストールされていない場合、ここでエラーが発生する
       const dataURL = await canvas.toDataURL({
+        multiplier: 1,
         format: 'png',
         quality: 1,
       })
