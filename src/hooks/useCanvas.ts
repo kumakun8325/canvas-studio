@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import * as fabric from "fabric";
 import { useEditorStore } from "../stores/editorStore";
 import { useSlideStore } from "../stores/slideStore";
+import { useHistory } from "./useHistory";
 
 export function useCanvas(canvasId: string) {
   const canvasRef = useRef<fabric.Canvas | null>(null);
@@ -11,18 +12,58 @@ export function useCanvas(canvasId: string) {
   const { setSelectedObjects } = useEditorStore();
   const { slides, updateSlide } = useSlideStore();
   const currentSlideId = useEditorStore((s) => s.currentSlideId);
+  const { recordAction } = useHistory();
+
+  // 操作前のキャンバス状態を保持（履歴用）
+  const previousStateRef = useRef<string | null>(null);
 
   // Save current canvas state to slide store
   const saveCanvasToSlide = useCallback(
-    (slideId: string) => {
+    (slideId: string, recordHistory: boolean = true) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
       // Use toJSON to save the canvas state
       const json = JSON.stringify(canvas.toJSON());
+
+      // 履歴を記録（recordHistory が true の場合）
+      if (recordHistory && previousStateRef.current !== null) {
+        const previousJson = previousStateRef.current;
+
+        // 状態が実際に変更された場合のみ履歴に記録
+        if (previousJson !== json) {
+          recordAction({
+            type: "canvas:modified",
+            description: "キャンバス操作",
+            undo: () => {
+              updateSlide(slideId, previousJson);
+              // キャンバスに反映
+              const canvas = canvasRef.current;
+              if (canvas) {
+                canvas.loadFromJSON(JSON.parse(previousJson), () => {
+                  canvas.renderAll();
+                });
+              }
+            },
+            redo: () => {
+              updateSlide(slideId, json);
+              // キャンバスに反映
+              const canvas = canvasRef.current;
+              if (canvas) {
+                canvas.loadFromJSON(JSON.parse(json), () => {
+                  canvas.renderAll();
+                });
+              }
+            },
+          });
+        }
+      }
+
+      // 現在の状態を保存
       updateSlide(slideId, json);
+      previousStateRef.current = json;
     },
-    [updateSlide],
+    [updateSlide, recordAction],
   );
 
   // Load canvas state from slide store
@@ -53,6 +94,9 @@ export function useCanvas(canvasId: string) {
         // Empty canvas (default background)
         canvas.renderAll();
       }
+
+      // 読み込んだ状態を記録（履歴用のベースライン）
+      previousStateRef.current = slide.canvasJson;
     },
     [slides],
   );
@@ -61,12 +105,12 @@ export function useCanvas(canvasId: string) {
   useEffect(() => {
     if (!currentSlideId) return;
 
-    // 1. Save state of the previous slide before switching
+    // 1. Save state of the previous slide before switching (履歴記録なし)
     if (
       previousSlideIdRef.current &&
       previousSlideIdRef.current !== currentSlideId
     ) {
-      saveCanvasToSlide(previousSlideIdRef.current);
+      saveCanvasToSlide(previousSlideIdRef.current, false);
     }
 
     // 2. Load state of the new slide
@@ -118,7 +162,7 @@ export function useCanvas(canvasId: string) {
     // Auto-save events
     const handleSave = () => {
       if (currentSlideId) {
-        saveCanvasToSlide(currentSlideId);
+        saveCanvasToSlide(currentSlideId, true);
       }
     };
 

@@ -1,28 +1,44 @@
-Issue #25: feat: Slide Management (Task 03)
+Issue #29: Feature: Undo/Redo 統合
 
+## 概要
 
+Task 04 は基盤作成（historyStore, useHistory, UndoRedoButtons）のみ完了。
+本タスクで実際のキャンバス操作を履歴システムに接続する。
 
-**Objective**: Implement slide list sidebar with thumbnails, add/delete/reorder functionality.
+## 要件
 
-**Reference**: \docs/task_03.md\
+- useCanvas.ts に useHistory を組み込む
+- object:added, object:modified, object:removed イベントで recordAction を呼び出す
+- スライド操作（追加・削除・並べ替え）も recordAction で記録する
 
-**Tasks**:
-- [ ] Create \src/components/slides/SlideThumb.tsx\
-- [ ] Create \src/components/slides/SlideList.tsx\
-- [ ] Update \src/pages/Editor.tsx\ to include SlideList
-- [ ] Verify add/delete/switch/reorder works
+## 重要
 
-Follow the implementation details in \docs/task_03.md\.
+- **TDDで「操作後にUndoしたら戻るか」のテストを先に書くこと**
 
-**IMPORTANT**:
-1. Think in English, but output all explanations, comments, and PR descriptions in Japanese.
-2. Load and read \.claude/skills/code-review/SKILL.md\ to review your code.
-3. Perform a self-review before finishing.
-4. Run \
-pm run build\ and \
-pm run lint\ to verify.
+## 検証
 
-IMPORTANT Guidelines:
-1. Think in English, but output all explanations, comments, and PR descriptions in Japanese.
-2. Load and read the skill defined in  to review your code.
-3. Perform a self-review using the above skill before finishing.
+- ブラウザで矩形を追加→移動→Undo で戻るか確認
+- npm run test が通ること
+- npm run build が通ること
+
+# Quality Assurance Protocol
+Follow this 3-phase process strictly:
+
+## Phase 1: Implementation (Coder)
+Reference: .claude/skills/tdd-workflow/SKILL.md
+- If TDD mode, write failing tests first (RED).
+- BUG FIXING: You MUST reproduce the bug with a code based test case. Do not say 'no issues found' if the user reported a bug.
+- Implement minimal code to pass tests (GREEN).
+
+## Phase 2: Refactoring (Refactorer)
+Reference: .claude/skills/refactoring/SKILL.md
+- Improve code quality after passing tests.
+- Remove duplication, improve naming, use early returns.
+
+## Phase 3: Review (Reviewer)
+Reference: .claude/skills/code-review/SKILL.md
+- Perform a self-review of your changes.
+- Check against the criteria in the skill file.
+- If issues found, fix them before finishing.
+
+IMPORTANT: Output all explanations, comments, and PR descriptions in Japanese.

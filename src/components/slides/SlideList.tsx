@@ -2,13 +2,15 @@ import { useCallback } from 'react'
 import { SlideThumb } from './SlideThumb'
 import { useSlideStore } from '../../stores/slideStore'
 import { useEditorStore } from '../../stores/editorStore'
+import { useSlideHistory } from '../../hooks/useSlideHistory'
 
 /**
  * スライド一覧サイドバーコンポーネント
  * スライドの追加、削除、選択、並べ替え機能を提供
  */
 export function SlideList() {
-  const { slides, addSlide, deleteSlide, reorderSlides } = useSlideStore()
+  const { slides } = useSlideStore()
+  const { addSlide, deleteSlide, reorderSlides } = useSlideHistory()
   const { currentSlideId, setCurrentSlide } = useEditorStore()
 
   /**

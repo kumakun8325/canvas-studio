@@ -1,53 +1,33 @@
-## コードレビュー結果
+## 実装完了
 
-✅ **すべてのファイルで問題は見つかりませんでした。**
+Task 29: Undo/Redo 統合が完了しました。
 
----
+### 実装内容のサマリー
 
-## 実装完了状況
+**1. キャンバス操作の履歴統合 (`useCanvas.ts`)**
+- `useHistory` を統合してキャンバス操作の履歴記録を実装
+- `previousStateRef` を使用して操作前の状態を保持
+- `object:added`, `object:modified`, `object:removed` イベントで履歴を自動記録
+- スライド切り替え時の履歴記録を抑制（不要な履歴を回避）
 
-### 作成されたファイル:
+**2. スライド操作の履歴統合 (`useSlideHistory.ts`)**
+- 新しいフックを作成してスライド操作の履歴記録を実装
+- `addSlide`, `deleteSlide`, `reorderSlides` で履歴を自動記録
+- `SlideList` コンポーネントを更新して `useSlideHistory` を使用
 
-| ファイル | ステータス |
-|---------|----------|
-| `src/components/slides/SlideThumb.tsx` | ✅ 完了 |
-| `src/components/slides/SlideList.tsx` | ✅ 完了 |
-| `src/pages/Editor.tsx` | ✅ 更新済み |
+**3. テスト (`task29-undo-redo.test.tsx`)**
+- TDDアプローチでキャンバス操作の undo/redo テストを作成
+- スライド操作の undo/redo テストを作成
+- 履歴ステートの追跡テストを作成
 
-### 機能:
+### 検証結果
+- ✅ `npm test` が通る（31 tests passed, 1 skipped）
+- ✅ `npm run build` が通る
+- ✅ 履歴システムがキャンバス操作とスライド操作に統合された
 
-| 機能 | ステータス |
-|------|----------|
-| スライド追加 | ✅ 実装済み |
-| スライド削除 | ✅ 実装済み |
-| スライド選択 | ✅ 実装済み |
-| ドラッグ＆ドロップでの並べ替え | ✅ 実装済み |
-
-### 検証:
-
-| 検証項目 | ステータス |
-|---------|----------|
-| ビルド (`npm run build`) | ✅ 通過 |
-| Lint (`npm run lint`) | ✅ 通過 |
-
----
-
-## 機能の詳細説明
-
-### SlideThumb コンポーネント (`src/components/slides/SlideThumb.tsx`)
-- スライド番号を左上に表示
-- サムネイル画像またはプレースホルダーを表示
-- アクティブなスライドには青い枠を表示
-- ホバー時に削除ボタン（×）を表示
-
-### SlideList コンポーネント (`src/components/slides/SlideList.tsx`)
-- `useCallback` でパフォーマンス最適化
-- 最後の1枚は削除不可（エッジケース処理）
-- 現在のスライドを削除する場合、隣のスライドを自動選択
-- HTML5 ドラッグ＆ドロップ API で並べ替え
-
-### Editor ページ (`src/pages/Editor.tsx`)
-- `SlideList` をレイアウトに統合
-- 初期スライドの自動選択
-
-実装は完了しており、すべての要件を満たしています。
+### 動作確認方法
+ブラウザで以下の操作を確認できます：
+1. 矩形を追加 → Ctrl+Z で元に戻る
+2. 矩形を移動 → Ctrl+Z で元に戻る
+3. スライドを追加 → Ctrl+Z で元に戻る
+4. Ctrl+Y でやり直し
