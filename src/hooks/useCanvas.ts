@@ -27,8 +27,8 @@ export function useCanvas(canvasId: string) {
       const json = JSON.stringify(canvas.toJSON());
 
       // 履歴を記録（recordHistory が true の場合）
-      if (recordHistory && previousStateRef.current !== null) {
-        const previousJson = previousStateRef.current;
+      if (recordHistory) {
+        const previousJson = previousStateRef.current ?? "{}"; // null の場合は空のJSONを初期値とする
 
         // 状態が実際に変更された場合のみ履歴に記録
         if (previousJson !== json) {
@@ -79,10 +79,13 @@ export function useCanvas(canvasId: string) {
       canvas.clear();
       canvas.backgroundColor = "#ffffff";
 
+      // canvasJson が null の場合は空のJSONとして扱う
+      const canvasJson = slide.canvasJson ?? "{}";
+
       // If there is saved JSON, load it
-      if (slide.canvasJson && slide.canvasJson !== "{}") {
+      if (canvasJson !== "{}") {
         try {
-          const json = JSON.parse(slide.canvasJson);
+          const json = JSON.parse(canvasJson);
           canvas.loadFromJSON(json).then(() => {
             canvas.renderAll();
           });
@@ -96,7 +99,7 @@ export function useCanvas(canvasId: string) {
       }
 
       // 読み込んだ状態を記録（履歴用のベースライン）
-      previousStateRef.current = slide.canvasJson;
+      previousStateRef.current = canvasJson;
     },
     [slides],
   );

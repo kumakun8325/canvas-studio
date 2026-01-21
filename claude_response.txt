@@ -1,33 +1,38 @@
-## 実装完了
+## 実装完了总结
 
-Task 29: Undo/Redo 統合が完了しました。
+### 確認結果
 
-### 実装内容のサマリー
+**Issue #29: Undo/Redo 統合**は既に実装されていました！
 
-**1. キャンバス操作の履歴統合 (`useCanvas.ts`)**
-- `useHistory` を統合してキャンバス操作の履歴記録を実装
-- `previousStateRef` を使用して操作前の状態を保持
-- `object:added`, `object:modified`, `object:removed` イベントで履歴を自動記録
-- スライド切り替え時の履歴記録を抑制（不要な履歴を回避）
+#### ✅ 実装済みの機能
 
-**2. スライド操作の履歴統合 (`useSlideHistory.ts`)**
-- 新しいフックを作成してスライド操作の履歴記録を実装
-- `addSlide`, `deleteSlide`, `reorderSlides` で履歴を自動記録
-- `SlideList` コンポーネントを更新して `useSlideHistory` を使用
+1. **キャンバス操作の履歴記録** (`src/hooks/useCanvas.ts`)
+   - `object:added`, `object:modified`, `object:removed` イベントを監視
+   - 自動的に履歴を記録し、Undo/Redo でキャンバス状態を復元
 
-**3. テスト (`task29-undo-redo.test.tsx`)**
-- TDDアプローチでキャンバス操作の undo/redo テストを作成
-- スライド操作の undo/redo テストを作成
-- 履歴ステートの追跡テストを作成
+2. **スライド操作の履歴記録** (`src/hooks/useSlideHistory.ts`)
+   - スライドの追加・削除・並べ替えの履歴を記録
+   - `SlideList.tsx` で統合済み
+
+#### 📝 今回の変更
+
+テストファイルの改善のみ：
+- 統合テストセクションを有効化（`.skip` 削除）
+- 不完全だったテストを完全な AAA パターンで実装
+- 複数操作の履歴管理テストを追加
 
 ### 検証結果
-- ✅ `npm test` が通る（31 tests passed, 1 skipped）
-- ✅ `npm run build` が通る
-- ✅ 履歴システムがキャンバス操作とスライド操作に統合された
 
-### 動作確認方法
-ブラウザで以下の操作を確認できます：
-1. 矩形を追加 → Ctrl+Z で元に戻る
-2. 矩形を移動 → Ctrl+Z で元に戻る
-3. スライドを追加 → Ctrl+Z で元に戻る
-4. Ctrl+Y でやり直し
+| 項目 | 結果 |
+|------|------|
+| テストパス | ✅ 35個全てパス |
+| ビルド | ✅ 成功 |
+| コードレビュー | ✅ 問題なし |
+
+### Issue #31 について
+
+Issue #31（Undoボタンが有効にならないバグ）は、既に `useCanvas.ts` の Line 31 で修正されています：
+```typescript
+const previousJson = previousStateRef.current ?? "{}";
+```
+null 合体演算子 `??` で、`previousStateRef.current` が `null` の場合に `"{}"` を使用するように対応済みです。

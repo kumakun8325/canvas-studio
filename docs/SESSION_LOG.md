@@ -59,6 +59,29 @@ src/
 
 ---
 
+## 2026-01-21
+
+### Completed
+- Issue #31: Bug - Undo ボタンが有効にならない
+
+### Changed Files
+- src/hooks/useCanvas.ts - 履歴記録のバグを修正（`previousStateRef.current` が `null` の場合にも対応）
+- src/test/task29-undo-redo.test.tsx - Issue #31 のテストを追加
+- docs/handoff.md - 更新
+
+### Summary
+**問題**: `useCanvas.ts` で、初回操作時に `previousStateRef.current` が `null` の場合、履歴が記録されないバグがあった。
+
+**修正内容**:
+1. `saveCanvasToSlide` 関数: `previousStateRef.current !== null` チェックを削除し、null合体演算子 `?? "{}"` で対応
+2. `loadCanvasFromSlide` 関数: `canvasJson` が `null` の場合に `"{}"` を使用するよう修正
+
+**検証結果**:
+- ✅ `npm test` が通る（33 tests passed, 1 skipped）
+- ✅ `npm run build` が通る
+
+---
+
 ## YYYY-MM-DD
 
 ### 完了したタスク

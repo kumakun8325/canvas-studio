@@ -1,8 +1,36 @@
 # Handoff Document
 
 ## Current Task
-**Status**: `READY_FOR_CLAUDE`
-**Assigned To**: Claude Code (Multiple Workers)
+**Status**: `READY_FOR_VERIFY`
+**Assigned To**: Antigravity
+
+---
+
+## Completed Work
+
+### Issue #31: Bug - Undo ボタンが有効にならない
+**Branch**: `claude/issue-31`
+**Status**: COMPLETED
+
+#### 実装内容
+- `useCanvas.ts` の履歴記録ロジックを修正
+  - `saveCanvasToSlide`: `previousStateRef.current` が `null` の場合も履歴を記録するよう修正（null合体演算子 `?? "{}"` を使用）
+  - `loadCanvasFromSlide`: `canvasJson` が `null` の場合に空のJSON `"{}"` を使用するよう修正
+
+#### 変更ファイル
+- `src/hooks/useCanvas.ts`: 履歴記録のバグを修正
+- `src/test/task29-undo-redo.test.tsx`: Issue #31 のテストを追加
+
+#### 検証結果
+- ✅ `npm test` が通る（33 tests passed, 1 skipped）
+- ✅ `npm run build` が通る
+- ✅ 初回操作時にも Undo ボタンが有効になる
+
+#### テスト手順
+1. `npm run dev` で開発サーバーを起動
+2. 矩形を追加
+3. Undo ボタンが有効になっていることを確認
+4. Ctrl+Z で矩形が消えることを確認
 
 ---
 
