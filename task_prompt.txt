@@ -1,43 +1,50 @@
-Issue #46: Phase 5: 自動保存 + App.tsx ルーティング統合
+Issue #48: Bug: プロジェクト自動作成・読み込み機能の追加
 
 
 
-## タスク
+## バグ報告
 
-Phase 5 Firebase連携の最終ステップとして、自動保存機能とApp.txルーティングを実装してください。
+ログイン後、プロジェクトが作成・読み込みされないため、自動保存が動作しません。
 
-## 要件
+### 現象
 
-### 1. App.tsx ルーティング更新
-- 認証状態に応じた条件分岐を追加
-- 未認証: Home コンポーネント表示
-- 認証済み: Editor コンポーネント表示
-- react-router は不要 (シンプルな条件分岐で実装)
+- ログインは成功する
+- ツールバーに保存ステータスが表示されない
+- ブラウザをリロードすると描画内容が消える
 
-### 2. 自動保存フック (src/hooks/useAutoSave.ts)
-\\\	ypescript
-export function useAutoSave(project: Project | null, debounceMs?: number): {
-  isSaving: boolean
-  lastSaved: Date | null
-  error: Error | null
-}
-\\\
-- slideStore の変更を監視
-- Debounce (デフォルト2000ms) で Firestore に保存
-- projectService.saveProject() を使用
+### 原因
 
-### 3. 保存状態インジケーター
-- Editor.tsx または Toolbar に保存状態を表示
-- 「保存中...」「保存済み」「エラー」の3状態
+- useAutoSave(project) で project が null のため、自動保存が無効
+- ログイン後にプロジェクトを作成/読み込みする処理がない
+
+## 修正要件
+
+### 1. Editor.tsx の修正
+
+ログイン後、以下のフローを実装:
+
+1. Firestoreから既存プロジェクトを取得 (listProjects)
+2. プロジェクトがあれば最新のものをロード
+3. なければ新規プロジェクトを作成 (createNewProject)
+
+### 2. スライドストアとの連携
+
+- ロードしたプロジェクトを slideStore.setProject() で設定
+- スライドデータも同時に復元
 
 ### 参考ファイル
-- \src/hooks/useAuth.ts\ (認証フック)
-- \src/services/projectService.ts\ (保存サービス)
-- \src/stores/slideStore.ts\ (スライドストア)
+
+- src/pages/Editor.tsx
+- src/services/projectService.ts (listProjects, createNewProject, loadProject)
+- src/stores/slideStore.ts (setProject)
+- src/hooks/useAuth.ts (user取得用)
 
 ## 完了条件
-- npm run build が成功
-- npm run test が成功
+
+- ログイン後、自動的にプロジェクトが作成/読み込みされる
+- ツールバーに保存ステータスが表示される
+- リロード後も描画内容が保持される
+- npm run build, npm run test が成功
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:
