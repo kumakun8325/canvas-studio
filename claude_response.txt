@@ -1,15 +1,53 @@
-## 実装完了
+⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
+⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
+Phase 5の実装が完了しました。
 
-Issue #39の解決が完了しました。
+## 実装内容のサマリー
 
-### 変更内容
+### 1. Firebase初期化 (`src/lib/firebase.ts`)
+- 環境変数からFirebase設定を読み込み (`VITE_FIREBASE_*`)
+- `initializeApp`でFirebase初期化
+- `getAuthInstance`, `getFirestoreInstance`, `getStorageInstance`をエクスポート
+- Firebase Emulator対応（`VITE_FIREBASE_EMULATOR_HOST`設定時）
 
-1. **package.json**: `canvas`パッケージ（v3.2.1）をdevDependenciesに追加
-2. **src/test/task39-canvas-environment.test.tsx**: Fabric.jsがJSDOM環境で正しく動作することを検証するテストを追加
+### 2. useAuthフック (`src/hooks/useAuth.ts`)
+- `onAuthStateChanged`で認証状態を監視
+- `signInWithGoogle`でGoogleログイン実装（`GoogleAuthProvider`使用）
+- `signOut`でログアウト機能
+- `user`, `loading`, `error`状態を返す
 
-### 検証結果
+### 3. Homeページ (`src/pages/Home.tsx`)
+- 未認証時: Googleログインボタンを表示（Googleロゴ付き）
+- 認証済み: ユーザー情報表示とEditorへの遷移リンク
+- ローディング状態: ローディングスピナー表示
+- エラー状態: エラーメッセージ表示
 
-- ✅ すべてのテストがパス（37 tests passed）
-- ✅ Fabric.jsのCanvas操作が正常に動作
+### 4. App.tsx更新
+- シンプルなパスベースルーティング実装（react-router不要）
+- `/editor` → Editorコンポーネント
+- その他 → Homeコンポーネント
 
-`canvas` (node-canvas) パッケージにより、JSDOMテスト環境でFabric.jsを使用する際に必要なCanvas APIが正しく提供されるようになりました。
+### 5. テスト実装
+- Firebase初期化のテスト: `src/lib/firebase.test.ts` (7テスト)
+- useAuthフックのテスト: `src/hooks/useAuth.test.ts` (9テスト)
+
+## 検証結果
+- ✅ `npm run build` 成功
+- ✅ `npm test` 成功 (53テスト通過)
+
+## 次のステップ
+Firebaseの環境変数を設定する必要があります：
+
+```env
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-auth-domain
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-storage-bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+```
+
+Firebase Emulatorを使用する場合：
+```env
+VITE_FIREBASE_EMULATOR_HOST=localhost:9099
+```

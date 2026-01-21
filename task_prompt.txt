@@ -1,13 +1,38 @@
-Issue #39: Fix: Test Environment (node-canvas missing)
+Issue #42: Phase 5: Firebase初期化 + 認証機能
 
-## バグ内容
 
-テスト実行時に `TypeError: Cannot read properties of null (reading 'scale')` が発生する。
-JSDOM環境でFabric.jsを動かす場合、`canvas` (node-canvas) パッケージが必要だが未インストールである。
 
-## 解決策
+## タスク
 
-`npm install -D canvas` を実行し、環境を整える。
+Phase 5 Firebase連携の最初のステップとして、Firebase初期化と認証機能を実装してください。
+
+## 要件
+
+### 1. Firebase初期化 (src/lib/firebase.ts)
+- 環境変数から設定を読み込み (VITE_FIREBASE_*)
+- initializeApp でFirebase初期化
+- getAuth, getFirestore, getStorage をエクスポート
+
+### 2. useAuth フック (src/hooks/useAuth.ts)
+- onAuthStateChanged で認証状態を監視
+- signInWithPopup (GoogleAuthProvider) でログイン
+- signOut でログアウト
+- user, loading, error 状態を返す
+
+### 3. ログイン画面 (src/pages/Home.tsx)
+- 未認証時: Googleログインボタン表示
+- 認証済み: Editorへ遷移するリンク表示
+
+### 4. App.tsx 更新
+- Home と Editor のルーティング追加 (シンプルな条件分岐でOK、react-router不要)
+
+## 参考情報
+- Firebase SDK は既にインストール済み (package.json)
+- 型定義は src/types/index.ts
+
+## 完了条件
+- npm run build が成功
+- npm run test が成功
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:
