@@ -8,11 +8,17 @@ export function useCanvas(canvasId: string) {
   const canvasRef = useRef<fabric.Canvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const previousSlideIdRef = useRef<string | null>(null);
+  const currentSlideIdRef = useRef<string | null>(null);
 
   const { setSelectedObjects } = useEditorStore();
   const { slides, updateSlide } = useSlideStore();
   const currentSlideId = useEditorStore((s) => s.currentSlideId);
   const { recordAction } = useHistory();
+
+  // currentSlideId の最新値を ref に保持
+  useEffect(() => {
+    currentSlideIdRef.current = currentSlideId;
+  }, [currentSlideId]);
 
   // 操作前のキャンバス状態を保持（履歴用）
   const previousStateRef = useRef<string | null>(null);
@@ -161,8 +167,9 @@ export function useCanvas(canvasId: string) {
 
     // Auto-save events
     const handleSave = () => {
-      if (currentSlideId) {
-        saveCanvasToSlide(currentSlideId, true);
+      const slideId = currentSlideIdRef.current;
+      if (slideId) {
+        saveCanvasToSlide(slideId, true);
       }
     };
 
