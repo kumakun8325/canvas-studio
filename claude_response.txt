@@ -1,20 +1,15 @@
-## まとめ
+## 実装完了
 
-Issue #35 の修正は既に完了しており、すべてのテストがパスしています。
+Issue #39の解決が完了しました。
 
-### 修正内容
+### 変更内容
 
-**src/hooks/useCanvas.ts**
-- `currentSlideIdRef` を追加して、`currentSlideId` の最新値を常に参照できるようにしました
-- `handleSave` クロージャ内で `currentSlideIdRef.current` を使用するように修正しました
+1. **package.json**: `canvas`パッケージ（v3.2.1）をdevDependenciesに追加
+2. **src/test/task39-canvas-environment.test.tsx**: Fabric.jsがJSDOM環境で正しく動作することを検証するテストを追加
 
-### テスト結果
+### 検証結果
 
-```
-✓ src/test/task35-undo-bug.test.tsx (3 tests) 106ms
-  - should record history when currentSlideId is set after canvas initialization
-  - should record history when currentSlideId is set before canvas initialization
-  - should record history correctly when switching slides
-```
+- ✅ すべてのテストがパス（37 tests passed）
+- ✅ Fabric.jsのCanvas操作が正常に動作
 
-すべてのテストがパスしており、修正は正しく機能しています。
+`canvas` (node-canvas) パッケージにより、JSDOMテスト環境でFabric.jsを使用する際に必要なCanvas APIが正しく提供されるようになりました。

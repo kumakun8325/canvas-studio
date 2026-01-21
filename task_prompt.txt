@@ -1,17 +1,13 @@
-Issue #35: Bug: Undo が動作しない (currentSlideIdRef 修正)
+Issue #39: Fix: Test Environment (node-canvas missing)
 
-## バグ
+## バグ内容
 
-矩形を追加してもUndoボタンが有効にならない。履歴が記録されていない。
+テスト実行時に `TypeError: Cannot read properties of null (reading 'scale')` が発生する。
+JSDOM環境でFabric.jsを動かす場合、`canvas` (node-canvas) パッケージが必要だが未インストールである。
 
-## 原因（調査済み）
+## 解決策
 
-src/hooks/useCanvas.ts の handleSave クロージャが初期化時の currentSlideId をキャプチャしている。
-currentSlideId が後から設定されても、handleSave は古い値（undefined または初期値）を参照し続ける。
-
-## 修正方針
-
-useRef を使用して currentSlideId の最新値を常に参照できるようにする。
+`npm install -D canvas` を実行し、環境を整える。
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:
