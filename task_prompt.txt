@@ -1,51 +1,43 @@
-Issue #44: Phase 5: Firestore プロジェクト保存/読み込み機能
+Issue #46: Phase 5: 自動保存 + App.tsx ルーティング統合
 
 
 
 ## タスク
 
-Phase 5 Firebase連携の第2ステップとして、Firestoreへのプロジェクト保存/読み込み機能を実装してください。
+Phase 5 Firebase連携の最終ステップとして、自動保存機能とApp.txルーティングを実装してください。
 
 ## 要件
 
-### 1. projectService (src/services/projectService.ts)
+### 1. App.tsx ルーティング更新
+- 認証状態に応じた条件分岐を追加
+- 未認証: Home コンポーネント表示
+- 認証済み: Editor コンポーネント表示
+- react-router は不要 (シンプルな条件分岐で実装)
 
-Firestoreへのプロジェクト保存/読み込みサービスを実装してください。
-
+### 2. 自動保存フック (src/hooks/useAutoSave.ts)
 \\\	ypescript
-// 必要な関数
-export async function saveProject(project: Project): Promise<void>
-export async function loadProject(projectId: string): Promise<Project | null>
-export async function listProjects(userId: string): Promise<Project[]>
-export async function deleteProject(projectId: string): Promise<void>
-export async function createNewProject(userId: string, title: string, template: TemplateType): Promise<Project>
+export function useAutoSave(project: Project | null, debounceMs?: number): {
+  isSaving: boolean
+  lastSaved: Date | null
+  error: Error | null
+}
 \\\
+- slideStore の変更を監視
+- Debounce (デフォルト2000ms) で Firestore に保存
+- projectService.saveProject() を使用
 
-### 2. Firestoreコレクション構造
+### 3. 保存状態インジケーター
+- Editor.tsx または Toolbar に保存状態を表示
+- 「保存中...」「保存済み」「エラー」の3状態
 
-\\\
-projects/{projectId}
-  - id: string
-  - title: string
-  - ownerId: string (ユーザーUID)
-  - template: TemplateType
-  - slides: Slide[]
-  - createdAt: number
-  - updatedAt: number
-\\\
-
-### 3. 型定義の活用
-- 既存の \src/types/index.ts\ にある \Project\ と \Slide\ 型を使用
-- \src/lib/firebase.ts\ の \getFirestoreInstance()\ を使用
-
-### 4. テスト
-- 各関数のユニットテスト (モック使用)
-- Firestoreエミュレータ対応は任意
+### 参考ファイル
+- \src/hooks/useAuth.ts\ (認証フック)
+- \src/services/projectService.ts\ (保存サービス)
+- \src/stores/slideStore.ts\ (スライドストア)
 
 ## 完了条件
 - npm run build が成功
 - npm run test が成功
-- すべての関数が実装されている
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:
