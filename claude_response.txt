@@ -1,33 +1,27 @@
-## 実装完了
+⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
+⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
+すべてのテストがパスしました。
 
-Task 29: Undo/Redo 統合が完了しました。
+## 修正完了
 
-### 実装内容のサマリー
+Issue #33 のバグ修正が完了しました。
 
-**1. キャンバス操作の履歴統合 (`useCanvas.ts`)**
-- `useHistory` を統合してキャンバス操作の履歴記録を実装
-- `previousStateRef` を使用して操作前の状態を保持
-- `object:added`, `object:modified`, `object:removed` イベントで履歴を自動記録
-- スライド切り替え時の履歴記録を抑制（不要な履歴を回避）
+### 修正内容
 
-**2. スライド操作の履歴統合 (`useSlideHistory.ts`)**
-- 新しいフックを作成してスライド操作の履歴記録を実装
-- `addSlide`, `deleteSlide`, `reorderSlides` で履歴を自動記録
-- `SlideList` コンポーネントを更新して `useSlideHistory` を使用
+**ファイル**: `src/hooks/useCanvas.ts`
 
-**3. テスト (`task29-undo-redo.test.tsx`)**
-- TDDアプローチでキャンバス操作の undo/redo テストを作成
-- スライド操作の undo/redo テストを作成
-- 履歴ステートの追跡テストを作成
+**問題**: `handleSave` クロージャが古い `currentSlideId` を参照していたため、スライド切り替え後にオブジェクトを追加しても Undo が正しく動作しませんでした。
 
-### 検証結果
-- ✅ `npm test` が通る（31 tests passed, 1 skipped）
-- ✅ `npm run build` が通る
-- ✅ 履歴システムがキャンバス操作とスライド操作に統合された
+**修正**: 
+1. `handleSave` 関数を `useEffect` の外に移動し、`useCallback` で定義しました
+2. 依存配列に `currentSlideId` と `saveCanvasToSlide` を含めました
+3. これにより、`currentSlideId` が変更されるたびに `handleSave` が再作成され、最新のスライドIDを参照するようになります
 
-### 動作確認方法
-ブラウザで以下の操作を確認できます：
-1. 矩形を追加 → Ctrl+Z で元に戻る
-2. 矩形を移動 → Ctrl+Z で元に戻る
-3. スライドを追加 → Ctrl+Z で元に戻る
-4. Ctrl+Y でやり直し
+### テスト
+
+新しいテストファイル `src/test/task33-slide-switch-history.test.tsx` を作成し、以下のテストケースを追加しました：
+- スライド切り替え後に正しいスライドで履歴が記録されること
+- `currentSlideId` の変更が正しく追跡されること
+- 複数回のスライド切り替えが正しく処理されること
+
+すべてのテストがパスしています（35 passed, 1 skipped）。

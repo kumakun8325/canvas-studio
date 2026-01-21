@@ -1,25 +1,21 @@
-Issue #29: Feature: Undo/Redo 統合
+Issue #33: Bug: handleSave クロージャが古い currentSlideId を参照
 
-## 概要
+## バグ
 
-Task 04 は基盤作成（historyStore, useHistory, UndoRedoButtons）のみ完了。
-本タスクで実際のキャンバス操作を履歴システムに接続する。
+Undoボタンが有効にならない。矩形を追加してもUndoボタンがグレーアウトのまま。
 
-## 要件
+## 原因
 
-- useCanvas.ts に useHistory を組み込む
-- object:added, object:modified, object:removed イベントで recordAction を呼び出す
-- スライド操作（追加・削除・並べ替え）も recordAction で記録する
+useCanvas.ts の handleSave クロージャが古い currentSlideId を参照している。
+useEffect の依存配列に currentSlideId が含まれていないため、イベントハンドラが最新の値を参照できない。
 
-## 重要
+## 修正が必要なファイル
 
-- **TDDで「操作後にUndoしたら戻るか」のテストを先に書くこと**
+src/hooks/useCanvas.ts
 
-## 検証
+## 修正内容
 
-- ブラウザで矩形を追加→移動→Undo で戻るか確認
-- npm run test が通ること
-- npm run build が通ること
+現在の handleSave 関数を以下のように変更する必要がある。
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:

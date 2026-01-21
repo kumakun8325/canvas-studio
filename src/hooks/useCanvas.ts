@@ -120,7 +120,14 @@ export function useCanvas(canvasId: string) {
     previousSlideIdRef.current = currentSlideId;
   }, [currentSlideId]); // Dependencies intentionally limited to avoid loops on save
 
-  // Initialize canvas
+  // Auto-save handler - defined outside useEffect to capture current currentSlideId
+  const handleSave = useCallback(() => {
+    if (currentSlideId) {
+      saveCanvasToSlide(currentSlideId, true);
+    }
+  }, [currentSlideId, saveCanvasToSlide]);
+
+  // Initialize canvas and setup event listeners
   useEffect(() => {
     const canvasElement = document.getElementById(
       canvasId,
@@ -159,13 +166,7 @@ export function useCanvas(canvasId: string) {
       setSelectedObjects([]);
     });
 
-    // Auto-save events
-    const handleSave = () => {
-      if (currentSlideId) {
-        saveCanvasToSlide(currentSlideId, true);
-      }
-    };
-
+    // Auto-save events - use the stable handleSave callback
     canvas.on("object:modified", handleSave);
     canvas.on("object:added", handleSave);
     canvas.on("object:removed", handleSave);
@@ -174,7 +175,7 @@ export function useCanvas(canvasId: string) {
       canvas.dispose();
       canvasRef.current = null;
     };
-  }, [canvasId, setSelectedObjects]); // Removed currentSlideId from deps to allow manual handling in the other useEffect
+  }, [canvasId, setSelectedObjects, currentSlideId, loadCanvasFromSlide, handleSave]);
 
   // Add rectangle
   const addRect = useCallback(() => {
