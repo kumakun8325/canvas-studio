@@ -1,0 +1,24 @@
+@claude
+
+## タスク
+テスト環境 (JSDOM) で Fabric.js を動作させるための修正
+
+## 現象
+`npm test` 実行時に `src/test/task35-undo-bug.test.tsx` などで以下のエラーが発生する。
+```
+TypeError: Cannot read properties of null (reading 'scale')
+```
+これは JSDOM 環境に `canvas` パッケージ (node-canvas) が不足しており、Fabric.js が必要な Canvas context API を利用できないためです。
+
+## 指示
+1. `canvas` パッケージを devDependencies にインストールしてください。
+   ```bash
+   npm install -D canvas
+   ```
+2. テストを実行して、エラーが解消されるか確認してください。
+   ```bash
+   npm test
+   ```
+
+## 補足
+もし Windows 環境等で `canvas` のビルドに失敗する場合は、`vitest-canvas-mock` の導入を検討してください。しかし、Fabric.js のロジックテストには `canvas` パッケージの方が望ましいです。
