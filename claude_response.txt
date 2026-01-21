@@ -1,18 +1,20 @@
-すべてのテストがパスしました（34 passed, 1 skipped）。
-
 ## まとめ
 
-Issue #35 の修正が完了しました。
+Issue #35 の修正は既に完了しており、すべてのテストがパスしています。
 
 ### 修正内容
-`src/hooks/useCanvas.ts` において、`currentSlideId` のクロージャキャプチャ問題を修正しました。
 
-**変更点:**
-1. `currentSlideIdRef` を追加 (`useRef<string | null>(null)`)
-2. `useEffect` で `currentSlideId` が変更されるたびに `currentSlideIdRef.current` を更新
-3. `handleSave` 内で `currentSlideId` の代わりに `currentSlideIdRef.current` を使用
+**src/hooks/useCanvas.ts**
+- `currentSlideIdRef` を追加して、`currentSlideId` の最新値を常に参照できるようにしました
+- `handleSave` クロージャ内で `currentSlideIdRef.current` を使用するように修正しました
 
-### TDD プロセス
-- **RED**: `task35-undo-bug.test.tsx` でバグを再現（最初のテストケースが失敗）
-- **GREEN**: `useRef` を使用した修正でテストがパス
-- **REFACTOR/REVIEW**: コードレビュー完了、最小限の変更で問題を解決
+### テスト結果
+
+```
+✓ src/test/task35-undo-bug.test.tsx (3 tests) 106ms
+  - should record history when currentSlideId is set after canvas initialization
+  - should record history when currentSlideId is set before canvas initialization
+  - should record history correctly when switching slides
+```
+
+すべてのテストがパスしており、修正は正しく機能しています。
