@@ -1,38 +1,51 @@
-Issue #42: Phase 5: Firebase初期化 + 認証機能
+Issue #44: Phase 5: Firestore プロジェクト保存/読み込み機能
 
 
 
 ## タスク
 
-Phase 5 Firebase連携の最初のステップとして、Firebase初期化と認証機能を実装してください。
+Phase 5 Firebase連携の第2ステップとして、Firestoreへのプロジェクト保存/読み込み機能を実装してください。
 
 ## 要件
 
-### 1. Firebase初期化 (src/lib/firebase.ts)
-- 環境変数から設定を読み込み (VITE_FIREBASE_*)
-- initializeApp でFirebase初期化
-- getAuth, getFirestore, getStorage をエクスポート
+### 1. projectService (src/services/projectService.ts)
 
-### 2. useAuth フック (src/hooks/useAuth.ts)
-- onAuthStateChanged で認証状態を監視
-- signInWithPopup (GoogleAuthProvider) でログイン
-- signOut でログアウト
-- user, loading, error 状態を返す
+Firestoreへのプロジェクト保存/読み込みサービスを実装してください。
 
-### 3. ログイン画面 (src/pages/Home.tsx)
-- 未認証時: Googleログインボタン表示
-- 認証済み: Editorへ遷移するリンク表示
+\\\	ypescript
+// 必要な関数
+export async function saveProject(project: Project): Promise<void>
+export async function loadProject(projectId: string): Promise<Project | null>
+export async function listProjects(userId: string): Promise<Project[]>
+export async function deleteProject(projectId: string): Promise<void>
+export async function createNewProject(userId: string, title: string, template: TemplateType): Promise<Project>
+\\\
 
-### 4. App.tsx 更新
-- Home と Editor のルーティング追加 (シンプルな条件分岐でOK、react-router不要)
+### 2. Firestoreコレクション構造
 
-## 参考情報
-- Firebase SDK は既にインストール済み (package.json)
-- 型定義は src/types/index.ts
+\\\
+projects/{projectId}
+  - id: string
+  - title: string
+  - ownerId: string (ユーザーUID)
+  - template: TemplateType
+  - slides: Slide[]
+  - createdAt: number
+  - updatedAt: number
+\\\
+
+### 3. 型定義の活用
+- 既存の \src/types/index.ts\ にある \Project\ と \Slide\ 型を使用
+- \src/lib/firebase.ts\ の \getFirestoreInstance()\ を使用
+
+### 4. テスト
+- 各関数のユニットテスト (モック使用)
+- Firestoreエミュレータ対応は任意
 
 ## 完了条件
 - npm run build が成功
 - npm run test が成功
+- すべての関数が実装されている
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:
