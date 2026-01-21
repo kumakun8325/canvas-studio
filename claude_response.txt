@@ -1,34 +1,30 @@
-## Summary
+## 実装完了
 
-I've verified that the basic canvas implementation for Task 02 has been **successfully completed**. All files have been created according to the specification in `docs/task_02.md`:
+Task 04のアンドゥ/リドゥシステムの実装が完了しました。
 
-### Implementation Status
+### 作成・変更したファイル
 
-- `src/stores/editorStore.ts` - Created with Zustand store for editor state
-- `src/stores/slideStore.ts` - Created with Zustand store for slide management
-- `src/hooks/useCanvas.ts` - Created with Fabric.js canvas operations
-- `src/components/canvas/CanvasView.tsx` - Created canvas view component
-- `src/components/canvas/Toolbar.tsx` - Created toolbar with tool buttons
-- `src/pages/Editor.tsx` - Created editor page integrating components
-- `src/App.tsx` - Updated to render Editor component
+| ファイル | アクション | 説明 |
+|---------|----------|------|
+| `src/stores/historyStore.ts` | 新規作成 | 履歴スタック管理のZustandストア |
+| `src/hooks/useHistory.ts` | 新規作成 | キーボードショートカット（Ctrl+Z/Ctrl+Y）とアクション記録のフック |
+| `src/components/ui/UndoRedoButtons.tsx` | 新規作成 | 元に戻す/やり直しボタンコンポーネント |
+| `src/components/canvas/Toolbar.tsx` | 変更 | ツールバーにアンドゥ/リドゥボタンを追加 |
+| `src/components/canvas/CanvasView.tsx` | 変更 | 未使用のfabricインポートを削除（lintエラー修正） |
 
-### Verification Results
+### 実装内容
 
-All checks passed:
-- Build: Success (dist/483.35 kB)
-- Lint: No errors
-- Type check: No errors
+1. **HistoryStore** - undo/redoスタックを管理し、最大50件の履歴を保持
+2. **useHistory Hook** - キーボードショートカット（Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z）を実装
+3. **UndoRedoButtons** - ツールバーに配置される元に戻す/やり直しボタン
+4. **Toolbar更新** - アンドゥ/リドゥ機能をツールバーに統合
 
-The implementation includes:
-- Fabric.js canvas with basic shape tools (rectangle, circle, text)
-- Selection and deletion functionality
-- State management with Zustand
-- Proper TypeScript typing
+### 検証結果
 
-### Next Steps
+- ✅ ビルド成功 (dist/485.32 kB)
+- ✅ Lintパス（エラーなし）
+- ✅ TypeScript型チェックパス
 
-To manually test the implementation:
-1. Run `npm run dev`
-2. Open http://localhost:5173
-3. Click toolbar buttons to add shapes
-4. Select objects and press Delete to remove them
+### 次のステップ
+
+この実装でインフラストラクチャが整いました。次のタスクでは、`useCanvas.ts`内のキャンバス操作（オブジェクトの追加、移動、削除など）から`recordAction`を呼び出して、実際にアンドゥ/リドゥが機能するようにします。

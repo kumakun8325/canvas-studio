@@ -1,5 +1,4 @@
 import { useEffect, RefObject } from "react";
-import * as fabric from "fabric";
 
 interface CanvasActions {
   containerRef: RefObject<HTMLDivElement | null>;

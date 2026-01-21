@@ -1,4 +1,5 @@
 import { useEditorStore } from "../../stores/editorStore";
+import { UndoRedoButtons } from "../ui/UndoRedoButtons";
 import type { ToolType } from "../../types";
 
 interface CanvasActions {
@@ -30,7 +31,13 @@ export function Toolbar({ canvasActions }: ToolbarProps) {
   };
 
   return (
-    <div className="bg-white border-b px-4 py-2 flex gap-2">
+    <div className="bg-white border-b px-4 py-2 flex gap-2 items-center">
+      {/* 元に戻す/やり直し */}
+      <UndoRedoButtons />
+
+      <div className="w-px h-6 bg-gray-300 mx-2" />
+
+      {/* ツール */}
       {tools.map((tool) => (
         <button
           key={tool.id}
