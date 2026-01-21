@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { CanvasView } from "../components/canvas/CanvasView";
 import { Toolbar } from "../components/canvas/Toolbar";
+import { SlideList } from "../components/slides/SlideList";
 import { useSlideStore } from "../stores/slideStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useCanvas } from "../hooks/useCanvas";
@@ -22,10 +23,13 @@ export function Editor() {
   return (
     <div className="h-screen flex flex-col">
       <Toolbar canvasActions={canvasActions} />
-      <CanvasView
-        slideId={currentSlideId ?? undefined}
-        canvasActions={canvasActions}
-      />
+      <div className="flex-1 flex">
+        <SlideList />
+        <CanvasView
+          slideId={currentSlideId ?? undefined}
+          canvasActions={canvasActions}
+        />
+      </div>
     </div>
   );
 }
