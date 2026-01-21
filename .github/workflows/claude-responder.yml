@@ -85,10 +85,26 @@ jobs:
             echo ""
             echo "${CLEAN_BODY}"
             echo ""
-            echo "IMPORTANT Guidelines:"
-            echo "1. Think in English, but output all explanations, comments, and PR descriptions in Japanese."
-            echo "2. Load and read the skill defined in `.claude/skills/code-review/SKILL.md` to review your code."
-            echo "3. Perform a self-review using the above skill before finishing."
+            echo "# Quality Assurance Protocol"
+            echo "Follow this 3-phase process strictly:"
+            echo ""
+            echo "## Phase 1: Implementation (Coder)"
+            echo "Reference: .claude/skills/tdd-workflow/SKILL.md"
+            echo "- If TDD mode, write failing tests first (RED)."
+            echo "- Implement minimal code to pass tests (GREEN)."
+            echo ""
+            echo "## Phase 2: Refactoring (Refactorer)"
+            echo "Reference: .claude/skills/refactoring/SKILL.md"
+            echo "- Improve code quality after passing tests."
+            echo "- Remove duplication, improve naming, use early returns."
+            echo ""
+            echo "## Phase 3: Review (Reviewer)"
+            echo "Reference: .claude/skills/code-review/SKILL.md"
+            echo "- Perform a self-review of your changes."
+            echo "- Check against the criteria in the skill file."
+            echo "- If issues found, fix them before finishing."
+            echo ""
+            echo "IMPORTANT: Output all explanations, comments, and PR descriptions in Japanese."
           } > task_prompt.txt
 
           echo "task_file=task_prompt.txt" >> $GITHUB_OUTPUT
@@ -136,17 +152,6 @@ jobs:
             echo "/tdd"
             echo ""
             cat task_prompt.txt
-            echo ""
-            echo "Requirements:"
-            echo "1. Write failing tests first (RED)"
-            echo "2. Implement minimal code to pass (GREEN)"
-            echo "3. Refactor while keeping tests green (REFACTOR)"
-            echo "4. Ensure 80%+ test coverage"
-            echo ""
-            echo "IMPORTANT Guidelines:"
-            echo "1. Think in English, but output all explanations, comments, and PR descriptions in Japanese."
-            echo "2. Load and read the skill defined in `.claude/skills/code-review/SKILL.md` to review your code."
-            echo "3. Perform a self-review using the above skill before finishing."
           } > tdd_prompt.txt
 
 
