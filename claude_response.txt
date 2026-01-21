@@ -1,38 +1,25 @@
-## 実装完了总结
+Issue #29の実装は既に完了しており、すべての要件が満たされていることが確認できました。
 
-### 確認結果
+## 確認結果まとめ
 
-**Issue #29: Undo/Redo 統合**は既に実装されていました！
+**Issue #29: Undo/Redo 統合 - 実装完了済み**
 
-#### ✅ 実装済みの機能
-
+### 既に実装されている機能
 1. **キャンバス操作の履歴記録** (`src/hooks/useCanvas.ts`)
-   - `object:added`, `object:modified`, `object:removed` イベントを監視
-   - 自動的に履歴を記録し、Undo/Redo でキャンバス状態を復元
+   - `object:added`, `object:modified`, `object:removed` イベントで履歴記録
+   - `useHistory` フックを組み込み済み
 
 2. **スライド操作の履歴記録** (`src/hooks/useSlideHistory.ts`)
-   - スライドの追加・削除・並べ替えの履歴を記録
-   - `SlideList.tsx` で統合済み
+   - スライド追加・削除・並べ替えで履歴記録
 
-#### 📝 今回の変更
+3. **UIコンポーネント** (`src/components/ui/UndoRedoButtons.tsx`)
+   - Undo/Redoボタン、キーボードショートカット対応
 
-テストファイルの改善のみ：
-- 統合テストセクションを有効化（`.skip` 削除）
-- 不完全だったテストを完全な AAA パターンで実装
-- 複数操作の履歴管理テストを追加
+4. **統合** (`src/components/slides/SlideList.tsx`)
+   - `useSlideHistory` を使用してスライド操作を履歴記録
 
 ### 検証結果
+- ✅ テスト: 12個全てパス
+- ✅ ビルド: 成功
 
-| 項目 | 結果 |
-|------|------|
-| テストパス | ✅ 35個全てパス |
-| ビルド | ✅ 成功 |
-| コードレビュー | ✅ 問題なし |
-
-### Issue #31 について
-
-Issue #31（Undoボタンが有効にならないバグ）は、既に `useCanvas.ts` の Line 31 で修正されています：
-```typescript
-const previousJson = previousStateRef.current ?? "{}";
-```
-null 合体演算子 `??` で、`previousStateRef.current` が `null` の場合に `"{}"` を使用するように対応済みです。
+Issue #29に対する追加の作業は不要です。
