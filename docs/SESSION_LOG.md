@@ -7,9 +7,11 @@
 ## 2026-01-20
 
 ### Completed
+
 - Task #01: Project Initialization (Phase 1)
 
 ### Changed Files
+
 - package.json - Added project dependencies (React 19, Tailwind CSS v4, Vitest, Fabric.js 6.5.4, Zustand, Firebase, pdf-lib)
 - vite.config.ts - Vite configuration with Tailwind CSS plugin
 - vitest.config.ts - Vitest configuration with Tailwind CSS plugin
@@ -27,6 +29,7 @@
 - docs/handoff.md - Updated to READY_FOR_VERIFY status
 
 ### Directory Structure Created
+
 ```
 src/
 ├── components/
@@ -46,23 +49,52 @@ src/
 ```
 
 ### Quality Checks Performed
+
 - Code review: Passed (with fixes applied)
 - ESLint: Passed
 - Build: Passed
 - Tests: Vitest properly configured (tests to be added in subsequent tasks)
 
 ### Known Issues
+
 - npm audit: 2 high-severity vulnerabilities in transitive dependency `tar` (via @mapbox/node-pre-gyp). This affects build-time dependencies only.
 
 ### Next Task
+
 - Task #02: Basic Canvas (Phase 2)
+
+## 2026-01-21
+
+### Completed
+
+- **Phase 4: Undo/Redo System Completed**
+  - Implemented logic-safe Undo/Redo (event locking, ref sync)
+  - Fixed regression bugs (Issue #35, #37)
+- **Test Environment Fixed**
+  - Resolved `Cannot read properties of null` error by introducing `vitest-canvas-mock` (Issue #39)
+  - All 37 tests passing on Windows environment
+
+### Changed Files
+
+- src/hooks/useCanvas.ts - Implemented `isInternalUpdateRef` and `currentSlideIdRef`
+- src/components/canvas/Toolbar.tsx - Updated tools list
+- vitest.config.ts - Added `vitest-canvas-mock` to setupFiles
+- package.json - Added `vitest-canvas-mock`
+- docs/tasks.md - Updated progress
+
+### Next Task
+
+- **Phase 2.10: Line Tool Implementation** (Requested by User)
+- Phase 5: Firebase Integration
 
 ---
 
 ## YYYY-MM-DD
 
 ### 完了したタスク
+
 - プロジェクト初期化
 
 ### 次回の作業
+
 - 要件定義の詳細化一

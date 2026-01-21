@@ -10,17 +10,17 @@ import {
   where,
   getDocs,
   deleteDoc,
-} from 'firebase/firestore'
-import type { Project, TemplateType } from '../types'
-import { getFirestoreInstance } from '../lib/firebase'
+} from "firebase/firestore";
+import type { Project, TemplateType } from "../types";
+import { getFirestoreInstance } from "../lib/firebase";
 
-const db = getFirestoreInstance()
+const db = getFirestoreInstance();
 
 /**
  * Generate a unique ID for a project
  */
 function generateProjectId(): string {
-  return `project_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  return `project_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
 /**
@@ -28,7 +28,7 @@ function generateProjectId(): string {
  * @param project - Project to save
  */
 export async function saveProject(project: Project): Promise<void> {
-  const docRef = doc(db, 'projects', project.id)
+  const docRef = doc(db, "projects", project.id);
   await setDoc(
     docRef,
     {
@@ -40,8 +40,8 @@ export async function saveProject(project: Project): Promise<void> {
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     },
-    { merge: true }
-  )
+    { merge: true },
+  );
 }
 
 /**
@@ -50,15 +50,15 @@ export async function saveProject(project: Project): Promise<void> {
  * @returns Project or null if not found
  */
 export async function loadProject(projectId: string): Promise<Project | null> {
-  const docRef = doc(db, 'projects', projectId)
-  const docSnap = await getDoc(docRef)
+  const docRef = doc(db, "projects", projectId);
+  const docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) {
-    return null
+    return null;
   }
 
-  const data = docSnap.data()
-  return data as Project
+  const data = docSnap.data();
+  return data as Project;
 }
 
 /**
@@ -67,11 +67,11 @@ export async function loadProject(projectId: string): Promise<Project | null> {
  * @returns Array of projects
  */
 export async function listProjects(userId: string): Promise<Project[]> {
-  const projectsRef = collection(db, 'projects')
-  const q = query(projectsRef, where('ownerId', '==', userId))
-  const querySnapshot = await getDocs(q)
+  const projectsRef = collection(db, "projects");
+  const q = query(projectsRef, where("ownerId", "==", userId));
+  const querySnapshot = await getDocs(q);
 
-  return querySnapshot.docs.map((doc) => doc.data() as Project)
+  return querySnapshot.docs.map((doc) => doc.data() as Project);
 }
 
 /**
@@ -79,8 +79,8 @@ export async function listProjects(userId: string): Promise<Project[]> {
  * @param projectId - Project ID
  */
 export async function deleteProject(projectId: string): Promise<void> {
-  const docRef = doc(db, 'projects', projectId)
-  await deleteDoc(docRef)
+  const docRef = doc(db, "projects", projectId);
+  await deleteDoc(docRef);
 }
 
 /**
@@ -93,22 +93,30 @@ export async function deleteProject(projectId: string): Promise<void> {
 export async function createNewProject(
   userId: string,
   title: string,
-  template: TemplateType
+  template: TemplateType,
 ): Promise<Project> {
-  const now = Date.now()
-  const projectId = generateProjectId()
+  const now = Date.now();
+  const projectId = generateProjectId();
+
+  // Create initial slide so auto-save can work
+  const initialSlide = {
+    id: crypto.randomUUID(),
+    canvasJson: "{}",
+    createdAt: now,
+    updatedAt: now,
+  };
 
   const newProject: Project = {
     id: projectId,
     title,
     ownerId: userId,
     template,
-    slides: [],
+    slides: [initialSlide],
     createdAt: now,
     updatedAt: now,
-  }
+  };
 
-  await saveProject(newProject)
+  await saveProject(newProject);
 
-  return newProject
+  return newProject;
 }
