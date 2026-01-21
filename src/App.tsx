@@ -1,7 +1,12 @@
-import { Editor } from './pages/Editor'
+import { Editor } from "./pages/Editor";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function App() {
-  return <Editor />
+  return (
+    <ErrorBoundary>
+      <Editor />
+    </ErrorBoundary>
+  );
 }
 
-export default App
+export default App;

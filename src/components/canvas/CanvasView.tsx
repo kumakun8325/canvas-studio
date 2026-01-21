@@ -1,26 +1,33 @@
-import { useEffect } from 'react'
-import { useCanvas } from '../../hooks/useCanvas'
+import { useEffect, RefObject } from "react";
+import * as fabric from "fabric";
 
-interface CanvasViewProps {
-  slideId?: string
+interface CanvasActions {
+  containerRef: RefObject<HTMLDivElement | null>;
+  deleteSelected: () => void;
 }
 
-export function CanvasView(_: CanvasViewProps) {
-  const { containerRef, deleteSelected } = useCanvas('main-canvas')
+interface CanvasViewProps {
+  slideId?: string;
+  canvasActions: CanvasActions;
+}
+
+export function CanvasView({ canvasActions }: CanvasViewProps) {
+  const { containerRef, deleteSelected } = canvasActions;
 
   // Delete key handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (e.key === "Delete" || e.key === "Backspace") {
         // Don't delete if editing text
-        if (document.activeElement?.tagName === 'TEXTAREA') return
-        deleteSelected()
+        if (document.activeElement?.tagName === "TEXTAREA") return;
+        e.preventDefault();
+        deleteSelected();
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deleteSelected])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [deleteSelected]);
 
   return (
     <div
@@ -31,5 +38,5 @@ export function CanvasView(_: CanvasViewProps) {
         <canvas id="main-canvas" />
       </div>
     </div>
-  )
+  );
 }

@@ -1,271 +1,136 @@
-# 開発ワークフロー
+# 開発ワークフロー (AI協調モデル)
 
-SDD（仕様駆動開発）+ 2AI分業体制での開発手順です。
+Antigravity (PM/設計/検証) と Claude Code (実装/GitHub Actions) の分業による開発プロセスです。
 
 ---
 
-## 🚀 新プロジェクトの始め方
+## � 役割分担
 
-### 方法1: GitHub Template（推奨・最もシンプル）
+### 🧠 Antigravity (あなた)
 
-1. https://github.com/kumakun8325/sdd-templates を開く
-2. **"Use this template"** → **"Create a new repository"** をクリック
-3. リポジトリ名を入力 → **Create repository**
-4. 作成されたリポジトリを `git clone`
+- **ロール**: プロジェクトマネージャー、アーキテクト、QAエンジニア
+- **責任**:
+  - 要件定義・設計・タスク分解
+  - **実装指示書 (GitHub Issue) の作成**
+  - コードレビュー・動作検証 (`npm run dev` / `npm run build`)
+  - デプロイ
+- **禁止事項**:
+  - `src/` 配下のコードを直接編集すること（リファクタリングや微修正を除く）
+  - 実装を自ら行うこと（必ずClaudeに委譲する）
+
+### 🤖 Claude Code (GitHub Actions)
+
+- **ロール**: 開発エンジニア
+- **責任**:
+  - Issueに基づいたコード実装
+  - テストコード作成
+  - Pull Request作成
+
+---
+
+## 🔄 標準開発サイクル
+
+### 1. 計画・設計 (Design)
+
+**担当**: Antigravity
+
+- ユーザーの要望を分析・調査します。
+- 必要な変更を特定し、設計を行います。
+
+### 2. タスク定義 (Issue Creation)
+
+**担当**: Antigravity
+
+実装をClaudeに依頼するためのGitHub Issueを作成します。
+
+#### ケースA: 既定のタスク定義書がある場合 (Task 02-04)
+
+既に詳細なドキュメント (`docs/task_XX.md`) が存在する場合は、それを参照させます。
 
 ```bash
-git clone https://github.com/kumakun8325/my-new-project.git
-cd my-new-project
+gh issue create --title "feat: 機能名 (Task XX)" --body "@claude
+
+**Objective**: docs/task_XX.md に基づいて機能を実装してください。
+**Reference**: docs/task_XX.md"
 ```
 
-### 方法2: degitコマンド
+#### ケースB: 新規タスクの場合 (Task 05以降)
+
+Antigravityが調査した結果を**Issue本文に直接**記述します。
 
 ```bash
-npx degit kumakun8325/sdd-templates my-new-project
-cd my-new-project
-git init
-git remote add origin https://github.com/USERNAME/my-new-project.git
-git add . && git commit -m "chore: Initial commit"
-git push -u origin main
+gh issue create --title "feat: 新機能名" --body "@claude
+
+**Objective**: 〇〇機能を実装してください。
+
+**Requirements**:
+- 要件A
+- 要件B
+
+**Technical Specs**:
+- ファイルAを変更し、関数Bを追加
+- ライブラリCを使用
+- データ構造は以下..."
 ```
+
+### 3. 実装 (Implementation)
+
+**担当**: Claude Code (Automation)
+
+- Issue作成をトリガーにGitHub Actionsが起動します。
+- 自動的にブランチ作成、実装、テスト、PR作成が行われます。
+- Antigravityはこの間、他の設計や調査を行うか、完了を待ちます。
+
+### 4. 検証 (Verification)
+
+**担当**: Antigravity
+
+作成されたPRを確認します。
+
+1. **コードレビュー**: PRのFiles changedを確認。
+2. **動作確認**:
+   ```bash
+   gh pr checkout <PR番号>
+   npm install
+   npm run dev
+   # ブラウザで動作確認
+   ```
+3. **マージ**: 問題なければマージします。
+   ```bash
+   gh pr merge --merge --delete-branch
+   ```
+4. **フィードバック (NGの場合)**:
+   PRにコメントで修正指示を出すか、新たなIssueを作成して修正させます。
 
 ---
 
-## 🔄 開発フロー
+## � ドキュメント管理
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Antigravity (Opus)                       │
-│                                                              │
-│  /sdd interview → /sdd req → /sdd design → /plan           │
-│         ↓              ↓           ↓          ↓              │
-│    ヒアリング      要件定義      設計    タスク計画           │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-                      docs/handoff.md
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                  Claude Code (Sonnet/GLM-4.7)               │
-│                                                              │
-│              /start → 実装 → /finish                        │
-│                 ↓             ↓                              │
-│           ブランチ作成   PR作成・レビュー                      │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    Antigravity (Opus)                       │
-│                                                              │
-│                        /verify                               │
-│                           ↓                                  │
-│                    検証 → デプロイ                            │
-└─────────────────────────────────────────────────────────────┘
-```
+- **.kiro/steering/**: 上流設計ドキュメント (要件定義、全体設計)
+- **docs/**: プロジェクト固有ドキュメント
+  - `task_XX.md`: 既存のタスク定義書
+- **GitHub Issues**: タスクの実体。Task 05以降の詳細仕様はここに蓄積される。
 
 ---
 
-## 📝 各ステップの詳細
+## � コマンドリファレンス
 
-### Step 1: 対話的ヒアリング（Antigravity）
-
-```
-/sdd interview
-```
-
-- 初期仕様を深掘りし、隠れた要件を明確化
-- 技術実装、UI/UX、セキュリティなどの観点から質問
-- 回答を元に `requirements.md` を更新
-
-### Step 2: 要件定義（Antigravity）
-
-```
-/sdd req
-```
-
-- `.kiro/steering/requirements.md` を編集
-- 機能要件・非機能要件を明確化
-- 受け入れ基準を記載
-
-### Step 3: 設計（Antigravity）
-
-```
-/sdd design
-```
-
-- `.kiro/steering/design.md` を編集
-- アーキテクチャ、技術スタック、ディレクトリ構造を決定
-- テスト戦略を定義
-
-### Step 4: タスク計画（Antigravity）
-
-```
-/plan
-```
-
-- GitHub Issueを作成
-- `docs/task_XX_name.md` を作成（詳細な実装手順）
-- `docs/handoff.md` に引き継ぎ情報を記載
-- Status: `READY_FOR_CLAUDE` に変更
-
-### Step 5: 実装開始（Claude Code）
-
-```
-/start
-```
-
-- `docs/handoff.md` を読み込み
-- 実装計画を確認し、ユーザー承認を得る
-- フィーチャーブランチを作成
-- 実装を開始
-
-### Step 6: 実装完了（Claude Code）
-
-```
-/finish
-```
-
-- セルフレビュー: `/pr-review-toolkit:review-pr code errors`
-- ビルド・テスト確認
-- `docs/handoff.md` のステータスを `READY_FOR_VERIFY` に更新
-- コミット・プッシュ・PR作成
-
-### Step 7: 検証・デプロイ（Antigravity）
-
-```
-/verify
-```
-
-- `git pull` で最新を取得
-- ビルド・テスト確認
-- 手動で動作確認
-- デプロイ（成功時）
-
----
-
-## 📂 ファイル構成
-
-| パス | 用途 |
-|------|------|
-| `.kiro/steering/requirements.md` | 要件定義書（SSoT） |
-| `.kiro/steering/design.md` | 設計書 |
-| `.kiro/steering/tasks.md` | フェーズ・タスク管理 |
-| `docs/handoff.md` | AI間引き継ぎ |
-| `docs/task_XX_name.md` | 個別タスク詳細 |
-| `docs/SESSION_LOG.md` | セッション履歴 |
-| `CLAUDE.md` | Claude Code設定 |
-
----
-
-## ⌨️ コマンド一覧
-
-### Antigravityコマンド
-
-| コマンド | 説明 |
-|----------|------|
-| `/sdd interview` | 対話的ヒアリング |
-| `/sdd req` | 要件定義 |
-| `/sdd design` | 設計 |
-| `/sdd tasks` | タスク分解 |
-| `/sdd impl` | 次のタスクを実装 |
-| `/sdd status` | 進捗確認 |
-| `/sdd sync` | 仕様とコードの同期 |
-| `/plan` | タスク計画・Issue作成 |
-| `/verify` | 検証・デプロイ |
-
-### Claude Codeコマンド
-
-| コマンド | 説明 |
-|----------|------|
-| `/start` | 実装開始 |
-| `/start 7` | Issue #7のタスクを開始 |
-| `/finish` | 実装完了・PR作成 |
-| `/review <file>` | コードレビュー |
-| `/pr-review-toolkit:review-pr all` | 公式プラグインで全体レビュー |
-
----
-
-## 🔁 フィードバックループ
-
-検証で問題が見つかった場合：
-
-1. `docs/handoff.md` の **Feedback Loop** セクションに問題を記載
-2. Status を `READY_FOR_CLAUDE` に戻す
-3. Claude Code で `/start` を再実行
-4. 修正後、`/finish` でPR更新
-
----
-
-## 💡 ベストプラクティス
-
-1. **仕様がSSoT** - コードより仕様を信頼する
-2. **小さなタスクに分割** - 1タスク1PRが理想
-3. **handoff.mdを常に更新** - AI間の引き継ぎを確実に
-4. **レビュー後に実装** - Antigravityの設計承認を得てから実装
-5. **テストと同時に実装** - `/sdd impl` はテスト込み
-
----
-
-## 🚀 並列Claude開発（上級者向け）
-
-大規模なプロジェクトでは、複数のClaude Codeを並列で動かして開発速度を上げることができます。
-
-### アーキテクチャ
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Antigravity (Opus) - PM/統合役                             │
-│  ・調査・設計・検証                                           │
-│  ・/plan で複数タスクを並列に計画                              │
-│  ・マージ・競合解決                                           │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  WSL2: tmux + 複数 Claude Code                              │
-│  ┌──────────┬──────────┬──────────┬──────────┐              │
-│  │ Worker 1 │ Worker 2 │ Worker 3 │ Worker 4 │              │
-│  │Components│  Hooks   │  Stores  │  Tests   │              │
-│  │ worktree │ worktree │ worktree │ worktree │              │
-│  └──────────┴──────────┴──────────┴──────────┘              │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Antigravity (Opus)                                         │
-│  ・PRマージ → /verify → デプロイ                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### セットアップ
+### Issue作成 (実装開始)
 
 ```bash
-# WSL2環境で実行
-cd /mnt/c/tool/my-project
-./scripts/multi-claude-setup.sh my-project 3
+gh issue create --title "タイトル" --body "@claude 本文"
 ```
 
-これにより：
-- 3つのワーカーブランチを作成
-- 3つのgit worktreeを作成
-- tmuxで4ペイン（main + 3ワーカー）を起動
-- 各ペインでClaude Codeを自動起動
-
-### 使い方
-
-1. **Antigravity**: `/plan` で複数タスクを計画
-2. **各Claude Code**: 担当部分を `/start` で実装
-3. **各Claude Code**: `/finish` でPR作成
-4. **Antigravity**: PRをレビュー・マージ → `/verify`
-
-### クリーンアップ
+### PRチェックアウト
 
 ```bash
-./scripts/multi-claude-setup.sh --cleanup my-project I
+gh pr checkout <PR番号>
 ```
 
-### tmux操作
+### ビルド・テスト
 
-| 操作 | キー |
-|------|------|
-| ペイン移動 | `Ctrl+b 矢印キー` |
-| セッション切断 | `Ctrl+b d` |
-| ペイン最大化 | `Ctrl+b z` |
-| 再接続 | `tmux attach -t my-project-dev` |
-
+```bash
+npm run typecheck
+npm run test:run
+npm run build
+```
