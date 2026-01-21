@@ -1,18 +1,31 @@
-Issue #23: feat: Basic Canvas Implementation (Task 02)
+Issue #26: feat: Undo/Redo System (Task 04)
 
 
 
-**Objective**: 詳細なタスク定義書 task 02 に基づき、基本的なキャンバス機能を実装してください。
+**Objective**: Implement undo/redo functionality with history stack management.
 
-**Reference**: docs/task_02.md 
+**Reference**: \docs/task_04.md\
 
 **Tasks**:
-- [ ] src/stores/editorStore.ts の実装
-- [ ] src/stores/slideStore.ts の実装
-- [ ] src/hooks/useCanvas.ts の実装
-- [ ] src/components/canvas/CanvasView.tsx の実装
-- [ ] src/components/canvas/Toolbar.tsx の実装
-- [ ] src/pages/Editor.tsx の実装
-- [ ] src/App.tsx の更新
+- [ ] Create \src/stores/historyStore.ts\
+- [ ] Create \src/hooks/useHistory.ts\
+- [ ] Create \src/components/ui/UndoRedoButtons.tsx\
+- [ ] Update \src/components/canvas/Toolbar.tsx\ with undo/redo buttons
+- [ ] Verify Ctrl+Z and Ctrl+Y work
 
-docs/task_02.md に記載されている実装詳細に従ってください。
+Follow the implementation details in \docs/task_04.md\.
+
+**IMPORTANT**:
+1. Think in English, but output all explanations, comments, and PR descriptions in Japanese.
+2. Load and read \.claude/skills/code-review/SKILL.md\ to review your code.
+3. Perform a self-review before finishing.
+4. Run \
+pm run build\ and \
+pm run lint\ to verify.
+
+**Note**: Do NOT integrate recordAction into useCanvas.ts yet - that will be done in a follow-up task after both Phase 3 and 4 merge.
+
+IMPORTANT Guidelines:
+1. Think in English, but output all explanations, comments, and PR descriptions in Japanese.
+2. Load and read the skill defined in  to review your code.
+3. Perform a self-review using the above skill before finishing.
