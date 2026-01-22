@@ -13,8 +13,16 @@ Userから指示を受けたら、以下のフローに従って自律的に作�
 既存のIssueがある場合はそれを使用し、ない場合は作成する。
 **重要**: 必ず `--label claude-auto` を付与すること（トリガー条件）。
 
+**順序指定**: 複数Issue作成時は `queue-N` ラベルで順序を指定（N=1が最優先）。
+PRマージ後、次のIssueが自動的に着手される。
+
 ```bash
+# 単独Issue
 gh issue create --title "Feature: [機能名]" --body "[詳細説明]" --label claude-auto
+
+# 順序指定（複数Issue）
+gh issue create --title "Phase 8: エクスポート" --body "..." --label claude-auto --label queue-1
+gh issue create --title "Phase 9: 名刺PDF" --body "..." --label claude-auto --label queue-2
 ```
 
 ## 2. Claudeへの指示出し
