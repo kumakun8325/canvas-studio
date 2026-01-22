@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useEditorStore } from "../../stores/editorStore";
 import { UndoRedoButtons } from "../ui/UndoRedoButtons";
 import type { ToolType } from "../../types";
@@ -6,6 +7,9 @@ interface CanvasActions {
   addRect: () => void;
   addCircle: () => void;
   addText: () => void;
+  addImage: (file: File) => void;
+  bringToFront: () => void;
+  sendToBack: () => void;
 }
 
 interface ToolbarProps {
@@ -16,14 +20,16 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, saveError = null }: ToolbarProps) {
-  const { addRect, addCircle, addText } = canvasActions;
+  const { addRect, addCircle, addText, addImage, bringToFront, sendToBack } = canvasActions;
   const { activeTool, setActiveTool } = useEditorStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const tools: { id: ToolType; label: string; icon: string }[] = [
     { id: "select", label: "Select", icon: "↖" },
     { id: "rect", label: "Rectangle", icon: "▢" },
     { id: "circle", label: "Circle", icon: "○" },
     { id: "text", label: "Text", icon: "T" },
+    { id: "image", label: "Image", icon: "🖼" },
   ];
 
   const handleToolClick = (tool: ToolType) => {
@@ -31,6 +37,14 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
     if (tool === "rect") addRect();
     if (tool === "circle") addCircle();
     if (tool === "text") addText();
+    if (tool === "image") fileInputRef.current?.click();
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) addImage(file);
+    // Reset input value to allow selecting the same file again
+    e.target.value = "";
   };
 
   // Format last saved time
@@ -82,6 +96,33 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
             {tool.icon}
           </button>
         ))}
+
+        {/* Hidden file input for image upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*"
+          onChange={handleImageChange}
+        />
+
+        <div className="w-px h-6 bg-gray-300 mx-2" />
+
+        {/* レイヤー操作 */}
+        <button
+          onClick={bringToFront}
+          className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
+          title="前面に移動"
+        >
+          ↑↑
+        </button>
+        <button
+          onClick={sendToBack}
+          className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
+          title="背面に移動"
+        >
+          ↓↓
+        </button>
       </div>
 
       {/* 保存ステータス */}

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { CanvasView } from "../components/canvas/CanvasView";
 import { Toolbar } from "../components/canvas/Toolbar";
+import { PropertyPanel } from "../components/canvas/PropertyPanel";
 import { SlideList } from "../components/slides/SlideList";
 import { TemplateSelector } from "../components/templates/TemplateSelector";
 import { useSlideStore } from "../stores/slideStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useCanvas } from "../hooks/useCanvas";
+import { useClipboard } from "../hooks/useClipboard";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useAuth } from "../hooks/useAuth";
 import { listProjects } from "../services/projectService";
@@ -32,8 +34,15 @@ export function Editor() {
   // Single source of truth for canvas
   const canvasActions = useCanvas("main-canvas");
 
+  // Clipboard functionality
+  const clipboard = useClipboard(canvasActions.canvasRef);
+
   // Auto-save functionality (disabled until canvas is ready)
-  const { isSaving, lastSaved, error: saveError } = useAutoSave(project, isAutoSaveReady);
+  const {
+    isSaving,
+    lastSaved,
+    error: saveError,
+  } = useAutoSave(project, isAutoSaveReady);
 
   // Load or create project when user logs in
   useEffect(() => {
@@ -63,8 +72,11 @@ export function Editor() {
     loadOrCreateProject();
   }, [user, setProject]);
 
-  const handleCreateProject = (template: TemplateType, config: TemplateConfig) => {
-    createProject('新規プロジェクト', template, config);
+  const handleCreateProject = (
+    template: TemplateType,
+    config: TemplateConfig,
+  ) => {
+    createProject("新規プロジェクト", template, config);
     setShowTemplateSelector(false);
     hasLoadedProject.current = true;
   };
@@ -93,8 +105,12 @@ export function Editor() {
       {showTemplateSelector ? (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Canvas Studio</h1>
-            <p className="text-gray-600 mb-8">新しいプロジェクトを作成しましょう</p>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Canvas Studio
+            </h1>
+            <p className="text-gray-600 mb-8">
+              新しいプロジェクトを作成しましょう
+            </p>
             <TemplateSelector
               onSelect={handleCreateProject}
               showCustomOption={true}
@@ -103,13 +119,24 @@ export function Editor() {
         </div>
       ) : (
         <>
-          <Toolbar canvasActions={canvasActions} isSaving={isSaving} lastSaved={lastSaved} saveError={saveError} />
+          <Toolbar
+            canvasActions={canvasActions}
+            isSaving={isSaving}
+            lastSaved={lastSaved}
+            saveError={saveError}
+          />
           <div className="flex-1 flex">
             <SlideList />
             <CanvasView
               slideId={currentSlideId ?? undefined}
-              canvasActions={canvasActions}
+              canvasActions={{
+                ...canvasActions,
+                copy: clipboard.copy,
+                paste: clipboard.paste,
+                cut: clipboard.cut,
+              }}
             />
+            <PropertyPanel canvas={canvasActions.canvasRef.current} />
           </div>
         </>
       )}

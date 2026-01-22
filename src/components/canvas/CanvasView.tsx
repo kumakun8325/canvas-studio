@@ -3,6 +3,9 @@ import { useEffect, RefObject } from "react";
 interface CanvasActions {
   containerRef: RefObject<HTMLDivElement | null>;
   deleteSelected: () => void;
+  copy?: () => void;
+  paste?: () => void;
+  cut?: () => void;
 }
 
 interface CanvasViewProps {
@@ -11,22 +14,43 @@ interface CanvasViewProps {
 }
 
 export function CanvasView({ canvasActions }: CanvasViewProps) {
-  const { containerRef, deleteSelected } = canvasActions;
+  const { containerRef, deleteSelected, copy, paste, cut } = canvasActions;
 
-  // Delete key handler
+  // Keyboard shortcuts handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if editing text
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      // Delete / Backspace
       if (e.key === "Delete" || e.key === "Backspace") {
-        // Don't delete if editing text
-        if (document.activeElement?.tagName === "TEXTAREA") return;
         e.preventDefault();
         deleteSelected();
+      }
+
+      // Ctrl+C / Cmd+C - Copy
+      if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+        e.preventDefault();
+        copy?.();
+      }
+
+      // Ctrl+V / Cmd+V - Paste
+      if ((e.ctrlKey || e.metaKey) && e.key === "v") {
+        e.preventDefault();
+        paste?.();
+      }
+
+      // Ctrl+X / Cmd+X - Cut
+      if ((e.ctrlKey || e.metaKey) && e.key === "x") {
+        e.preventDefault();
+        cut?.();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [deleteSelected]);
+  }, [deleteSelected, copy, paste, cut]);
 
   return (
     <div
