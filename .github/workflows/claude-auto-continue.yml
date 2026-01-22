@@ -1,0 +1,72 @@
+# Auto-continue workflow: After PR merge, trigger next Issue based on queue order
+#
+# Queue order is determined by labels: queue-1 (highest priority) → queue-N
+# If no queue labels, falls back to oldest Issue first.
+
+name: Claude Auto-Continue
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  pickup-next-issue:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    permissions:
+      issues: write
+
+    steps:
+      - name: Find next Issue in queue order
+        id: find-issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # First, try to find Issues with queue-N labels (sorted by queue number)
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            NEXT_ISSUE=$(gh issue list \
+              --repo ${{ github.repository }} \
+              --label "claude-auto,queue-$i" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty')
+
+            if [ -n "$NEXT_ISSUE" ]; then
+              echo "Found next issue in queue-$i: #$NEXT_ISSUE"
+              echo "issue_number=$NEXT_ISSUE" >> $GITHUB_OUTPUT
+              echo "has_next=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+
+          # Fallback: oldest open Issue with claude-auto label
+          NEXT_ISSUE=$(gh issue list \
+            --repo ${{ github.repository }} \
+            --label claude-auto \
+            --state open \
+            --json number,createdAt \
+            --jq 'sort_by(.createdAt) | .[0].number // empty')
+
+          if [ -n "$NEXT_ISSUE" ]; then
+            echo "Found oldest issue: #$NEXT_ISSUE"
+            echo "issue_number=$NEXT_ISSUE" >> $GITHUB_OUTPUT
+            echo "has_next=true" >> $GITHUB_OUTPUT
+          else
+            echo "No more open issues"
+            echo "has_next=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Claude on next Issue
+        if: steps.find-issue.outputs.has_next == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ steps.find-issue.outputs.issue_number }} \
+            --repo ${{ github.repository }} \
+            --body "@claude 前のPRがマージされました。このIssueの実装を開始してください。"
+
+      - name: Log completion
+        if: steps.find-issue.outputs.has_next == 'false'
+        run: |
+          echo "🎉 All Issues have been completed!"
