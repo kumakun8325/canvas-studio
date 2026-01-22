@@ -1,63 +1,45 @@
-⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
-Perfect! The build succeeds. Now let me create a summary of what was implemented:
+Build successful. Phase 9 implementation is complete.
 
-## Phase 7: テンプレート機能実装完了
+## Summary
 
-実装が完了しました。以下の機能が追加されました：
+I have successfully implemented **Phase 9: 名刺用PDF（塗り足し・トンボ・印刷設定）**. Here's what was created:
 
-### 実装内容
+### Files Created:
+1. **`src/services/businessCardService.ts`** - 名刺PDF生成サービス
+   - 定数定義（名刺サイズ、塗り足し、トンボサイズ、DPI設定）
+   - 単位変換関数（mm→pixel、mm→points）
+   - `calculateCanvasSize()` - 塗り足し込みのキャンバスサイズ計算
+   - `drawTrimMarks()` - トンボ（裁断マーク）描画
+   - `generateBusinessCardPDF()` - PDF生成メイン関数
+   - 入力値バリデーション（負の塗り足し値のチェック）
 
-#### 1. **templates.ts 定数ファイル** (`src/constants/templates.ts`)
-- `mmToPixel()`: DPI変換ユーティリティ関数
-- `TEMPLATE_CONFIGS`: 5種類のテンプレート設定
-  - 16:9 (1920x1080 px)
-  - A4縦 (794x1123 px)
-  - A4横 (1123x794 px)
-  - 名刺 (344x208 px)
-  - カスタム (デフォルト800x600 px)
-- `TEMPLATE_LABELS`: 日本語ラベル
-- `TEMPLATE_DESCRIPTIONS`: サイズ説明
-- `TEMPLATE_LIST`: テンプレート一覧
+2. **`src/components/export/PrintSettingsPanel.tsx`** - 印刷設定UI
+   - 塗り足し設定（2mm/3mm/5mm選択）
+   - トンボ表示切り替え
+   - レジストレーションマーク
+   - CMYK変換オプション
+   - 解像度設定（96 DPI / 300 DPI）
+   - 塗り足しプレビュー（BleedPreviewコンポーネント）
 
-#### 2. **TemplateSelector コンポーネント** (`src/components/templates/TemplateSelector.tsx`)
-- テンプレート選択UI（グリッド表示）
-- カスタムサイズ入力（幅・高さ、100-4096px）
-- リアルタイムプレビュー（アスペクト比維持）
-- 選択状態のハイライト表示
+3. **`src/test/businessCard.test.ts`** - テストスイート
+   - 19個のテストケース
+   - 定数・計算関数のテスト
+   - キャンバスサイズ計算のテスト
+   - PDF生成のテスト
+   - トンボ描画のテスト
+   - 入力値バリデーションのテスト
 
-#### 3. **slideStore拡張** (`src/stores/slideStore.ts`)
-- `createProject()`: 新規プロジェクト作成
-- `getTemplateConfig()`: テンプレート設定取得
-- `templateConfig`状態の追加
+### Files Modified:
+1. **`src/types/index.ts`** - ExportOptions型を拡張して`businessCard`と`printSettings`を追加
 
-#### 4. **useCanvasフック更新** (`src/hooks/useCanvas.ts`)
-- 動的キャンバスサイズ対応
-- `getTemplateConfig()`を使用してキャンバスサイズを設定
+### Test Results:
+- **19/19 tests passing** for businessCard
+- **135/137 tests passing** overall (2 skipped, unrelated to Phase 9)
+- Build successful
 
-#### 5. **Editorページ統合** (`src/pages/Editor.tsx`)
-- 新規ユーザーの場合、TemplateSelectorを表示
-- 既存プロジェクトがある場合は直近のプロジェクトを読み込み
-- テンプレート選択後、エディターを表示
-
-### テスト状況
-
-- **テストファイル**: 2つの新しいテストファイルを作成
-  - `src/test/templates.test.ts`: 11個のテスト（テンプレート定数）
-  - `src/test/templateSelector.test.tsx`: 10個のテスト（コンポーネント）
-- **全テスト結果**: 107個のテストがパス（1個スキップ）
-
-### ビルド状況
-
-- `npm run build`: 成功
-- TypeScript型チェック: パス
-- 本番ビルド: 完了
-
-### 完了条件チェック
-
-- ✅ テンプレート選択UIが動作する
-- ✅ 各テンプレートでキャンバスサイズが正しく設定される
-- ✅ カスタムサイズ入力が動作する
-- ✅ テスト作成・成功
-- ✅ `npm run build` 成功
-
-Phase 7の実装はすべて完了しました。
+### Completion Criteria (from issue #53):
+✅ 名刺PDFが塗り足し付きで出力される
+✅ トンボが正しく描画される  
+✅ 印刷設定UIが動作する
+✅ テスト作成・成功
+✅ `npm run build` 成功

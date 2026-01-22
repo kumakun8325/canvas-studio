@@ -58,6 +58,9 @@ export interface ExportOptions {
   cmyk?: boolean
   bleed?: number
   trimMarks?: boolean
+  // Phase 9 additions
+  businessCard?: boolean
+  printSettings?: import('../services/businessCardService').PrintSettings
 }
 
 // History action for undo/redo
