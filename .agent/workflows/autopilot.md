@@ -4,6 +4,8 @@ description: AntigravityがPMとしてClaudeを管理し、自動的に開発を
 
 # Autopilot Workflow (PM Mode)
 
+// turbo-all
+
 Userから指示を受けたら、以下のフローに従って自律的に作業を進めること。
 
 ## 1. Issueの特定・作成
