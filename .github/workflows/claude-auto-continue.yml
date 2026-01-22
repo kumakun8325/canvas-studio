@@ -1,0 +1,58 @@
+# Auto-continue workflow: After PR merge, pick up next open Issue with claude-auto label
+#
+# This workflow triggers when a PR is merged and automatically finds
+# the next open Issue with claude-auto label to continue development.
+
+name: Claude Auto-Continue
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  pickup-next-issue:
+    # Only run when PR is merged (not just closed)
+    if: github.event.pull_request.merged == true
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      issues: write
+
+    steps:
+      - name: Find next open Issue with claude-auto label
+        id: find-issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get oldest open issue with claude-auto label
+          NEXT_ISSUE=$(gh issue list \
+            --repo ${{ github.repository }} \
+            --label claude-auto \
+            --state open \
+            --json number,title \
+            --jq '.[0].number // empty')
+
+          if [ -n "$NEXT_ISSUE" ]; then
+            echo "Found next issue: #$NEXT_ISSUE"
+            echo "issue_number=$NEXT_ISSUE" >> $GITHUB_OUTPUT
+            echo "has_next=true" >> $GITHUB_OUTPUT
+          else
+            echo "No more open issues with claude-auto label"
+            echo "has_next=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Claude on next Issue
+        if: steps.find-issue.outputs.has_next == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ steps.find-issue.outputs.issue_number }} \
+            --repo ${{ github.repository }} \
+            --body "@claude 前のPRがマージされました。このIssueの実装を開始してください。"
+
+      - name: Log completion
+        if: steps.find-issue.outputs.has_next == 'false'
+        run: |
+          echo "All Issues with claude-auto label have been completed!"
+          echo "🎉 Parallel development queue is empty."
