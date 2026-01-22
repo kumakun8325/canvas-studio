@@ -23,6 +23,7 @@ vi.mock('../services/projectService', () => ({
 // Mock other hooks and components
 vi.mock('../hooks/useCanvas', () => ({
   useCanvas: vi.fn(() => ({
+    canvasRef: { current: null },
     addObject: vi.fn(),
     deleteSelected: vi.fn(),
   })),
@@ -80,6 +81,18 @@ vi.mock('../components/slides/SlideList', () => ({
 
 vi.mock('../components/canvas/CanvasView', () => ({
   CanvasView: () => <div data-testid="canvas-view">Canvas</div>,
+}))
+
+vi.mock('../components/canvas/PropertyPanel', () => ({
+  PropertyPanel: () => <div data-testid="property-panel">Property Panel</div>,
+}))
+
+vi.mock('../hooks/useClipboard', () => ({
+  useClipboard: vi.fn(() => ({
+    copy: vi.fn(),
+    paste: vi.fn(),
+    cut: vi.fn(),
+  })),
 }))
 
 describe('Editor', () => {

@@ -1,57 +1,55 @@
-## コードレビュー (Phase 3)
+## Phase 6 実装完了
 
-### 変更内容の概要
+Phase 6: 追加機能の実装が完了しました。以下の機能を実装しました：
 
-**Issue #48: Bug: プロジェクト自動作成・読み込み機能の追加**
+### 実装した機能
 
-ログイン後、プロジェクトが自動的に作成・読み込みされない問題を修正しました。
+#### 1. 画像追加機能（6.1）
+- `src/hooks/useCanvas.ts` に `addImage()` 関数を追加
+- `Toolbar.tsx` に画像追加ボタン（🖼）を実装
+- FileReader で画像データを読み込み、`fabric.FabricImage.fromURL()` でキャンバスに追加
+- 自動的に幅200pxにスケーリング
 
-### 変更ファイル
+#### 2. クリップボード操作（6.3-6.5）
+- `src/hooks/useClipboard.ts` を新規作成
+- `copy()`, `paste()`, `cut()` 関数を実装
+- `CanvasView.tsx` でキーボードショートカット（Ctrl+C/V/X）を対応
+- ペースト時に元の位置から+20pxオフセット
 
-1. **src/pages/Editor.tsx** - プロジェクト自動読み込み機能を追加
-2. **src/pages/Editor.test.tsx** - 新規テストファイル（9個のテスト）
+#### 3. レイヤー操作（6.6-6.7）
+- `useCanvas.ts` に以下の関数を追加:
+  - `bringToFront()` - 最前面に移動
+  - `sendToBack()` - 最背面に移動
+  - `bringForward()` - 1段前面に移動
+  - `sendBackwards()` - 1段背面に移動
+- `Toolbar.tsx` に前面（↑↑）/背面（↓↓）ボタンを追加
 
-### 実装内容
+#### 4. PropertyPanel（6.9）
+- `src/components/canvas/PropertyPanel.tsx` を新規作成
+- 編集可能なプロパティ:
+  - 位置 (X, Y)
+  - サイズ (W, H)
+  - 回転角度 (0-360°)
+  - 塗りつぶし色
+  - 透明度 (0-100%)
+- `Editor.tsx` に統合
 
-**Editor.tsxへの変更:**
-1. `useAuth` フックから `user` を取得
-2. `useRef` で重複読み込み防止フラグ `hasLoadedProject` を追加
-3. `useEffect` でログイン時のプロジェクト読み込み/作成処理を実装:
-   - `listProjects(user.uid)` で既存プロジェクトを取得
-   - プロジェクトがあれば最新のもの（`updatedAt`順）を読み込み
-   - なければ `createNewProject` で新規作成
-   - `setProject(projectToLoad)` でストアに設定
-4. エラーハンドリング（`console.error` は開発環境のみ）
+### ファイル変更
 
-**リファクタリング:**
-1. `getMostRecentProject` 関数を抽出
-2. Early return パターンで条件チェックを簡潔に
-3. 三項演算子でプロジェクト選択ロジックを簡潔に
+**新規作成:**
+- `src/hooks/useClipboard.ts`
+- `src/components/canvas/PropertyPanel.tsx`
+- `src/test/phase6-clipboard-layer.test.ts`
 
-### テストカバレッジ
+**変更:**
+- `src/types/index.ts` - ClipboardData, ObjectProperties 型追加
+- `src/hooks/useCanvas.ts` - addImage, bringToFront, sendToBack, bringForward, sendBackwards 追加
+- `src/components/canvas/Toolbar.tsx` - 画像追加ボタン、レイヤー操作ボタン追加
+- `src/components/canvas/CanvasView.tsx` - クリップボードキーボードショートカット追加
+- `src/pages/Editor.tsx` - useClipboard hook統合、PropertyPanel追加
+- `src/pages/Editor.test.tsx` - モック更新
 
-- **Editor.tsx**: 96.55% ステートメントカバレッジ
-- **ブランチカバレッジ**: 92.85%
-- **9個のテスト**が追加され、すべてパス
-
-### テスト項目
-
-1. ✅ ログイン時に既存プロジェクトを読み込む
-2. ✅ ログイン時にプロジェクトがなければ新規作成
-3. ✅ 未ログイン時はプロジェクトを読み込まない
-4. ✅ 複数プロジェクトの場合は最新を読み込む
-5. ✅ プロジェクト読み込みエラーを適切に処理
-6. ✅ プロジェクト作成エラーを適切に処理
-7. ✅ 同一セッションで重複読み込みを防止
-8. ✅ プロジェクト読み込み後に自動保存が有効化
-9. ✅ プロジェクト未読み込み時は自動保存が無効
-
-### 完了条件の確認
-
-- ✅ ログイン後、自動的にプロジェクトが作成/読み込みされる
-- ✅ ツールバーに保存ステータスが表示される（projectが設定されるため）
-- ✅ リロード後も描画内容が保持される（Firestoreから復元）
-- ✅ `npm run build` 成功
-- ✅ `npm test` 成功（86 passed, 1 skipped）
-
-実装完了しました。Issue #48の要件をすべて満たしています。
+### テスト結果
+- 全テストパス: 95 passed, 2 skipped
+- ビルド成功
+- Phase 6 専用テスト: 9 passed, 1 skipped（画像テストはテスト環境の制限によりスキップ）

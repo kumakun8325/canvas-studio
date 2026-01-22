@@ -67,3 +67,22 @@ export interface HistoryAction {
   undo: () => void
   redo: () => void
 }
+
+// Clipboard data
+export interface ClipboardData {
+  objects: object[]
+  timestamp: number
+}
+
+// Property panel data
+export interface ObjectProperties {
+  left: number
+  top: number
+  width: number
+  height: number
+  angle: number
+  fill: string
+  stroke?: string
+  strokeWidth?: number
+  opacity: number
+}

@@ -263,6 +263,102 @@ export function useCanvas(canvasId: string) {
     canvas.renderAll();
   }, []);
 
+  // Add image from file
+  const addImage = useCallback((file: File) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      fabric.FabricImage.fromURL(dataUrl).then((img) => {
+        img.set({
+          id: crypto.randomUUID(),
+          left: 100,
+          top: 100,
+        });
+        img.scaleToWidth(200);
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+      });
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Layer operations
+  const bringToFront = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const active = canvas.getActiveObject();
+    if (!active) return;
+
+    const objects = canvas.getObjects();
+    const currentIndex = objects.indexOf(active);
+    if (currentIndex === -1) return;
+
+    // Move to the end of the stack
+    canvas.remove(active);
+    canvas.add(active);
+    canvas.setActiveObject(active);
+    canvas.renderAll();
+  }, []);
+
+  const sendToBack = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const active = canvas.getActiveObject();
+    if (!active) return;
+
+    const objects = canvas.getObjects();
+    const currentIndex = objects.indexOf(active);
+    if (currentIndex === -1) return;
+
+    // Move to the beginning of the stack
+    canvas.remove(active);
+    objects.unshift(active);
+    canvas.setActiveObject(active);
+    canvas.renderAll();
+  }, []);
+
+  const bringForward = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const active = canvas.getActiveObject();
+    if (!active) return;
+
+    const objects = canvas.getObjects();
+    const currentIndex = objects.indexOf(active);
+    if (currentIndex === -1 || currentIndex === objects.length - 1) return;
+
+    // Move one position forward
+    canvas.remove(active);
+    objects.splice(currentIndex + 1, 0, active);
+    canvas.setActiveObject(active);
+    canvas.renderAll();
+  }, []);
+
+  const sendBackwards = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const active = canvas.getActiveObject();
+    if (!active) return;
+
+    const objects = canvas.getObjects();
+    const currentIndex = objects.indexOf(active);
+    if (currentIndex <= 0) return;
+
+    // Move one position backward
+    canvas.remove(active);
+    objects.splice(currentIndex - 1, 0, active);
+    canvas.setActiveObject(active);
+    canvas.renderAll();
+  }, []);
+
   return {
     canvasRef,
     containerRef,
@@ -270,5 +366,10 @@ export function useCanvas(canvasId: string) {
     addCircle,
     addText,
     deleteSelected,
+    addImage,
+    bringToFront,
+    sendToBack,
+    bringForward,
+    sendBackwards,
   };
 }

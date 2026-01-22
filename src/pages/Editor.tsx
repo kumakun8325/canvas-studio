@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { CanvasView } from "../components/canvas/CanvasView";
 import { Toolbar } from "../components/canvas/Toolbar";
+import { PropertyPanel } from "../components/canvas/PropertyPanel";
 import { SlideList } from "../components/slides/SlideList";
 import { useSlideStore } from "../stores/slideStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useCanvas } from "../hooks/useCanvas";
+import { useClipboard } from "../hooks/useClipboard";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useAuth } from "../hooks/useAuth";
 import { listProjects, createNewProject } from "../services/projectService";
@@ -27,6 +29,9 @@ export function Editor() {
 
   // Single source of truth for canvas
   const canvasActions = useCanvas("main-canvas");
+
+  // Clipboard functionality
+  const clipboard = useClipboard(canvasActions.canvasRef);
 
   // Auto-save functionality (disabled until canvas is ready)
   const { isSaving, lastSaved, error: saveError } = useAutoSave(project, isAutoSaveReady);
@@ -83,8 +88,14 @@ export function Editor() {
         <SlideList />
         <CanvasView
           slideId={currentSlideId ?? undefined}
-          canvasActions={canvasActions}
+          canvasActions={{
+            ...canvasActions,
+            copy: clipboard.copy,
+            paste: clipboard.paste,
+            cut: clipboard.cut,
+          }}
         />
+        <PropertyPanel canvas={canvasActions.canvasRef.current} />
       </div>
     </div>
   );
