@@ -1,48 +1,52 @@
-Issue #51: Phase 7: テンプレート機能（サイズ選択・カスタムサイズ）
+Issue #52: Phase 8: エクスポート機能（PNG/JPEG/PDF・CMYK変換）
 
-# Phase 7: テンプレート機能実装
+# Phase 8: エクスポート機能実装
 
 ## 概要
 
-プロジェクト作成時にキャンバスサイズを選択できるテンプレート機能を実装する。
+キャンバスの内容を各種形式でエクスポートする機能を実装する。
 
 ## 実装タスク
 
-### 7.1 templates.ts 定数ファイル
+### 8.1 exportService 実装
 
-- `src/constants/templates.ts` 新規作成
-- TEMPLATE_CONFIGS: 16:9, A4縦/横, 名刺, カスタムの設定
-- TEMPLATE_LABELS, TEMPLATE_DESCRIPTIONS
+- `src/services/exportService.ts` 新規作成
+- PNG/JPEG/PDF エクスポート
+- dataURLToBlob, downloadBlob 関数
 
-### 7.2 TemplateSelector コンポーネント
+### 8.2 ExportDialog コンポーネント
 
-- `src/components/templates/TemplateSelector.tsx` 新規作成
-- テンプレート選択UI（グリッド表示）
-- カスタムサイズ入力
-- プレビュー表示
+- `src/components/export/ExportDialog.tsx` 新規作成
+- フォーマット選択（PNG/JPEG/PDF）
+- JPEG品質設定
+- PDF出力範囲（現在/全スライド）
 
-### テンプレートサイズ
+### 8.3-8.4 PNG/JPEG エクスポート
 
-- 16:9: 1920 x 1080 px
-- A4縦: 794 x 1123 px (210 x 297 mm @ 96DPI)
-- A4横: 1123 x 794 px
-- 名刺: 344 x 208 px (91 x 55 mm @ 96DPI)
+- `canvas.toDataURL()` 使用
+- PNG: ロスレス、透明対応
+- JPEG: 品質設定可能（0-100%）
 
-### 7.8 プロジェクト作成フロー統合
+### 8.5 PDF エクスポート（pdf-lib）
 
-- `src/stores/slideStore.ts` に createProject, getTemplateConfig 追加
-- `src/hooks/useCanvas.ts` で動的サイズ対応
-- Home.tsx に TemplateSelector 統合
+- pdf-lib で複数ページPDF生成
+- 各スライドを画像として埋め込み
+
+### 8.6-8.8 CMYK対応
+
+- `src/services/cmykService.ts` 新規作成
+- RGB → CMYK 変換
+- CMYKPreview コンポーネント
 
 ## 参考ファイル
 
-- `docs/task_07.md` - 詳細な実装仕様
+- `docs/task_08.md` - 詳細な実装仕様
 
 ## 完了条件
 
-- テンプレート選択UIが動作する
-- 各テンプレートでキャンバスサイズが正しく設定される
-- カスタムサイズ入力が動作する
+- PNG/JPEG/PDF エクスポートが動作する
+- ExportDialog UIが動作する
+- CMYK変換が動作する
 - テスト作成・成功
 - `npm run build` 成功
 
