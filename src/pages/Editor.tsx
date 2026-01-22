@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CanvasView } from "../components/canvas/CanvasView";
 import { Toolbar } from "../components/canvas/Toolbar";
 import { SlideList } from "../components/slides/SlideList";
@@ -22,11 +22,14 @@ export function Editor() {
   // Track if project has been loaded to prevent duplicate calls
   const hasLoadedProject = useRef(false);
 
+  // Track if auto-save is ready (prevents race condition on initial load)
+  const [isAutoSaveReady, setIsAutoSaveReady] = useState(false);
+
   // Single source of truth for canvas
   const canvasActions = useCanvas("main-canvas");
 
-  // Auto-save functionality
-  const { isSaving, lastSaved, error: saveError } = useAutoSave(project);
+  // Auto-save functionality (disabled until canvas is ready)
+  const { isSaving, lastSaved, error: saveError } = useAutoSave(project, isAutoSaveReady);
 
   // Load or create project when user logs in
   useEffect(() => {
@@ -60,6 +63,18 @@ export function Editor() {
       setCurrentSlide(slides[0].id);
     }
   }, [slides, currentSlideId, setCurrentSlide]);
+
+  // Enable auto-save after project and canvas are ready
+  // This prevents the race condition where empty canvas data overwrites loaded data
+  useEffect(() => {
+    if (hasLoadedProject.current && currentSlideId && project) {
+      // Delay to ensure canvas has finished loading data from slideStore
+      const timer = setTimeout(() => {
+        setIsAutoSaveReady(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [project, currentSlideId]);
 
   return (
     <div className="h-screen flex flex-col">
