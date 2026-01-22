@@ -2,7 +2,7 @@
  * Editor component tests
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { Editor } from './Editor'
 import { useAuth } from '../hooks/useAuth'
 import { useAutoSave } from '../hooks/useAutoSave'
@@ -143,7 +143,7 @@ describe('Editor', () => {
       expect(listProjects).toHaveBeenCalledWith(mockUserId)
     })
 
-    it('should create new project when user logs in and has no existing projects', async () => {
+    it('should show template selector when user logs in and has no existing projects', async () => {
       // Arrange
       vi.mocked(useAuth).mockReturnValue({
         user: { uid: mockUserId } as any,
@@ -153,7 +153,6 @@ describe('Editor', () => {
         signOut: vi.fn(),
       })
       vi.mocked(listProjects).mockResolvedValue([])
-      vi.mocked(createNewProject).mockResolvedValue(mockProject)
 
       // Act
       render(<Editor />)
@@ -162,9 +161,9 @@ describe('Editor', () => {
       await waitFor(() => {
         expect(listProjects).toHaveBeenCalledWith(mockUserId)
       })
-      await waitFor(() => {
-        expect(createNewProject).toHaveBeenCalledWith(mockUserId, 'Untitled Project', '16:9')
-      })
+      // TemplateSelector should be shown instead of auto-creating a project
+      expect(screen.getByText('テンプレートを選択')).toBeInTheDocument()
+      expect(screen.getByText('16:9 プレゼンテーション')).toBeInTheDocument()
     })
 
     it('should not load or create project when user is not logged in', async () => {

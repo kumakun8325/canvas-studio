@@ -5,7 +5,7 @@
 
  RUN  v3.2.4 /home/runner/work/canvas-studio/canvas-studio
 
- ✓ src/test/phase6-clipboard-layer.test.ts (10 tests | 1 skipped) 216ms
+ ✓ src/test/templateSelector.test.tsx (10 tests) 184ms
 stderr | src/test/task35-undo-bug.test.tsx > Issue #35: Undo bug - currentSlideId closure capture > should record history correctly when switching slides
 An update to TestComponent inside a test was not wrapped in act(...).
 
@@ -18,12 +18,13 @@ act(() => {
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
 
- ✓ src/test/task35-undo-bug.test.tsx (3 tests) 142ms
- ✓ src/test/slides.test.tsx (19 tests) 273ms
- ✓ src/test/task39-canvas-environment.test.tsx (3 tests) 126ms
+ ✓ src/test/task35-undo-bug.test.tsx (3 tests) 164ms
+ ✓ src/test/slides.test.tsx (19 tests) 249ms
+ ✓ src/test/task39-canvas-environment.test.tsx (3 tests) 113ms
+ ✓ src/hooks/useAutoSave.test.ts (11 tests) 49ms
 stderr | src/pages/Editor.test.tsx > Editor > project auto-loading on login > should handle errors when loading projects
 Failed to load or create project: Error: Failed to load projects
-    at [90m/home/runner/work/canvas-studio/canvas-studio/[39msrc/pages/Editor.test.tsx:221:25
+    at [90m/home/runner/work/canvas-studio/canvas-studio/[39msrc/pages/Editor.test.tsx:207:25
     at [90mfile:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:155:11
     at [90mfile:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:26
     at [90mfile:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:1897:20
@@ -35,28 +36,27 @@ Failed to load or create project: Error: Failed to load projects
     at runSuite [90m(file:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:1729:8[90m)[39m
 
 stderr | src/pages/Editor.test.tsx > Editor > project auto-loading on login > should handle errors when creating new project
-Failed to load or create project: Error: Failed to create project
-    at [90m/home/runner/work/canvas-studio/canvas-studio/[39msrc/pages/Editor.test.tsx:237:25
-    at [90mfile:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:155:11
-    at [90mfile:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:26
-    at [90mfile:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:1897:20
-    at new Promise (<anonymous>)
-    at runWithTimeout [90m(file:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:1863:10[90m)[39m
-    at runTest [90m(file:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:1574:12[90m)[39m
-    at runSuite [90m(file:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:1729:8[90m)[39m
-    at runSuite [90m(file:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:1729:8[90m)[39m
-    at runSuite [90m(file:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:1729:8[90m)[39m
+An update to Editor inside a test was not wrapped in act(...).
 
- ✓ src/pages/Editor.test.tsx (9 tests) 139ms
- ✓ src/hooks/useAutoSave.test.ts (11 tests) 59ms
- ✓ src/lib/firebase.test.ts (7 tests) 48ms
- ✓ src/test/task29-undo-redo.test.tsx (9 tests | 1 skipped) 43ms
- ✓ src/hooks/useAuth.test.ts (9 tests) 59ms
- ✓ src/services/projectService.test.ts (13 tests) 13ms
- ✓ src/test/task02.test.tsx (4 tests) 5ms
+When testing, code that causes React state updates should be wrapped into act(...):
 
- Test Files  11 passed (11)
-      Tests  95 passed | 2 skipped (97)
-   Start at  02:53:12
-   Duration  4.77s (transform 662ms, setup 1.42s, collect 1.73s, tests 1.12s, environment 6.15s, prepare 1.13s)
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/pages/Editor.test.tsx (9 tests) 168ms
+ ✓ src/lib/firebase.test.ts (7 tests) 26ms
+ ✓ src/test/task29-undo-redo.test.tsx (9 tests | 1 skipped) 41ms
+ ✓ src/hooks/useAuth.test.ts (9 tests) 62ms
+ ✓ src/test/templates.test.ts (11 tests) 9ms
+ ✓ src/services/projectService.test.ts (13 tests) 18ms
+ ✓ src/test/task02.test.tsx (4 tests) 4ms
+
+ Test Files  12 passed (12)
+      Tests  107 passed | 1 skipped (108)
+   Start at  01:55:15
+   Duration  4.66s (transform 698ms, setup 1.41s, collect 1.82s, tests 1.09s, environment 6.40s, prepare 1.00s)
 

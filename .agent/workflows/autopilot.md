@@ -4,14 +4,17 @@ description: AntigravityがPMとしてClaudeを管理し、自動的に開発を
 
 # Autopilot Workflow (PM Mode)
 
+// turbo-all
+
 Userから指示を受けたら、以下のフローに従って自律的に作業を進めること。
 
 ## 1. Issueの特定・作成
 
 既存のIssueがある場合はそれを使用し、ない場合は作成する。
+**重要**: 必ず `--label claude-auto` を付与すること（トリガー条件）。
 
 ```bash
-gh issue create --title "Feature: [機能名]" --body "[詳細説明]"
+gh issue create --title "Feature: [機能名]" --body "[詳細説明]" --label claude-auto
 ```
 
 ## 2. Claudeへの指示出し

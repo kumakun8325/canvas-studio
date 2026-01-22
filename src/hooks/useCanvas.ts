@@ -13,7 +13,7 @@ export function useCanvas(canvasId: string) {
   const isInternalUpdateRef = useRef(false);
 
   const { setSelectedObjects } = useEditorStore();
-  const { slides, updateSlide } = useSlideStore();
+  const { slides, updateSlide, getTemplateConfig } = useSlideStore();
   const currentSlideId = useEditorStore((s) => s.currentSlideId);
   const { recordAction } = useHistory();
 
@@ -151,9 +151,11 @@ export function useCanvas(canvasId: string) {
       return;
     }
 
+    const config = getTemplateConfig();
+
     const canvas = new fabric.Canvas(canvasElement, {
-      width: 800,
-      height: 600,
+      width: config.width,
+      height: config.height,
       backgroundColor: "#ffffff",
       selection: true,
     });
