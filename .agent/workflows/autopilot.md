@@ -6,6 +6,10 @@ description: AntigravityがPMとしてClaudeを管理し、自動的に開発を
 
 // turbo-all
 
+## 自動実行ルール
+
+- **繰り返しコマンド**: `git`, `gh`, `npm run build`, `npm run test` などの繰り返しコマンドは `SafeToAutoRun: true` で自動実行する。
+
 Userから指示を受けたら、以下のフローに従って自律的に作業を進めること。
 
 ## 1. Issueの特定・作成
