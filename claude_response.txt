@@ -1,57 +1,63 @@
-## コードレビュー (Phase 3)
+⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
+Perfect! The build succeeds. Now let me create a summary of what was implemented:
 
-### 変更内容の概要
+## Phase 7: テンプレート機能実装完了
 
-**Issue #48: Bug: プロジェクト自動作成・読み込み機能の追加**
-
-ログイン後、プロジェクトが自動的に作成・読み込みされない問題を修正しました。
-
-### 変更ファイル
-
-1. **src/pages/Editor.tsx** - プロジェクト自動読み込み機能を追加
-2. **src/pages/Editor.test.tsx** - 新規テストファイル（9個のテスト）
+実装が完了しました。以下の機能が追加されました：
 
 ### 実装内容
 
-**Editor.tsxへの変更:**
-1. `useAuth` フックから `user` を取得
-2. `useRef` で重複読み込み防止フラグ `hasLoadedProject` を追加
-3. `useEffect` でログイン時のプロジェクト読み込み/作成処理を実装:
-   - `listProjects(user.uid)` で既存プロジェクトを取得
-   - プロジェクトがあれば最新のもの（`updatedAt`順）を読み込み
-   - なければ `createNewProject` で新規作成
-   - `setProject(projectToLoad)` でストアに設定
-4. エラーハンドリング（`console.error` は開発環境のみ）
+#### 1. **templates.ts 定数ファイル** (`src/constants/templates.ts`)
+- `mmToPixel()`: DPI変換ユーティリティ関数
+- `TEMPLATE_CONFIGS`: 5種類のテンプレート設定
+  - 16:9 (1920x1080 px)
+  - A4縦 (794x1123 px)
+  - A4横 (1123x794 px)
+  - 名刺 (344x208 px)
+  - カスタム (デフォルト800x600 px)
+- `TEMPLATE_LABELS`: 日本語ラベル
+- `TEMPLATE_DESCRIPTIONS`: サイズ説明
+- `TEMPLATE_LIST`: テンプレート一覧
 
-**リファクタリング:**
-1. `getMostRecentProject` 関数を抽出
-2. Early return パターンで条件チェックを簡潔に
-3. 三項演算子でプロジェクト選択ロジックを簡潔に
+#### 2. **TemplateSelector コンポーネント** (`src/components/templates/TemplateSelector.tsx`)
+- テンプレート選択UI（グリッド表示）
+- カスタムサイズ入力（幅・高さ、100-4096px）
+- リアルタイムプレビュー（アスペクト比維持）
+- 選択状態のハイライト表示
 
-### テストカバレッジ
+#### 3. **slideStore拡張** (`src/stores/slideStore.ts`)
+- `createProject()`: 新規プロジェクト作成
+- `getTemplateConfig()`: テンプレート設定取得
+- `templateConfig`状態の追加
 
-- **Editor.tsx**: 96.55% ステートメントカバレッジ
-- **ブランチカバレッジ**: 92.85%
-- **9個のテスト**が追加され、すべてパス
+#### 4. **useCanvasフック更新** (`src/hooks/useCanvas.ts`)
+- 動的キャンバスサイズ対応
+- `getTemplateConfig()`を使用してキャンバスサイズを設定
 
-### テスト項目
+#### 5. **Editorページ統合** (`src/pages/Editor.tsx`)
+- 新規ユーザーの場合、TemplateSelectorを表示
+- 既存プロジェクトがある場合は直近のプロジェクトを読み込み
+- テンプレート選択後、エディターを表示
 
-1. ✅ ログイン時に既存プロジェクトを読み込む
-2. ✅ ログイン時にプロジェクトがなければ新規作成
-3. ✅ 未ログイン時はプロジェクトを読み込まない
-4. ✅ 複数プロジェクトの場合は最新を読み込む
-5. ✅ プロジェクト読み込みエラーを適切に処理
-6. ✅ プロジェクト作成エラーを適切に処理
-7. ✅ 同一セッションで重複読み込みを防止
-8. ✅ プロジェクト読み込み後に自動保存が有効化
-9. ✅ プロジェクト未読み込み時は自動保存が無効
+### テスト状況
 
-### 完了条件の確認
+- **テストファイル**: 2つの新しいテストファイルを作成
+  - `src/test/templates.test.ts`: 11個のテスト（テンプレート定数）
+  - `src/test/templateSelector.test.tsx`: 10個のテスト（コンポーネント）
+- **全テスト結果**: 107個のテストがパス（1個スキップ）
 
-- ✅ ログイン後、自動的にプロジェクトが作成/読み込みされる
-- ✅ ツールバーに保存ステータスが表示される（projectが設定されるため）
-- ✅ リロード後も描画内容が保持される（Firestoreから復元）
+### ビルド状況
+
+- `npm run build`: 成功
+- TypeScript型チェック: パス
+- 本番ビルド: 完了
+
+### 完了条件チェック
+
+- ✅ テンプレート選択UIが動作する
+- ✅ 各テンプレートでキャンバスサイズが正しく設定される
+- ✅ カスタムサイズ入力が動作する
+- ✅ テスト作成・成功
 - ✅ `npm run build` 成功
-- ✅ `npm test` 成功（86 passed, 1 skipped）
 
-実装完了しました。Issue #48の要件をすべて満たしています。
+Phase 7の実装はすべて完了しました。

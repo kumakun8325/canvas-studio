@@ -4,7 +4,7 @@
 import { useAuth } from '../hooks/useAuth'
 
 export function Home() {
-  const { user, loading, signInWithGoogle, error } = useAuth()
+  const { loading, signInWithGoogle, error } = useAuth()
 
   if (loading) {
     return (
@@ -23,36 +23,6 @@ export function Home() {
         <div className="text-center text-red-600">
           <p className="text-lg font-semibold">Error</p>
           <p className="mt-2">{error.message}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md">
-          <div className="mb-6">
-            {user.photoURL && (
-              <img
-                src={user.photoURL}
-                alt={user.displayName || 'User'}
-                className="w-20 h-20 rounded-full mx-auto mb-4"
-              />
-            )}
-            <h1 className="text-2xl font-bold text-gray-800">
-              Welcome, {user.displayName || 'User'}!
-            </h1>
-            {user.email && (
-              <p className="text-gray-600 mt-2">{user.email}</p>
-            )}
-          </div>
-          <a
-            href="/editor"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Go to Editor
-          </a>
         </div>
       </div>
     )
