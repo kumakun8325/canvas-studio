@@ -1,50 +1,50 @@
-Issue #48: Bug: プロジェクト自動作成・読み込み機能の追加
+Issue #51: Phase 7: テンプレート機能（サイズ選択・カスタムサイズ）
 
+# Phase 7: テンプレート機能実装
 
+## 概要
 
-## バグ報告
+プロジェクト作成時にキャンバスサイズを選択できるテンプレート機能を実装する。
 
-ログイン後、プロジェクトが作成・読み込みされないため、自動保存が動作しません。
+## 実装タスク
 
-### 現象
+### 7.1 templates.ts 定数ファイル
 
-- ログインは成功する
-- ツールバーに保存ステータスが表示されない
-- ブラウザをリロードすると描画内容が消える
+- `src/constants/templates.ts` 新規作成
+- TEMPLATE_CONFIGS: 16:9, A4縦/横, 名刺, カスタムの設定
+- TEMPLATE_LABELS, TEMPLATE_DESCRIPTIONS
 
-### 原因
+### 7.2 TemplateSelector コンポーネント
 
-- useAutoSave(project) で project が null のため、自動保存が無効
-- ログイン後にプロジェクトを作成/読み込みする処理がない
+- `src/components/templates/TemplateSelector.tsx` 新規作成
+- テンプレート選択UI（グリッド表示）
+- カスタムサイズ入力
+- プレビュー表示
 
-## 修正要件
+### テンプレートサイズ
 
-### 1. Editor.tsx の修正
+- 16:9: 1920 x 1080 px
+- A4縦: 794 x 1123 px (210 x 297 mm @ 96DPI)
+- A4横: 1123 x 794 px
+- 名刺: 344 x 208 px (91 x 55 mm @ 96DPI)
 
-ログイン後、以下のフローを実装:
+### 7.8 プロジェクト作成フロー統合
 
-1. Firestoreから既存プロジェクトを取得 (listProjects)
-2. プロジェクトがあれば最新のものをロード
-3. なければ新規プロジェクトを作成 (createNewProject)
+- `src/stores/slideStore.ts` に createProject, getTemplateConfig 追加
+- `src/hooks/useCanvas.ts` で動的サイズ対応
+- Home.tsx に TemplateSelector 統合
 
-### 2. スライドストアとの連携
+## 参考ファイル
 
-- ロードしたプロジェクトを slideStore.setProject() で設定
-- スライドデータも同時に復元
-
-### 参考ファイル
-
-- src/pages/Editor.tsx
-- src/services/projectService.ts (listProjects, createNewProject, loadProject)
-- src/stores/slideStore.ts (setProject)
-- src/hooks/useAuth.ts (user取得用)
+- `docs/task_07.md` - 詳細な実装仕様
 
 ## 完了条件
 
-- ログイン後、自動的にプロジェクトが作成/読み込みされる
-- ツールバーに保存ステータスが表示される
-- リロード後も描画内容が保持される
-- npm run build, npm run test が成功
+- テンプレート選択UIが動作する
+- 各テンプレートでキャンバスサイズが正しく設定される
+- カスタムサイズ入力が動作する
+- テスト作成・成功
+- `npm run build` 成功
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:

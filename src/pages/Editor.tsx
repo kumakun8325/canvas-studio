@@ -2,20 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { CanvasView } from "../components/canvas/CanvasView";
 import { Toolbar } from "../components/canvas/Toolbar";
 import { SlideList } from "../components/slides/SlideList";
+import { TemplateSelector } from "../components/templates/TemplateSelector";
 import { useSlideStore } from "../stores/slideStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useCanvas } from "../hooks/useCanvas";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { useAuth } from "../hooks/useAuth";
-import { listProjects, createNewProject } from "../services/projectService";
-import type { Project } from "../types";
+import { listProjects } from "../services/projectService";
+import type { Project, TemplateType, TemplateConfig } from "../types";
 
 function getMostRecentProject(projects: Project[]): Project {
   return projects.sort((a, b) => b.updatedAt - a.updatedAt)[0];
 }
 
 export function Editor() {
-  const { project, slides, setProject } = useSlideStore();
+  const { project, slides, setProject, createProject } = useSlideStore();
   const { currentSlideId, setCurrentSlide } = useEditorStore();
   const { user } = useAuth();
 
@@ -24,6 +25,9 @@ export function Editor() {
 
   // Track if auto-save is ready (prevents race condition on initial load)
   const [isAutoSaveReady, setIsAutoSaveReady] = useState(false);
+
+  // Track if we should show template selector
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
 
   // Single source of truth for canvas
   const canvasActions = useCanvas("main-canvas");
@@ -41,12 +45,14 @@ export function Editor() {
       try {
         const projects = await listProjects(user.uid);
 
-        const projectToLoad = projects.length > 0
-          ? getMostRecentProject(projects)
-          : await createNewProject(user.uid, "Untitled Project", "16:9");
-
-        setProject(projectToLoad);
-        hasLoadedProject.current = true;
+        if (projects.length > 0) {
+          const projectToLoad = getMostRecentProject(projects);
+          setProject(projectToLoad);
+          hasLoadedProject.current = true;
+        } else {
+          // Show template selector for new users
+          setShowTemplateSelector(true);
+        }
       } catch (error) {
         if (import.meta.env.DEV) {
           console.error("Failed to load or create project:", error);
@@ -56,6 +62,12 @@ export function Editor() {
 
     loadOrCreateProject();
   }, [user, setProject]);
+
+  const handleCreateProject = (template: TemplateType, config: TemplateConfig) => {
+    createProject('新規プロジェクト', template, config);
+    setShowTemplateSelector(false);
+    hasLoadedProject.current = true;
+  };
 
   // Set initial slide
   useEffect(() => {
@@ -78,14 +90,29 @@ export function Editor() {
 
   return (
     <div className="h-screen flex flex-col">
-      <Toolbar canvasActions={canvasActions} isSaving={isSaving} lastSaved={lastSaved} saveError={saveError} />
-      <div className="flex-1 flex">
-        <SlideList />
-        <CanvasView
-          slideId={currentSlideId ?? undefined}
-          canvasActions={canvasActions}
-        />
-      </div>
+      {showTemplateSelector ? (
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Canvas Studio</h1>
+            <p className="text-gray-600 mb-8">新しいプロジェクトを作成しましょう</p>
+            <TemplateSelector
+              onSelect={handleCreateProject}
+              showCustomOption={true}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <Toolbar canvasActions={canvasActions} isSaving={isSaving} lastSaved={lastSaved} saveError={saveError} />
+          <div className="flex-1 flex">
+            <SlideList />
+            <CanvasView
+              slideId={currentSlideId ?? undefined}
+              canvasActions={canvasActions}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
