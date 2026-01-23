@@ -134,6 +134,142 @@ describe('Phase 6: クリップボード・レイヤー操作', () => {
     })
   })
 
+  describe('Issue #58: sendToBack関数のバグ再現', () => {
+    it('should reproduce sendToBack bug - objects.unshift does not affect canvas', () => {
+      // Arrange: 3つのオブジェクトを追加
+      const rect1 = new fabric.Rect({ left: 0, top: 0, width: 50, height: 50, fill: '#ff0000' })
+      const rect2 = new fabric.Rect({ left: 50, top: 50, width: 50, height: 50, fill: '#00ff00' })
+      const rect3 = new fabric.Rect({ left: 100, top: 100, width: 50, height: 50, fill: '#0000ff' })
+      canvas.add(rect1, rect2, rect3)
+
+      // 初期状態: rect1(0), rect2(1), rect3(2)
+      const initialObjects = canvas.getObjects()
+      expect(initialObjects[0]).toBe(rect1)
+      expect(initialObjects[1]).toBe(rect2)
+      expect(initialObjects[2]).toBe(rect3)
+
+      // Act: rect3をアクティブにして、現在の実装と同じ操作を行う
+      canvas.setActiveObject(rect3)
+      const active = canvas.getActiveObject()!
+      expect(active).toBe(rect3)
+
+      const objects = canvas.getObjects()
+      const currentIndex = objects.indexOf(active)
+      expect(currentIndex).toBe(2)
+
+      // 現在の実装と同じ操作: remove + objects.unshift
+      canvas.remove(active)
+      objects.unshift(active) // これはローカル配列を変更するだけ
+      canvas.setActiveObject(active)
+      canvas.renderAll()
+
+      // Assert: キャンバスのオブジェクト順序は変わらない（バグ）
+      const finalObjects = canvas.getObjects()
+      // objects.unshift() はキャンバスに反映されないため
+      // rect3はキャンバスから削除されたまま
+      expect(finalObjects.length).toBe(2) // rect3はキャンバスに追加されていない
+      expect(finalObjects[0]).toBe(rect1) // rect1が先頭のまま
+      expect(finalObjects[1]).toBe(rect2) // rect2が2番目のまま
+      // rect3 はキャンバスに存在しない
+      expect(finalObjects.find(o => o === rect3)).toBeUndefined()
+    })
+
+    it('should correctly send object to back using fabric API', () => {
+      // Arrange: 3つのオブジェクトを追加
+      const rect1 = new fabric.Rect({ left: 0, top: 0, width: 50, height: 50, fill: '#ff0000' })
+      const rect2 = new fabric.Rect({ left: 50, top: 50, width: 50, height: 50, fill: '#00ff00' })
+      const rect3 = new fabric.Rect({ left: 100, top: 100, width: 50, height: 50, fill: '#0000ff' })
+      canvas.add(rect1, rect2, rect3)
+
+      // Act: rect3を背面に移動（正しい実装）
+      canvas.setActiveObject(rect3)
+      const active = canvas.getActiveObject()
+      if (active) {
+        const objects = canvas.getObjects()
+        const currentIndex = objects.indexOf(active)
+        if (currentIndex !== -1) {
+          canvas.remove(active)
+          // 正しい方法: 一時的に保存して、全オブジェクトを再追加
+          const otherObjects = [...objects]
+          canvas.clear()
+          canvas.backgroundColor = '#ffffff'
+          canvas.add(active)
+          otherObjects.forEach(obj => {
+            if (obj !== active) {
+              canvas.add(obj)
+            }
+          })
+          canvas.setActiveObject(active)
+          canvas.renderAll()
+        }
+      }
+
+      // Assert: rect3が先頭にある
+      const finalObjects = canvas.getObjects()
+      expect(finalObjects[0]).toBe(rect3)
+      expect(finalObjects[1]).toBe(rect1)
+      expect(finalObjects[2]).toBe(rect2)
+    })
+  })
+
+  describe('Issue #58: bringForward/sendBackwards のバグ再現', () => {
+    it('should reproduce bringForward bug - objects.splice does not affect canvas', () => {
+      // Arrange: 3つのオブジェクトを追加
+      const rect1 = new fabric.Rect({ left: 0, top: 0, width: 50, height: 50, fill: '#ff0000' })
+      const rect2 = new fabric.Rect({ left: 50, top: 50, width: 50, height: 50, fill: '#00ff00' })
+      const rect3 = new fabric.Rect({ left: 100, top: 100, width: 50, height: 50, fill: '#0000ff' })
+      canvas.add(rect1, rect2, rect3)
+
+      // Act: rect1を1つ前面に移動（現在の実装と同じ操作）
+      canvas.setActiveObject(rect1)
+      const active = canvas.getActiveObject()
+      if (active) {
+        const objects = canvas.getObjects()
+        const currentIndex = objects.indexOf(active)
+        if (currentIndex !== -1 && currentIndex !== objects.length - 1) {
+          canvas.remove(active)
+          objects.splice(currentIndex + 1, 0, active) // ローカル配列を変更するだけ
+          canvas.setActiveObject(active)
+          canvas.renderAll()
+        }
+      }
+
+      // Assert: キャンバスのオブジェクト順序は変わらない（バグ）
+      const finalObjects = canvas.getObjects()
+      expect(finalObjects[0]).toBe(rect2) // rect1は削除されている
+      expect(finalObjects[1]).toBe(rect3)
+      expect(finalObjects.length).toBe(2) // rect1はキャンバスに追加されていない
+    })
+
+    it('should reproduce sendBackwards bug - objects.splice does not affect canvas', () => {
+      // Arrange: 3つのオブジェクトを追加
+      const rect1 = new fabric.Rect({ left: 0, top: 0, width: 50, height: 50, fill: '#ff0000' })
+      const rect2 = new fabric.Rect({ left: 50, top: 50, width: 50, height: 50, fill: '#00ff00' })
+      const rect3 = new fabric.Rect({ left: 100, top: 100, width: 50, height: 50, fill: '#0000ff' })
+      canvas.add(rect1, rect2, rect3)
+
+      // Act: rect3を1つ背面に移動（現在の実装と同じ操作）
+      canvas.setActiveObject(rect3)
+      const active = canvas.getActiveObject()
+      if (active) {
+        const objects = canvas.getObjects()
+        const currentIndex = objects.indexOf(active)
+        if (currentIndex > 0) {
+          canvas.remove(active)
+          objects.splice(currentIndex - 1, 0, active) // ローカル配列を変更するだけ
+          canvas.setActiveObject(active)
+          canvas.renderAll()
+        }
+      }
+
+      // Assert: キャンバスのオブジェクト順序は変わらない（バグ）
+      const finalObjects = canvas.getObjects()
+      expect(finalObjects[0]).toBe(rect1)
+      expect(finalObjects[1]).toBe(rect2) // rect3は削除されている
+      expect(finalObjects.length).toBe(2) // rect3はキャンバスに追加されていない
+    })
+  })
+
   describe('プロパティパネル基本機能', () => {
     it('should update object properties', () => {
       const rect = new fabric.Rect({
