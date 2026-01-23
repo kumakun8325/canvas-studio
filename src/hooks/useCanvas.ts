@@ -293,7 +293,7 @@ export function useCanvas(canvasId: string) {
     (
       operation: (canvas: fabric.Canvas, active: fabric.Object) => void,
       actionType: string,
-      description: string
+      description: string,
     ) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -339,55 +339,67 @@ export function useCanvas(canvasId: string) {
       updateSlide(slideId, afterJson);
       previousStateRef.current = afterJson;
     },
-    [updateSlide, recordAction]
+    [updateSlide, recordAction],
   );
 
   // Layer operations
   const bringToFront = useCallback(() => {
     executeLayerOperation(
       (canvas, active) => {
-        canvas.bringToFront(active);
+        canvas.remove(active);
+        canvas.add(active);
         canvas.setActiveObject(active);
         canvas.renderAll();
       },
       "layer:bringToFront",
-      "最前面に移動"
+      "最前面に移動",
     );
   }, [executeLayerOperation]);
 
   const sendToBack = useCallback(() => {
     executeLayerOperation(
       (canvas, active) => {
-        canvas.sendToBack(active);
+        canvas.remove(active);
+        canvas.insertAt(0, active);
         canvas.setActiveObject(active);
         canvas.renderAll();
       },
       "layer:sendToBack",
-      "最背面に移動"
+      "最背面に移動",
     );
   }, [executeLayerOperation]);
 
   const bringForward = useCallback(() => {
     executeLayerOperation(
       (canvas, active) => {
-        canvas.bringForward(active);
-        canvas.setActiveObject(active);
-        canvas.renderAll();
+        const objects = canvas.getObjects();
+        const index = objects.indexOf(active);
+        if (index < objects.length - 1) {
+          canvas.remove(active);
+          canvas.insertAt(index + 1, active);
+          canvas.setActiveObject(active);
+          canvas.renderAll();
+        }
       },
       "layer:bringForward",
-      "1つ前面に移動"
+      "1つ前面に移動",
     );
   }, [executeLayerOperation]);
 
   const sendBackwards = useCallback(() => {
     executeLayerOperation(
       (canvas, active) => {
-        canvas.sendBackwards(active);
-        canvas.setActiveObject(active);
-        canvas.renderAll();
+        const objects = canvas.getObjects();
+        const index = objects.indexOf(active);
+        if (index > 0) {
+          canvas.remove(active);
+          canvas.insertAt(index - 1, active);
+          canvas.setActiveObject(active);
+          canvas.renderAll();
+        }
       },
       "layer:sendBackwards",
-      "1つ背面に移動"
+      "1つ背面に移動",
     );
   }, [executeLayerOperation]);
 

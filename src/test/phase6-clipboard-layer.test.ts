@@ -150,7 +150,7 @@ describe('Phase 6: クリップボード・レイヤー操作', () => {
 
       // Act: rect3をアクティブにして、現在の実装と同じ操作を行う
       canvas.setActiveObject(rect3)
-      const active = canvas.getActiveObject()
+      const active = canvas.getActiveObject()!
       expect(active).toBe(rect3)
 
       const objects = canvas.getObjects()
