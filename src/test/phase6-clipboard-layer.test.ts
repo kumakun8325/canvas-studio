@@ -37,6 +37,38 @@ describe('Phase 6: クリップボード・レイヤー操作', () => {
       expect(objects[1].top).toBe(120)
     })
 
+    it('should paste object with new ID and offset', async () => {
+      const rect = new fabric.Rect({ left: 100, top: 100, width: 50, height: 50, fill: '#ff0000' })
+      rect.set('id', 'original-id')
+      canvas.add(rect)
+
+      // オブジェクトをシリアライズして新しいオブジェクトとしてペースト
+      const serialized = rect.toObject(['id'])
+
+      await new Promise<void>((resolve) => {
+        fabric.util.enlivenObjects([serialized]).then((results) => {
+          const pastedObj = results[0]
+          if (pastedObj instanceof fabric.FabricObject) {
+            pastedObj.set({
+              id: 'pasted-id',
+              left: 120,
+              top: 120,
+            })
+            canvas.add(pastedObj)
+            canvas.renderAll()
+          }
+          resolve()
+        })
+      })
+
+      const objects = canvas.getObjects()
+      expect(objects).toHaveLength(2)
+      expect(objects[0].left).toBe(100)
+      expect(objects[0].top).toBe(100)
+      expect(objects[1].left).toBe(120)
+      expect(objects[1].top).toBe(120)
+    })
+
     it('should cut selected object', () => {
       const rect = new fabric.Rect({ left: 100, top: 100, width: 50, height: 50 })
       canvas.add(rect)
