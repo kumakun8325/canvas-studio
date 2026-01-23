@@ -288,78 +288,108 @@ export function useCanvas(canvasId: string) {
     reader.readAsDataURL(file);
   }, []);
 
+  // ヘルパー関数: レイヤー操作の履歴記録とスライド更新
+  const executeLayerOperation = useCallback(
+    (
+      operation: (canvas: fabric.Canvas, active: fabric.Object) => void,
+      actionType: string,
+      description: string
+    ) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const active = canvas.getActiveObject();
+      if (!active) return;
+
+      const slideId = currentSlideIdRef.current;
+      if (!slideId) return;
+
+      // 操作前の状態を保存
+      const beforeJson = JSON.stringify(canvas.toJSON());
+
+      // 操作を実行
+      operation(canvas, active);
+
+      // 操作後の状態を保存
+      const afterJson = JSON.stringify(canvas.toJSON());
+
+      // 履歴を記録
+      recordAction({
+        type: actionType,
+        description,
+        undo: () => {
+          isInternalUpdateRef.current = true;
+          updateSlide(slideId, beforeJson);
+          canvas.loadFromJSON(JSON.parse(beforeJson)).then(() => {
+            canvas.renderAll();
+            isInternalUpdateRef.current = false;
+          });
+        },
+        redo: () => {
+          isInternalUpdateRef.current = true;
+          updateSlide(slideId, afterJson);
+          canvas.loadFromJSON(JSON.parse(afterJson)).then(() => {
+            canvas.renderAll();
+            isInternalUpdateRef.current = false;
+          });
+        },
+      });
+
+      // スライドを更新
+      updateSlide(slideId, afterJson);
+      previousStateRef.current = afterJson;
+    },
+    [updateSlide, recordAction]
+  );
+
   // Layer operations
   const bringToFront = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const active = canvas.getActiveObject();
-    if (!active) return;
-
-    const objects = canvas.getObjects();
-    const currentIndex = objects.indexOf(active);
-    if (currentIndex === -1) return;
-
-    // Move to the end of the stack
-    canvas.remove(active);
-    canvas.add(active);
-    canvas.setActiveObject(active);
-    canvas.renderAll();
-  }, []);
+    executeLayerOperation(
+      (canvas, active) => {
+        canvas.bringToFront(active);
+        canvas.setActiveObject(active);
+        canvas.renderAll();
+      },
+      "layer:bringToFront",
+      "最前面に移動"
+    );
+  }, [executeLayerOperation]);
 
   const sendToBack = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const active = canvas.getActiveObject();
-    if (!active) return;
-
-    const objects = canvas.getObjects();
-    const currentIndex = objects.indexOf(active);
-    if (currentIndex === -1) return;
-
-    // Move to the beginning of the stack
-    canvas.remove(active);
-    objects.unshift(active);
-    canvas.setActiveObject(active);
-    canvas.renderAll();
-  }, []);
+    executeLayerOperation(
+      (canvas, active) => {
+        canvas.sendToBack(active);
+        canvas.setActiveObject(active);
+        canvas.renderAll();
+      },
+      "layer:sendToBack",
+      "最背面に移動"
+    );
+  }, [executeLayerOperation]);
 
   const bringForward = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const active = canvas.getActiveObject();
-    if (!active) return;
-
-    const objects = canvas.getObjects();
-    const currentIndex = objects.indexOf(active);
-    if (currentIndex === -1 || currentIndex === objects.length - 1) return;
-
-    // Move one position forward
-    canvas.remove(active);
-    objects.splice(currentIndex + 1, 0, active);
-    canvas.setActiveObject(active);
-    canvas.renderAll();
-  }, []);
+    executeLayerOperation(
+      (canvas, active) => {
+        canvas.bringForward(active);
+        canvas.setActiveObject(active);
+        canvas.renderAll();
+      },
+      "layer:bringForward",
+      "1つ前面に移動"
+    );
+  }, [executeLayerOperation]);
 
   const sendBackwards = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const active = canvas.getActiveObject();
-    if (!active) return;
-
-    const objects = canvas.getObjects();
-    const currentIndex = objects.indexOf(active);
-    if (currentIndex <= 0) return;
-
-    // Move one position backward
-    canvas.remove(active);
-    objects.splice(currentIndex - 1, 0, active);
-    canvas.setActiveObject(active);
-    canvas.renderAll();
-  }, []);
+    executeLayerOperation(
+      (canvas, active) => {
+        canvas.sendBackwards(active);
+        canvas.setActiveObject(active);
+        canvas.renderAll();
+      },
+      "layer:sendBackwards",
+      "1つ背面に移動"
+    );
+  }, [executeLayerOperation]);
 
   return {
     canvasRef,
