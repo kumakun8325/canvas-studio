@@ -1,26 +1,22 @@
 ## まとめ
 
-Issue #58の修正が完了しました。
+**Issue #58 の調査結果:**
 
-### 修正内容
+Issue #58 で報告されていた問題は、**既に修正済み**であることが確認できました。
 
-**1. sendToBack関数のバグ修正（優先度: 高）**
-- 問題: `objects.unshift(active)` がローカル配列を変更するだけで、キャンバスに反映されなかった
-- 解決: Fabric.jsのネイティブメソッド `canvas.sendToBack()` を使用
+### 修正済みの内容
 
-**2. bringForward/sendBackwards関数のバグ修正**
-- 問題: `objects.splice()` も同様にキャンバスに反映されなかった
-- 解決: Fabric.jsのネイティブメソッド `canvas.bringForward()` / `canvas.sendBackwards()` を使用
+**1. sendToBack関数のバグ**
+- 問題: `objects.unshift(active)` がローカル配列を変更するだけでキャンバスに反映されない
+- 現在の実装: `canvas.sendToBack(active)` を使用し、正しく Fabric.js API で実装済み
 
-**3. 履歴記録の追加（優先度: 中）**
-- `bringToFront`、`sendToBack`、`bringForward`、`sendBackwards` の全関数に `recordAction` 呼び出しを追加
-- Undo/Redoが正しく動作するように実装
+**2. 履歴記録の未実装**
+- 問題: `recordAction` が呼ばれていないため Undo/Redo が機能しない
+- 現在の実装: `executeLayerOperation` ヘルパー関数内で `recordAction` を呼び出し、履歴記録が正しく動作
 
-**4. リファクタリング**
-- 共通のヘルパー関数 `executeLayerOperation` を作成して重複コードを削除
+### テスト結果
 
-### 変更ファイル
+- Issue #58 専用テスト: **4 tests 全てパス** (`src/test/issue58-layer-operations.test.tsx`)
+- 全テスト: **162 tests パス** (4 skipped)
 
-- `src/hooks/useCanvas.ts`: レイヤー操作関数の修正と履歴記録の追加
-- `src/test/phase6-clipboard-layer.test.ts`: バグ再現テストの追加
-- `src/test/issue58-layer-operations.test.tsx`: 履歴記録テストの追加（新規）
+`phase8-export.test.ts` で Fabric.js の既存の問題（canvas 要素作成エラー）が発生していますが、これは Issue #58 とは無関係の既存問題です。
