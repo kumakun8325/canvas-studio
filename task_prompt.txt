@@ -1,23 +1,34 @@
-Issue #61: Task 06: paste関数にUndo/Redo履歴記録追加
+Issue #58: Task 06: sendToBack関数のバグ修正とレイヤー操作の履歴記録追加
 
 ## 概要
-Task 06 のペースト機能で、recordActionが呼ばれておらず、Undo/Redoが機能しません。
+Task 06 のレイヤー操作機能に問題があります。
 
-## 現状
-- \src/hooks/useClipboard.ts\ の \paste()\ 関数: オフセット+20px、新ID割り当ては実装済み
-- recordAction呼び出し: 未実装
+## 問題点
 
-## 要件
-- paste関数実行時に適切なrecordActionを呼び出す
-- ペーストしたオブジェクトをUndo/Redoできるようにする
+### 1. sendToBack関数のバグ（優先度: 高）
+**ファイル**: src/hooks/useCanvas.ts:310-326
+
+現在の実装では objects.unshift(active) がローカル配列を変更するだけで、実際のキャンバスには反映されません。
+
+**修正方針**:
+- Fabric.js の正しいAPIを使用するか、適切な方法で再実装が必要
+- 参考: bringToFront は emove + add 方式で正しく動作している
+
+### 2. 履歴記録の未実装（優先度: 中）
+**ファイル**: src/hooks/useCanvas.ts
+
+ringToFront と sendToBack 関数で ecordAction が呼ばれていないため、Undo/Redo が機能しません。
+
+**修正方針**:
+- 両関数に適切な ecordAction 呼び出しを追加
 
 ## 関連ドキュメント
-- \docs/implementation_review_task06-09.md\ - 調査結果
-- \docs/task_06.md\ - タスク定義
+- docs/implementation_review_task06-09.md - 調査結果
+- docs/task_06.md - タスク定義
 
 ## テスト
-\
-pm run test\ でテストが通ることを確認してください。
+修正後、
+pm run test でテストが通ることを確認してください。
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:

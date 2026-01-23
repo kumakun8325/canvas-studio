@@ -5,8 +5,7 @@
 
  RUN  v3.2.4 /home/runner/work/canvas-studio/canvas-studio
 
- ✓ src/test/slides.test.tsx (19 tests) 334ms
- ✓ src/test/businessCard.test.ts (19 tests) 365ms
+ ✓ src/test/slides.test.tsx (19 tests) 305ms
 stderr | src/test/phase8-export.test.ts
 Error: Uncaught [Error: fabric: Failed to create `canvas` element]
     at reportException (/home/runner/work/canvas-studio/canvas-studio/node_modules/jsdom/lib/jsdom/living/helpers/runtime-script-errors.js:66:24)
@@ -249,9 +248,24 @@ Error: Uncaught [Error: fabric: Failed to create `canvas` element]
     at [90mfile:///home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4mfabric[24m/src/canvas/StaticCanvas.ts:520:59
     at invokeTheCallbackFunction [90m(/home/runner/work/canvas-studio/canvas-studio/[39mnode_modules/[4mjsdom[24m/lib/jsdom/living/generated/Function.js:19:26[90m)[39m
 
- ✓ src/test/phase8-export.test.ts (21 tests | 2 skipped) 297ms
- ✓ src/test/phase6-clipboard-layer.test.ts (11 tests | 1 skipped) 195ms
- ✓ src/test/templateSelector.test.tsx (10 tests) 212ms
+ ✓ src/test/phase8-export.test.ts (21 tests | 2 skipped) 220ms
+ ✓ src/test/businessCard.test.ts (19 tests) 405ms
+ ✓ src/test/phase6-clipboard-layer.test.ts (14 tests | 1 skipped) 219ms
+stderr | src/test/task35-undo-bug.test.tsx > Issue #35: Undo bug - currentSlideId closure capture > should record history correctly when switching slides
+An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/test/task35-undo-bug.test.tsx (3 tests) 157ms
+ ✓ src/test/templateSelector.test.tsx (10 tests) 147ms
+ ✓ src/test/task39-canvas-environment.test.tsx (3 tests) 100ms
 stderr | src/pages/Editor.test.tsx > Editor > project auto-loading on login > should handle errors when loading projects
 Failed to load or create project: Error: Failed to load projects
     at [90m/home/runner/work/canvas-studio/canvas-studio/[39msrc/pages/Editor.test.tsx:220:25
@@ -277,28 +291,15 @@ act(() => {
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
 
- ✓ src/pages/Editor.test.tsx (9 tests) 199ms
- ✓ src/test/task39-canvas-environment.test.tsx (3 tests) 134ms
-stderr | src/test/task35-undo-bug.test.tsx > Issue #35: Undo bug - currentSlideId closure capture > should record history correctly when switching slides
-An update to TestComponent inside a test was not wrapped in act(...).
-
-When testing, code that causes React state updates should be wrapped into act(...):
-
-act(() => {
-  /* fire events that update state */
-});
-/* assert on the output */
-
-This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
-
- ✓ src/test/task35-undo-bug.test.tsx (3 tests) 201ms
- ✓ src/hooks/useAutoSave.test.ts (11 tests) 55ms
- ✓ src/hooks/useAuth.test.ts (9 tests) 117ms
- ✓ src/lib/firebase.test.ts (7 tests) 57ms
- ✓ src/test/task29-undo-redo.test.tsx (9 tests | 1 skipped) 36ms
- ✓ src/test/templates.test.ts (11 tests) 19ms
- ✓ src/services/projectService.test.ts (13 tests) 22ms
- ✓ src/test/task02.test.tsx (4 tests) 7ms
+ ✓ src/pages/Editor.test.tsx (9 tests) 163ms
+ ✓ src/hooks/useAuth.test.ts (9 tests) 61ms
+ ✓ src/lib/firebase.test.ts (7 tests) 29ms
+ ✓ src/hooks/useAutoSave.test.ts (11 tests) 74ms
+ ✓ src/test/task29-undo-redo.test.tsx (9 tests | 1 skipped) 47ms
+ ✓ src/test/issue58-layer-operations.test.tsx (4 tests) 39ms
+ ✓ src/services/projectService.test.ts (13 tests) 12ms
+ ✓ src/test/templates.test.ts (11 tests) 13ms
+ ✓ src/test/task02.test.tsx (4 tests) 4ms
 ⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
 
 Vitest caught 15 unhandled errors during the test run.
@@ -531,9 +532,9 @@ This error originated in "src/test/phase8-export.test.ts" test file. It doesn't 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
 
 
- Test Files  15 passed (15)
-      Tests  155 passed | 4 skipped (159)
+ Test Files  16 passed (16)
+      Tests  162 passed | 4 skipped (166)
      Errors  15 errors
-   Start at  14:02:20
-   Duration  6.60s (transform 911ms, setup 1.91s, collect 2.67s, tests 2.25s, environment 8.75s, prepare 1.44s)
+   Start at  14:09:27
+   Duration  6.57s (transform 909ms, setup 1.63s, collect 2.46s, tests 1.99s, environment 8.52s, prepare 1.29s)
 

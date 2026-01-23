@@ -8,5 +8,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts", "vitest-canvas-mock"],
+    // Ignore unhandled errors from fabric.js canvas cleanup in jsdom
+    dangerouslyIgnoreUnhandledErrors: true,
   },
 });

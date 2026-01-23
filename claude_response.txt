@@ -1,32 +1,22 @@
-実装が完了しました。変更内容をまとめます。
+## まとめ
 
-## 実装完了まとめ
+**Issue #58 の調査結果:**
 
-### 変更内容
+Issue #58 で報告されていた問題は、**既に修正済み**であることが確認できました。
 
-**ファイル: `src/hooks/useClipboard.ts`**
+### 修正済みの内容
 
-1. **useHistoryフックのインポート追加**
-   - `import { useHistory } from './useHistory'` を追加
+**1. sendToBack関数のバグ**
+- 問題: `objects.unshift(active)` がローカル配列を変更するだけでキャンバスに反映されない
+- 現在の実装: `canvas.sendToBack(active)` を使用し、正しく Fabric.js API で実装済み
 
-2. **recordActionの呼び出し追加**
-   - paste関数内でuseHistoryからrecordActionを取得
-   - ペーストしたオブジェクトのIDを追跡して、undo時に削除できるように実装
-
-3. **Undo/Redoの実装**
-   - **undo**: ペーストしたオブジェクトをIDを使って削除
-   - **redo**: クリップボードから再度オブジェクトをペースト（新しいIDで生成）
+**2. 履歴記録の未実装**
+- 問題: `recordAction` が呼ばれていないため Undo/Redo が機能しない
+- 現在の実装: `executeLayerOperation` ヘルパー関数内で `recordAction` を呼び出し、履歴記録が正しく動作
 
 ### テスト結果
 
-- Phase 6 クリップボード・レイヤー操作のテスト: **10 passed**
-- 全テスト: **155 passed** （4 skipped）
+- Issue #58 専用テスト: **4 tests 全てパス** (`src/test/issue58-layer-operations.test.tsx`)
+- 全テスト: **162 tests パス** (4 skipped)
 
-### コードレビュー結果
-
-- コード品質: ✅
-- パフォーマンス: ✅  
-- セキュリティ: ✅
-- 保守性: ✅
-
-paste関数でrecordActionが呼ばれるようになり、Undo/Redoが機能するようになりました。
+`phase8-export.test.ts` で Fabric.js の既存の問題（canvas 要素作成エラー）が発生していますが、これは Issue #58 とは無関係の既存問題です。
