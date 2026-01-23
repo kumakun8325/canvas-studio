@@ -1,50 +1,7 @@
-## 実装完了
+ユーザーからの返答をお待ちしています。設計方針によって実装方法が異なります：
 
-Phase 8: エクスポート機能の実装が完了しました。以下の機能を実装しました:
-
-### 実装したファイル
-
-1. **`src/services/exportService.ts`** - エクスポートサービス
-   - PNG/JPEG/PDF エクスポート機能
-   - `exportSlide()` - 単一スライドのエクスポート
-   - `dataURLToBlob()` - DataURL → Blob 変換
-   - `downloadBlob()` - ファイルダウンロード実行
-
-2. **`src/services/cmykService.ts`** - CMYK変換サービス
-   - `rgbToCmyk()` - RGB → CMYK 変換
-   - `cmykToRgb()` - CMYK → RGB 変換
-   - `hexToRgb()`, `rgbToHex()` - 色表現変換
-   - `formatCmyk()` - CMYK値フォーマット
-
-3. **`src/components/export/ExportDialog.tsx`** - エクスポートダイアログ
-   - フォーマット選択（PNG/JPEG/PDF）
-   - JPEG品質設定スライダー
-   - エクスポート実行ボタン
-
-4. **`src/components/export/CMYKPreview.tsx`** - CMYKプレビューコンポーネント
-   - RGBとCMYKの色比較表示
-   - CMYK値のパーセンテージ表示
-   - 注意書き（画面表示はRGBシミュレーション）
-
-5. **`src/test/phase8-export.test.ts`** - テストファイル
-   - 19件のテストがパス
-   - 2件のPDFテストはテスト環境の制限によりスキップ（実際のアプリでは動作）
-
-### テスト結果
-```
-✓ 19 passed
-⊘ 2 skipped (PDF - テスト環境制限によるスキップ)
-```
-
-### ビルド結果
-```
-✓ TypeScript compilation successful
-✓ Vite build successful
-```
-
-### 完了条件の確認
-- ✅ PNG/JPEG/PDF エクスポートが実装されている
-- ✅ ExportDialog UI が実装されている
-- ✅ CMYK変換が実装されている
-- ✅ テストが作成され成功している
-- ✅ `npm run build` が成功している
+| 選択肢 | 説明 |
+|--------|------|
+| **現在の実装のまま** | Editor.tsx内でのTemplateSelector表示を維持。ドキュメント/Issueを更新して実装が正しいことを記録 |
+| **Home.tsxで統合** | 認証後、Home.tsxでTemplateSelectorを表示 → プロジェクト作成 → Editorへ遷移 |
+| **認証前にテンプレート選択** | 未認証状態でテンプレートを選択可能にし、認証後にプロジェクトを作成 |
