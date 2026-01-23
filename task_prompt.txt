@@ -1,54 +1,34 @@
-Issue #52: Phase 8: エクスポート機能（PNG/JPEG/PDF・CMYK変換）
-
-# Phase 8: エクスポート機能実装
+Issue #58: Task 06: sendToBack関数のバグ修正とレイヤー操作の履歴記録追加
 
 ## 概要
+Task 06 のレイヤー操作機能に問題があります。
 
-キャンバスの内容を各種形式でエクスポートする機能を実装する。
+## 問題点
 
-## 実装タスク
+### 1. sendToBack関数のバグ（優先度: 高）
+**ファイル**: src/hooks/useCanvas.ts:310-326
 
-### 8.1 exportService 実装
+現在の実装では objects.unshift(active) がローカル配列を変更するだけで、実際のキャンバスには反映されません。
 
-- `src/services/exportService.ts` 新規作成
-- PNG/JPEG/PDF エクスポート
-- dataURLToBlob, downloadBlob 関数
+**修正方針**:
+- Fabric.js の正しいAPIを使用するか、適切な方法で再実装が必要
+- 参考: bringToFront は emove + add 方式で正しく動作している
 
-### 8.2 ExportDialog コンポーネント
+### 2. 履歴記録の未実装（優先度: 中）
+**ファイル**: src/hooks/useCanvas.ts
 
-- `src/components/export/ExportDialog.tsx` 新規作成
-- フォーマット選択（PNG/JPEG/PDF）
-- JPEG品質設定
-- PDF出力範囲（現在/全スライド）
+ringToFront と sendToBack 関数で ecordAction が呼ばれていないため、Undo/Redo が機能しません。
 
-### 8.3-8.4 PNG/JPEG エクスポート
+**修正方針**:
+- 両関数に適切な ecordAction 呼び出しを追加
 
-- `canvas.toDataURL()` 使用
-- PNG: ロスレス、透明対応
-- JPEG: 品質設定可能（0-100%）
+## 関連ドキュメント
+- docs/implementation_review_task06-09.md - 調査結果
+- docs/task_06.md - タスク定義
 
-### 8.5 PDF エクスポート（pdf-lib）
-
-- pdf-lib で複数ページPDF生成
-- 各スライドを画像として埋め込み
-
-### 8.6-8.8 CMYK対応
-
-- `src/services/cmykService.ts` 新規作成
-- RGB → CMYK 変換
-- CMYKPreview コンポーネント
-
-## 参考ファイル
-
-- `docs/task_08.md` - 詳細な実装仕様
-
-## 完了条件
-
-- PNG/JPEG/PDF エクスポートが動作する
-- ExportDialog UIが動作する
-- CMYK変換が動作する
-- テスト作成・成功
-- `npm run build` 成功
+## テスト
+修正後、
+pm run test でテストが通ることを確認してください。
 
 # Quality Assurance Protocol
 Follow this 3-phase process strictly:

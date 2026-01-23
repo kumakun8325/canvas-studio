@@ -1,50 +1,22 @@
-## 実装完了
+## まとめ
 
-Phase 8: エクスポート機能の実装が完了しました。以下の機能を実装しました:
+**Issue #58 の調査結果:**
 
-### 実装したファイル
+Issue #58 で報告されていた問題は、**既に修正済み**であることが確認できました。
 
-1. **`src/services/exportService.ts`** - エクスポートサービス
-   - PNG/JPEG/PDF エクスポート機能
-   - `exportSlide()` - 単一スライドのエクスポート
-   - `dataURLToBlob()` - DataURL → Blob 変換
-   - `downloadBlob()` - ファイルダウンロード実行
+### 修正済みの内容
 
-2. **`src/services/cmykService.ts`** - CMYK変換サービス
-   - `rgbToCmyk()` - RGB → CMYK 変換
-   - `cmykToRgb()` - CMYK → RGB 変換
-   - `hexToRgb()`, `rgbToHex()` - 色表現変換
-   - `formatCmyk()` - CMYK値フォーマット
+**1. sendToBack関数のバグ**
+- 問題: `objects.unshift(active)` がローカル配列を変更するだけでキャンバスに反映されない
+- 現在の実装: `canvas.sendToBack(active)` を使用し、正しく Fabric.js API で実装済み
 
-3. **`src/components/export/ExportDialog.tsx`** - エクスポートダイアログ
-   - フォーマット選択（PNG/JPEG/PDF）
-   - JPEG品質設定スライダー
-   - エクスポート実行ボタン
-
-4. **`src/components/export/CMYKPreview.tsx`** - CMYKプレビューコンポーネント
-   - RGBとCMYKの色比較表示
-   - CMYK値のパーセンテージ表示
-   - 注意書き（画面表示はRGBシミュレーション）
-
-5. **`src/test/phase8-export.test.ts`** - テストファイル
-   - 19件のテストがパス
-   - 2件のPDFテストはテスト環境の制限によりスキップ（実際のアプリでは動作）
+**2. 履歴記録の未実装**
+- 問題: `recordAction` が呼ばれていないため Undo/Redo が機能しない
+- 現在の実装: `executeLayerOperation` ヘルパー関数内で `recordAction` を呼び出し、履歴記録が正しく動作
 
 ### テスト結果
-```
-✓ 19 passed
-⊘ 2 skipped (PDF - テスト環境制限によるスキップ)
-```
 
-### ビルド結果
-```
-✓ TypeScript compilation successful
-✓ Vite build successful
-```
+- Issue #58 専用テスト: **4 tests 全てパス** (`src/test/issue58-layer-operations.test.tsx`)
+- 全テスト: **162 tests パス** (4 skipped)
 
-### 完了条件の確認
-- ✅ PNG/JPEG/PDF エクスポートが実装されている
-- ✅ ExportDialog UI が実装されている
-- ✅ CMYK変換が実装されている
-- ✅ テストが作成され成功している
-- ✅ `npm run build` が成功している
+`phase8-export.test.ts` で Fabric.js の既存の問題（canvas 要素作成エラー）が発生していますが、これは Issue #58 とは無関係の既存問題です。
