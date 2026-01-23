@@ -1,50 +1,32 @@
-## 実装完了
+実装が完了しました。変更内容をまとめます。
 
-Phase 8: エクスポート機能の実装が完了しました。以下の機能を実装しました:
+## 実装完了まとめ
 
-### 実装したファイル
+### 変更内容
 
-1. **`src/services/exportService.ts`** - エクスポートサービス
-   - PNG/JPEG/PDF エクスポート機能
-   - `exportSlide()` - 単一スライドのエクスポート
-   - `dataURLToBlob()` - DataURL → Blob 変換
-   - `downloadBlob()` - ファイルダウンロード実行
+**ファイル: `src/hooks/useClipboard.ts`**
 
-2. **`src/services/cmykService.ts`** - CMYK変換サービス
-   - `rgbToCmyk()` - RGB → CMYK 変換
-   - `cmykToRgb()` - CMYK → RGB 変換
-   - `hexToRgb()`, `rgbToHex()` - 色表現変換
-   - `formatCmyk()` - CMYK値フォーマット
+1. **useHistoryフックのインポート追加**
+   - `import { useHistory } from './useHistory'` を追加
 
-3. **`src/components/export/ExportDialog.tsx`** - エクスポートダイアログ
-   - フォーマット選択（PNG/JPEG/PDF）
-   - JPEG品質設定スライダー
-   - エクスポート実行ボタン
+2. **recordActionの呼び出し追加**
+   - paste関数内でuseHistoryからrecordActionを取得
+   - ペーストしたオブジェクトのIDを追跡して、undo時に削除できるように実装
 
-4. **`src/components/export/CMYKPreview.tsx`** - CMYKプレビューコンポーネント
-   - RGBとCMYKの色比較表示
-   - CMYK値のパーセンテージ表示
-   - 注意書き（画面表示はRGBシミュレーション）
-
-5. **`src/test/phase8-export.test.ts`** - テストファイル
-   - 19件のテストがパス
-   - 2件のPDFテストはテスト環境の制限によりスキップ（実際のアプリでは動作）
+3. **Undo/Redoの実装**
+   - **undo**: ペーストしたオブジェクトをIDを使って削除
+   - **redo**: クリップボードから再度オブジェクトをペースト（新しいIDで生成）
 
 ### テスト結果
-```
-✓ 19 passed
-⊘ 2 skipped (PDF - テスト環境制限によるスキップ)
-```
 
-### ビルド結果
-```
-✓ TypeScript compilation successful
-✓ Vite build successful
-```
+- Phase 6 クリップボード・レイヤー操作のテスト: **10 passed**
+- 全テスト: **155 passed** （4 skipped）
 
-### 完了条件の確認
-- ✅ PNG/JPEG/PDF エクスポートが実装されている
-- ✅ ExportDialog UI が実装されている
-- ✅ CMYK変換が実装されている
-- ✅ テストが作成され成功している
-- ✅ `npm run build` が成功している
+### コードレビュー結果
+
+- コード品質: ✅
+- パフォーマンス: ✅  
+- セキュリティ: ✅
+- 保守性: ✅
+
+paste関数でrecordActionが呼ばれるようになり、Undo/Redoが機能するようになりました。
