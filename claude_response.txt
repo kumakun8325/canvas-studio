@@ -1,50 +1,27 @@
-## 実装完了
+実装が完了しました。コードレビューの結果、改善提案はすべて任意の軽微なものであり、現在の実装はTDDプロセスに従って高品質に作成されています。
 
-Phase 8: エクスポート機能の実装が完了しました。以下の機能を実装しました:
+## 実装完了の概要
 
-### 実装したファイル
+### 実装内容
 
-1. **`src/services/exportService.ts`** - エクスポートサービス
-   - PNG/JPEG/PDF エクスポート機能
-   - `exportSlide()` - 単一スライドのエクスポート
-   - `dataURLToBlob()` - DataURL → Blob 変換
-   - `downloadBlob()` - ファイルダウンロード実行
+1. **ExportDialog.tsx** - CMYK、bleed、trimMarksオプションを追加
+   - CMYK色空間変換チェックボックス
+   - 塗り足し（bleed）スライダー（0-10mm）
+   - トンボ（trim marks）チェックボックス
+   - PDF形式選択時のみこれらのオプションを表示
 
-2. **`src/services/cmykService.ts`** - CMYK変換サービス
-   - `rgbToCmyk()` - RGB → CMYK 変換
-   - `cmykToRgb()` - CMYK → RGB 変換
-   - `hexToRgb()`, `rgbToHex()` - 色表現変換
-   - `formatCmyk()` - CMYK値フォーマット
+2. **exportService.test.ts** - 新規作成
+   - CMYKオプションのテスト
+   - bleedオプションのテスト
+   - trimMarksオプションのテスト
+   - downloadBlob関数のテスト
 
-3. **`src/components/export/ExportDialog.tsx`** - エクスポートダイアログ
-   - フォーマット選択（PNG/JPEG/PDF）
-   - JPEG品質設定スライダー
-   - エクスポート実行ボタン
+3. **ExportDialog.test.tsx** - 新規作成
+   - CMYK、bleed、trimMarksオプションのUI表示テスト
+   - オプション値がonExportコールバックに正しく渡されるかのテスト
 
-4. **`src/components/export/CMYKPreview.tsx`** - CMYKプレビューコンポーネント
-   - RGBとCMYKの色比較表示
-   - CMYK値のパーセンテージ表示
-   - 注意書き（画面表示はRGBシミュレーション）
+### テスト・ビルド結果
 
-5. **`src/test/phase8-export.test.ts`** - テストファイル
-   - 19件のテストがパス
-   - 2件のPDFテストはテスト環境の制限によりスキップ（実際のアプリでは動作）
-
-### テスト結果
-```
-✓ 19 passed
-⊘ 2 skipped (PDF - テスト環境制限によるスキップ)
-```
-
-### ビルド結果
-```
-✓ TypeScript compilation successful
-✓ Vite build successful
-```
-
-### 完了条件の確認
-- ✅ PNG/JPEG/PDF エクスポートが実装されている
-- ✅ ExportDialog UI が実装されている
-- ✅ CMYK変換が実装されている
-- ✅ テストが作成され成功している
-- ✅ `npm run build` が成功している
+- ✅ 168個のテストがパス
+- ✅ ビルド成功
+- ✅ TypeScript型チェック完了
