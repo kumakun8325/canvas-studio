@@ -16,6 +16,9 @@ export function ExportDialog({
 }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>('png')
   const [quality, setQuality] = useState(92)
+  const [cmyk, setCmyk] = useState(false)
+  const [bleed, setBleed] = useState(3)
+  const [trimMarks, setTrimMarks] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
   if (!isOpen) return null
@@ -23,10 +26,19 @@ export function ExportDialog({
   const handleExport = async () => {
     setIsExporting(true)
     try {
-      await onExport({
+      const options: ExportOptions = {
         format,
         quality: quality / 100,
-      })
+      }
+
+      // PDF形式の場合のみCMYK、bleed、trimMarksオプションを追加
+      if (format === 'pdf') {
+        options.cmyk = cmyk
+        options.bleed = bleed
+        options.trimMarks = trimMarks
+      }
+
+      await onExport(options)
       onClose()
     } catch (error) {
       console.error('Export failed:', error)
@@ -94,10 +106,50 @@ export function ExportDialog({
         )}
 
         {format === 'pdf' && (
-          <div className="mb-4">
-            <p className="text-sm text-gray-600">
-              現在のスライドをPDFとしてエクスポートします
-            </p>
+          <div className="mb-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="cmyk"
+                checked={cmyk}
+                onChange={(e) => setCmyk(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="cmyk" className="text-sm">
+                CMYK色空間で出力（印刷用）
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                塗り足し（bleed）: {bleed}mm
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="10"
+                step="1"
+                value={bleed}
+                onChange={(e) => setBleed(Number(e.target.value))}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                印刷時の断ち落としを考慮した余白
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="trimMarks"
+                checked={trimMarks}
+                onChange={(e) => setTrimMarks(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="trimMarks" className="text-sm">
+                トンボ（トリムマーク）を表示
+              </label>
+            </div>
           </div>
         )}
 
