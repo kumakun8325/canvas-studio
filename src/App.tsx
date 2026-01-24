@@ -2,9 +2,11 @@ import { Editor } from "./pages/Editor";
 import { Home } from "./pages/Home";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useAuth } from "./hooks/useAuth";
+import { useSlideStore } from "./stores/slideStore";
 
 function App() {
   const { user, loading } = useAuth();
+  const { project } = useSlideStore();
 
   // Show loading state while checking authentication
   if (loading) {
@@ -18,10 +20,13 @@ function App() {
     );
   }
 
-  // Route based on authentication state
+  // Route based on authentication state and project selection
+  // - Not logged in: Home (login page)
+  // - Logged in but no project: Home (project selection page)
+  // - Logged in with project: Editor
   return (
     <ErrorBoundary>
-      {user ? <Editor /> : <Home />}
+      {user && project ? <Editor /> : <Home />}
     </ErrorBoundary>
   );
 }
