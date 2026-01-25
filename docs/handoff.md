@@ -1,8 +1,32 @@
 # Handoff Document
 
 ## Current Task
-**Status**: `READY_FOR_CLAUDE`
-**Assigned To**: Claude Code (Multiple Workers)
+**Status**: `READY_FOR_IMPLEMENTATION`
+**Phase**: Phase 2 - 実装
+
+---
+
+## ワークフロー概要
+
+```
+Phase 1: 設計
+├── Step 1: 要件・設計          🟣 Opus
+├── Step 2: 設計レビュー        🟢 Codex (xhigh)
+└── Step 3: 設計改善            🟡 Sonnet
+
+Phase 2: 実装  ← 現在
+├── Step 4: 並列実装            🔵 GLM-4.7
+└── Step 5: 自己点検            🔵 GLM-4.7
+
+Phase 3: レビュー
+├── Step 6: 実装チェック        🟢 Codex (medium)
+└── Step 7: 修正Issue作成       🟡 Sonnet (必要時のみ)
+
+Phase 4: 最終レビュー
+├── Step 8a: 詳細分析           🟢 Codex (xhigh)
+└── Step 8b: 判断・承認         🟡 Sonnet
+    └── 【例外】重大変更時      🟣 Opus
+```
 
 ---
 
@@ -36,7 +60,7 @@ All three workers start simultaneously:
 
 ---
 
-## Worker Instructions
+## Worker Instructions (Phase 2: 実装)
 
 ### Worker 1 (Task 02: Canvas)
 ```
@@ -58,18 +82,27 @@ Create branch: `feature/task-04-undo`
 
 ---
 
-## After Completion
+## After Implementation (Phase 2 → Phase 3)
 
-Each worker runs `/finish` which:
-1. Runs code-review
-2. Verifies build/lint
-3. Commits and pushes
-4. Creates PR
+### Step 5: 自己点検 (🔵 GLM-4.7)
+各 Worker が `/finish` を実行:
+1. セルフレビュー実施
+2. Build/Lint 確認
+3. コミット・プッシュ
+4. PR作成
 
-Antigravity will:
-1. Review PRs
-2. Merge in order (02 → 03 → 04)
-3. Resolve any conflicts
+### Step 6: 実装チェック (🟢 Codex medium)
+- コード品質チェック
+- 設計適合性確認
+- テストカバレッジ確認
+
+### Step 7: 修正Issue作成 (🟡 Sonnet)
+問題があれば Issue 作成
+
+### Step 8: 最終レビュー (🟢 Codex xhigh → 🟡 Sonnet)
+1. Codex で詳細分析
+2. Sonnet で判断・承認
+3. PR マージ (02 → 03 → 04 の順)
 
 ---
 
@@ -99,3 +132,4 @@ Antigravity will:
 - Use exact code from task documents
 - Follow module structure in design.md
 - Test manually before /finish
+- 各 Step で適切なモデルを使用してクォータを最適化

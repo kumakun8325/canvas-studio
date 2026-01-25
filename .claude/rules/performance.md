@@ -2,21 +2,35 @@
 
 ## Model Selection Strategy
 
-### When to Use Each Model
+### クォータ最適化モデル選択
 
-| Model | Use Case | Cost |
-|-------|----------|------|
-| Haiku | Simple tasks, quick fixes, formatting | Low |
-| Sonnet | Standard coding (90% of work) | Medium |
-| Opus | Complex architecture, 5+ files, deep reasoning | High |
+| Phase | Step | Model | 用途 | コスト |
+|-------|------|-------|------|--------|
+| 設計 | 要件・設計 | 🟣 Opus | 複雑な設計・アーキテクチャ | Pro消費 |
+| 設計 | 設計レビュー | 🟢 Codex (xhigh) | 設計の問題点洗い出し | Plus内 |
+| 設計 | 設計改善 | 🟡 Sonnet | 指摘に基づく改善 | Pro消費（軽量）|
+| 実装 | 並列実装 | 🔵 GLM-4.7 | コーディング | Pro消費なし |
+| 実装 | 自己点検 | 🔵 GLM-4.7 | セルフレビュー | Pro消費なし |
+| レビュー | 実装チェック | 🟢 Codex (medium) | コード品質チェック | Plus内 |
+| レビュー | 修正Issue | 🟡 Sonnet | Issue作成（必要時のみ）| Pro消費（軽量）|
+| 最終 | 詳細分析 | 🟢 Codex (xhigh) | 詳細な分析 | Plus内 |
+| 最終 | 判断・承認 | 🟡 Sonnet | 承認判断 | Pro消費（軽量）|
 
-### Escalation Triggers
+### Opus使用基準
 
-Upgrade to Opus when:
-- Task spans 5+ files
-- Previous attempt failed
-- Requires deep architectural reasoning
-- Complex refactoring needed
+Opusは以下の場合のみ使用（クォータ節約）:
+- 新規アーキテクチャ設計
+- 複雑な要件定義
+- 5+ ファイルにまたがる設計変更
+- 他モデルで失敗した場合のエスカレーション
+- 最終レビューで重大な設計変更が必要な場合
+
+### Sonnet使用基準
+
+Extended Thinking OFF で使用:
+- Codexの指摘に基づく改善（指摘が明確なため）
+- Issue作成
+- 最終判断・承認（Codexが詳細分析済みのため）
 
 ## Context Window Management
 

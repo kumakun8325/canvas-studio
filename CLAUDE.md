@@ -18,36 +18,70 @@ Canvas Studio - Fabric.jsを使用したブラウザベースのデザインア�
 
 ## 開発ワークフロー
 
-このプロジェクトはSDD（仕様駆動開発）+ 2AI分業体制で開発します。
+このプロジェクトはSDD（仕様駆動開発）+ マルチAI分業体制で開発します。
+クォータ最適化のため、各フェーズで適切なモデルを選択します。
 
-### SDD: 仕様駆動開発
+### モデル凡例
 
-1. `/sdd interview` - 対話的ヒアリング
-2. `/sdd req` - 要件定義
-3. `/sdd design` - 設計
-4. `/sdd tasks` - タスク分解
-5. `/sdd impl` - 実装
+| アイコン | モデル | 用途 | コスト |
+|----------|--------|------|--------|
+| 🟣 | Opus | 複雑な設計・アーキテクチャ | Pro消費 |
+| 🟡 | Sonnet | 設計改善・判断・承認 | Pro消費（軽量） |
+| 🟢 | Codex | レビュー・分析 | Plus内（Pro消費なし） |
+| 🔵 | GLM-4.7 | 実装・自己点検 | Pro消費なし |
 
-### 2AI分業
-
-| Role | Tool | Commands |
-|------|------|----------|
-| **Antigravity** | 調査・設計・検証 | `/plan`, `/verify` |
-| **Claude Code** | 実装 | `/start`, `/finish`, `/review` |
-
-### 開発フロー
+### Phase 1: 設計
 
 ```
-/sdd interview → /sdd req → /sdd design → /plan → /start → /finish → /verify
+Step 1: 要件・設計        → 🟣 Opus
+Step 2: 設計レビュー      → 🟢 Codex (xhigh)
+Step 3: 設計改善          → 🟡 Sonnet (Extended Thinking OFF)
 ```
 
-1. Antigravity: `/sdd interview` で対話的ヒアリング
-2. Antigravity: `/sdd req` で要件定義を確定
-3. Antigravity: `/sdd design` で設計を確定
-4. Antigravity: `/plan` でタスク計画・GitHub Issue作成
-5. Claude Code: `/start` で実装開始
-6. Claude Code: `/finish` で実装完了・PR作成
-7. Antigravity: `/verify` で検証・デプロイ
+- Step 1: 要件定義・アーキテクチャ設計（Opusの深い推論が必要）
+- Step 2: 設計の問題点を洗い出し（Codexで十分）
+- Step 3: 指摘が明確なのでSonnetで改善可能
+
+### Phase 2: 実装
+
+```
+Step 4: 並列実装          → 🔵 GLM-4.7
+Step 5: 自己点検          → 🔵 GLM-4.7
+```
+
+- Step 4: タスクごとに並列実装
+- Step 5: 実装者自身がセルフレビュー
+
+### Phase 3: レビュー
+
+```
+Step 6: 実装チェック      → 🟢 Codex (medium)
+Step 7: 修正Issue作成     → 🟡 Sonnet (必要時のみ)
+```
+
+- Step 6: コード品質・設計適合性チェック
+- Step 7: 問題があればIssue作成
+
+### Phase 4: 最終レビュー
+
+```
+Step 8: 最終チェック
+  - 詳細分析             → 🟢 Codex (xhigh)
+  - 判断・承認           → 🟡 Sonnet
+
+【例外】重大な設計変更が必要な場合のみ → 🟣 Opus
+```
+
+- Codexが詳細分析済みなのでSonnetで判断可能
+- 設計の根本的な見直しが必要な場合のみOpusを使用
+
+### コマンド一覧
+
+| Phase | Commands |
+|-------|----------|
+| 設計 | `/design`, `/review-design` |
+| 実装 | `/start`, `/finish` |
+| レビュー | `/review`, `/verify` |
 
 ## コーディング規約
 
