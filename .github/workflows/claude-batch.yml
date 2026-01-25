@@ -1,0 +1,392 @@
+# Claude Batch Implementation - 複数Issueの並列実装
+#
+# 使い方:
+# 1. Actions タブ → Claude Batch Implementation
+# 2. Run workflow をクリック
+# 3. issue_numbers に "5,6,7" のようにカンマ区切りで入力
+# 4. mode を選択 (auto または tdd)
+# 5. Run workflow 実行
+#
+# 並列実行の仕組み:
+# ┌─────────────────────────────────────────┐
+# │  workflow_dispatch                       │
+# │  issue_numbers: "5,6,7"                 │
+# │  mode: auto                             │
+# └─────────────────────────────────────────┘
+#                     ↓
+# ┌─────────────────────────────────────────┐
+# │  prepare job                            │
+# │  → matrix: {issue_number: ["5","6","7"]}│
+# └─────────────────────────────────────────┘
+#                     ↓
+# ┌──────────┬──────────┬──────────┐
+# │ Issue #5 │ Issue #6 │ Issue #7 │  ← 並列実行！
+# │ Claude   │ Claude   │ Claude   │
+# └──────────┴──────────┴──────────┘
+
+name: Claude Batch Implementation
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_numbers:
+        description: 'Issue numbers (comma-separated, e.g., "1,2,3")'
+        required: true
+        type: string
+      mode:
+        description: 'Execution mode'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - tdd
+      max_parallel:
+        description: 'Maximum parallel jobs (1-10)'
+        required: false
+        default: '5'
+        type: string
+
+jobs:
+  # 1. Issue番号をパースしてmatrixを生成
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      issue_count: ${{ steps.set-matrix.outputs.issue_count }}
+    steps:
+      - name: Generate matrix from issue numbers
+        id: set-matrix
+        run: |
+          # "1,2,3" → ["1","2","3"]
+          ISSUES='${{ inputs.issue_numbers }}'
+
+          # Remove spaces and validate
+          ISSUES=$(echo "$ISSUES" | tr -d ' ')
+
+          # Check if empty
+          if [ -z "$ISSUES" ]; then
+            echo "Error: No issue numbers provided"
+            exit 1
+          fi
+
+          # Generate matrix JSON
+          MATRIX=$(echo "$ISSUES" | tr ',' '\n' | jq -R . | jq -s '{ issue_number: . }')
+          ISSUE_COUNT=$(echo "$ISSUES" | tr ',' '\n' | wc -l | tr -d ' ')
+
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "issue_count=$ISSUE_COUNT" >> $GITHUB_OUTPUT
+          echo "Generated matrix for $ISSUE_COUNT issues: $MATRIX"
+
+      - name: Summary
+        run: |
+          echo "## 🚀 Batch Implementation Started" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Issues**: ${{ inputs.issue_numbers }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode**: ${{ inputs.mode }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Max Parallel**: ${{ inputs.max_parallel }}" >> $GITHUB_STEP_SUMMARY
+
+  # 2. 並列実装
+  implement:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      max-parallel: ${{ fromJson(inputs.max_parallel || '5') }}
+      fail-fast: false  # 1つ失敗しても他は続行
+
+    # Issue番号ごとに別グループ（同一Issueの重複実行を防止）
+    concurrency:
+      group: claude-implement-${{ matrix.issue_number }}
+      cancel-in-progress: false
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Get issue details
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER="${{ matrix.issue_number }}"
+
+          # Validate issue number
+          if ! [[ "$ISSUE_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Error: Invalid issue number: $ISSUE_NUMBER"
+            exit 1
+          fi
+
+          ISSUE_JSON=$(gh issue view $ISSUE_NUMBER --json title,body,state)
+          ISSUE_TITLE=$(echo "$ISSUE_JSON" | jq -r '.title')
+          ISSUE_BODY=$(echo "$ISSUE_JSON" | jq -r '.body')
+          ISSUE_STATE=$(echo "$ISSUE_JSON" | jq -r '.state')
+
+          # Check if issue is open
+          if [ "$ISSUE_STATE" != "OPEN" ]; then
+            echo "Warning: Issue #$ISSUE_NUMBER is not open (state: $ISSUE_STATE)"
+          fi
+
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "issue_title=$ISSUE_TITLE" >> $GITHUB_OUTPUT
+          echo "issue_state=$ISSUE_STATE" >> $GITHUB_OUTPUT
+
+          # Write body to file
+          echo "$ISSUE_BODY" > issue_body.md
+
+      - name: Extract task
+        run: |
+          ISSUE_NUMBER="${{ steps.issue.outputs.issue_number }}"
+          ISSUE_TITLE="${{ steps.issue.outputs.issue_title }}"
+
+          {
+            echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+            echo ""
+            cat issue_body.md | sed 's/@claude//g'
+            echo ""
+            echo "# Quality Assurance Protocol"
+            echo "Follow this 3-phase process strictly:"
+            echo ""
+            echo "## Phase 1: Implementation (Coder)"
+            echo "Reference: .claude/skills/tdd-workflow/SKILL.md"
+            echo "- If TDD mode, write failing tests first (RED)."
+            echo "- BUG FIXING: You MUST reproduce the bug with a code based test case. Do not say 'no issues found' if the user reported a bug."
+            echo "- Implement minimal code to pass tests (GREEN)."
+            echo ""
+            echo "## Phase 2: Refactoring (Refactorer)"
+            echo "Reference: .claude/skills/refactoring/SKILL.md"
+            echo "- Improve code quality after passing tests."
+            echo "- Remove duplication, improve naming, use early returns."
+            echo ""
+            echo "## Phase 3: Review (Reviewer)"
+            echo "Reference: .claude/skills/code-review/SKILL.md"
+            echo "- Perform a self-review of your changes."
+            echo "- Check against the criteria in the skill file."
+            echo "- If issues found, fix them before finishing."
+            echo ""
+            echo "IMPORTANT: Output all explanations, comments, and PR descriptions in Japanese."
+          } > task_prompt.txt
+
+      - name: Checkout or Create branch
+        run: |
+          BRANCH_NAME="claude/issue-${{ matrix.issue_number }}"
+
+          # Check if remote branch exists
+          if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
+            echo "Branch $BRANCH_NAME exists remotely. Checking out..."
+            git fetch origin $BRANCH_NAME
+            git checkout -B $BRANCH_NAME FETCH_HEAD -f
+          else
+            echo "Creating new branch $BRANCH_NAME..."
+            git checkout -b $BRANCH_NAME
+          fi
+
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Comment on issue (started)
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ matrix.issue_number }}
+          body: |
+            🤖 **Claude Code has started (Batch Mode)**
+
+            **Mode**: ${{ inputs.mode == 'tdd' && '🧪 TDD' || '🤖 Auto' }}
+            **Branch**: `${{ env.branch_name }}`
+            **Batch Run**: Part of parallel execution (${{ inputs.issue_numbers }})
+
+            ---
+            [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - name: Run Claude Code
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
+        run: |
+          if [ "${{ inputs.mode }}" == "tdd" ]; then
+            {
+              echo "/tdd"
+              echo ""
+              cat task_prompt.txt
+            } > prompt.txt
+          else
+            cp task_prompt.txt prompt.txt
+          fi
+
+          claude --dangerously-skip-permissions --print "$(cat prompt.txt)" > claude_response.txt 2>&1 || true
+
+          echo "## 🤖 Claude Response for Issue #${{ matrix.issue_number }}" >> $GITHUB_STEP_SUMMARY
+          head -100 claude_response.txt >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Run tests
+        continue-on-error: true
+        run: |
+          npm test -- --no-color 2>&1 | tee test_results.txt || true
+
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -50 test_results.txt >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check coverage (TDD mode only)
+        if: inputs.mode == 'tdd'
+        continue-on-error: true
+        run: |
+          npm run test:coverage -- --no-color 2>&1 | tee coverage_results.txt || true
+
+          echo "## 📊 Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -30 coverage_results.txt >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Commit and Push
+        id: commit
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+
+            if [ "${{ inputs.mode }}" == "tdd" ]; then
+              git commit -m "feat(tdd): Implementation for #${{ matrix.issue_number }}
+
+              - Tests written first (TDD)
+              - Implementation follows tests
+              - Refactored for quality
+
+              Part of batch run: ${{ inputs.issue_numbers }}"
+            else
+              git commit -m "feat: Implementation for #${{ matrix.issue_number }}
+
+              Part of batch run: ${{ inputs.issue_numbers }}"
+            fi
+
+            git push origin ${{ env.branch_name }}
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ matrix.issue_number }}
+          MODE: ${{ inputs.mode }}
+          BRANCH_NAME: ${{ env.branch_name }}
+        run: |
+          # Determine title and mode text
+          if [ "$MODE" == "tdd" ]; then
+            TITLE="🧪 Implementation for #${ISSUE_NUMBER}"
+            MODE_TEXT="🧪 **TDD Implementation** - Tests written before code"
+            LABEL_ARGS="--label claude-auto --label claude-tdd --label claude-batch"
+          else
+            TITLE="🤖 Implementation for #${ISSUE_NUMBER}"
+            MODE_TEXT="🤖 **Auto Implementation** by Claude Code"
+            LABEL_ARGS="--label claude-auto --label claude-batch"
+          fi
+
+          # Create PR body file
+          {
+            echo "## Summary"
+            echo ""
+            echo "$MODE_TEXT"
+            echo ""
+            echo "**Batch Run**: Part of parallel execution (${{ inputs.issue_numbers }})"
+            echo ""
+            echo "Closes #${ISSUE_NUMBER}"
+            echo ""
+            echo "## Task"
+            echo ""
+            head -30 task_prompt.txt
+            echo ""
+            echo "## Checklist"
+            echo ""
+            echo "- [ ] Tests pass"
+            echo "- [ ] Coverage meets requirements (80%+)"
+            echo "- [ ] Code review completed"
+            echo "- [ ] Documentation updated (if needed)"
+            echo ""
+            echo "---"
+            echo ""
+            echo "> 🤖 Auto-generated by [Claude Batch Implementation](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          } > pr_body.txt
+
+          # Create PR (or skip if exists)
+          gh pr create \
+            --title "$TITLE" \
+            --body-file pr_body.txt \
+            --base main \
+            --head "$BRANCH_NAME" \
+            $LABEL_ARGS || echo "PR likely already exists, skipping creation."
+
+      - name: Comment on issue (completed)
+        if: steps.commit.outputs.has_changes == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ matrix.issue_number }}
+          body: |
+            ✅ **Claude Code completed (Batch Mode)**
+
+            **Mode**: ${{ inputs.mode == 'tdd' && '🧪 TDD' || '🤖 Auto' }}
+            **Branch**: `${{ env.branch_name }}`
+            **Status**: PR created
+
+            Please review the Pull Request.
+
+            ---
+            [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - name: Comment on issue (no changes)
+        if: steps.commit.outputs.has_changes == 'false'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ matrix.issue_number }}
+          body: |
+            ⚠️ **Claude Code completed without changes (Batch Mode)**
+
+            No code changes were made. This could mean:
+            - The feature already exists
+            - The task requires clarification
+            - There was an error during execution
+
+            Please check the Actions log for details.
+
+            ---
+            [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+  # 3. 完了サマリー
+  summary:
+    needs: [prepare, implement]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🎉 Batch Implementation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Issues processed**: ${{ inputs.issue_numbers }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode**: ${{ inputs.mode }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check individual job results above for status of each issue." >> $GITHUB_STEP_SUMMARY
