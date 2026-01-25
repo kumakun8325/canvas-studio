@@ -26,3 +26,8 @@ dist-ssr
 
 .env
 .env.local
+
+# Claude Code session files (keep learned.md for sharing)
+.claude/memory/session-state.md
+.claude/memory/.last-compact
+.claude/memory/.session-log

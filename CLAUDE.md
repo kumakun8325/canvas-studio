@@ -2,7 +2,19 @@
 
 ## プロジェクト概要
 
-{{PROJECT_NAME}} - {{DESCRIPTION}}
+Canvas Studio - Fabric.jsを使用したブラウザベースのデザインアプリケーション
+
+### 技術スタック
+
+| Category | Technology |
+|----------|------------|
+| Framework | React 19 + TypeScript |
+| Build | Vite |
+| Canvas | Fabric.js 6.x |
+| State | Zustand |
+| Styling | Tailwind CSS 4 |
+| Backend | Firebase |
+| Testing | Vitest + Testing Library |
 
 ## 開発ワークフロー
 
@@ -39,15 +51,70 @@
 
 ## コーディング規約
 
-- [規約を記載]
+### TypeScript
+
+- strict mode有効
+- `any`禁止、必ず型定義
+- 型は`types/`に集約
+
+### React
+
+- Functional Components + Hooks のみ
+- カスタムフックは`hooks/`に配置
+- コンポーネントは1ファイル1エクスポート
+
+### 命名規則
+
+| 対象 | 規則 | 例 |
+|------|------|-----|
+| 変数・関数 | camelCase | `canvasWidth`, `handleClick` |
+| コンポーネント | PascalCase | `ToolBar`, `CanvasEditor` |
+| 型・インターフェース | PascalCase | `CanvasObject`, `ExportOptions` |
+| 定数 | UPPER_SNAKE_CASE | `DEFAULT_WIDTH`, `MAX_ZOOM` |
+| ファイル (コンポーネント) | PascalCase | `ToolBar.tsx` |
+| ファイル (その他) | camelCase | `useCanvas.ts`, `exportService.ts` |
+
+### インポート順序
+
+```typescript
+// 1. React
+import { useState, useEffect } from 'react'
+
+// 2. 外部ライブラリ
+import { fabric } from 'fabric'
+
+// 3. 内部モジュール (絶対パス)
+import { useCanvasStore } from '@/stores/canvasStore'
+
+// 4. 相対パス
+import { Button } from './Button'
+```
 
 ## ビルド・テスト
 
 ```bash
-npm install
-npm run dev
-npm run build
-npm run test
+npm install       # 依存インストール
+npm run dev       # 開発サーバー起動
+npm run build     # プロダクションビルド
+npm run test      # テスト実行 (watch mode)
+npm run test:run  # テスト実行 (single run)
+npm run test:coverage  # カバレッジ付きテスト
+npm run lint      # ESLint実行
+```
+
+## ディレクトリ構造
+
+```
+src/
+├── components/   # UIコンポーネント
+├── constants/    # 定数定義
+├── hooks/        # カスタムフック
+├── lib/          # ユーティリティ
+├── pages/        # ページコンポーネント
+├── services/     # ビジネスロジック
+├── stores/       # Zustand stores
+├── test/         # テストユーティリティ
+└── types/        # 型定義
 ```
 
 ## 重要なファイル
@@ -58,3 +125,5 @@ npm run test
 | `.kiro/steering/design.md` | 設計書 |
 | `.kiro/steering/tasks.md` | タスク管理 |
 | `docs/handoff.md` | AI間引き継ぎ |
+| `.claude/rules/` | コーディングルール |
+| `.claude/memory/` | セッション記憶 |
