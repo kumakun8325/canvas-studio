@@ -13,8 +13,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "fabric": "6.5.4",
-    "firebase": "^11.0.0",
+    "fabric": "7.1.0",
+    "firebase": "^12.8.0",
     "pdf-lib": "1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
