@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useEditorStore } from "../../stores/editorStore";
+import { useSlideStore } from "../../stores/slideStore";
 import { UndoRedoButtons } from "../ui/UndoRedoButtons";
 import type { ToolType } from "../../types";
 
@@ -23,7 +24,14 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
   const { addRect, addCircle, addText, addImage, bringToFront, sendToBack } = canvasActions;
   const activeTool = useEditorStore((state) => state.activeTool);
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
+  const setCurrentSlide = useEditorStore((state) => state.setCurrentSlide);
+  const { project, clearProject } = useSlideStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBackToHome = () => {
+    setCurrentSlide(null);
+    clearProject();
+  };
 
   const tools: { id: ToolType; label: string; icon: string }[] = [
     { id: "select", label: "Select", icon: "↖" },
@@ -85,6 +93,26 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
     <form className="contents" onSubmit={(e) => e.preventDefault()}>
       <div className="bg-white border-b px-4 py-2 flex gap-2 items-center justify-between">
         <div className="flex gap-2 items-center">
+          {/* ホームに戻る */}
+          <button
+            onClick={handleBackToHome}
+            className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 flex items-center gap-1"
+            title="プロジェクト一覧に戻る"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+          </button>
+
+          {/* プロジェクト名 */}
+          {project && (
+            <span className="text-sm font-medium text-gray-700 ml-2">
+              {project.title}
+            </span>
+          )}
+
+          <div className="w-px h-6 bg-gray-300 mx-2" />
+
           {/* 元に戻す/やり直し */}
           <UndoRedoButtons />
 
