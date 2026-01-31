@@ -27,19 +27,30 @@ Canvas Studio - Fabric.jsを使用したブラウザベースのデザインア�
 |----------|--------|------|--------|
 | 🟣 | Opus | 複雑な設計・アーキテクチャ | Pro消費 |
 | 🟡 | Sonnet | 設計改善・判断・承認 | Pro消費（軽量） |
-| 🟢 | Codex | レビュー・分析 | Plus内（Pro消費なし） |
+| 🟢 | GPT-5.2-Codex | レビュー・分析 | Copilot Pro (1 PR/回) |
 | 🔵 | GLM-4.7 | 実装・自己点検 | Pro消費なし |
+
+### GPT-5.2-Codex 実行環境
+
+| 用途 | ツール | reasoning effort |
+|------|--------|------------------|
+| 設計レビュー (Step 2) | `copilot` CLI (ローカル) | xhigh |
+| PRレビュー (Phase 3-4) | GitHub Actions (自動) | medium |
+
+**セットアップ済み:**
+- `~/.copilot/config.json` - xhigh がデフォルト
+- `.github/workflows/codex-review.yml` - PR自動レビュー
 
 ### Phase 1: 設計
 
 ```
 Step 1: 要件・設計        → 🟣 Opus
-Step 2: 設計レビュー      → 🟢 Codex (xhigh)
+Step 2: 設計レビュー      → 🟢 GPT-5.2-Codex (xhigh) via copilot CLI
 Step 3: 設計改善          → 🟡 Sonnet (Extended Thinking OFF)
 ```
 
 - Step 1: 要件定義・アーキテクチャ設計（Opusの深い推論が必要）
-- Step 2: 設計の問題点を洗い出し（Codexで十分）
+- Step 2: `/review-design` コマンドで設計レビュー（Copilot CLI）
 - Step 3: 指摘が明確なのでSonnetで改善可能
 
 ### Phase 2: 実装（並列処理）
@@ -76,23 +87,24 @@ Step 6: 自己点検          → 🔵 GLM-4.7 (GitHub Actions)
 ### Phase 3: レビュー
 
 ```
-Step 7: 実装チェック      → 🟢 Codex (medium)
+Step 7: 実装チェック      → 🟢 GPT-5.2-Codex (medium) via GitHub Actions
 Step 8: 修正Issue作成     → 🟡 Sonnet (必要時のみ)
 ```
 
-- Step 7: コード品質・設計適合性チェック
+- Step 7: PRがopenされると自動でレビュー（`codex-review.yml`）
 - Step 8: 問題があればIssue作成
 
 ### Phase 4: 最終レビュー
 
 ```
 Step 9: 最終チェック
-  - 詳細分析             → 🟢 Codex (xhigh)
+  - 詳細分析             → 🟢 GPT-5.2-Codex (xhigh) via copilot CLI
   - 判断・承認           → 🟡 Sonnet
 
 【例外】重大な設計変更が必要な場合のみ → 🟣 Opus
 ```
 
+- マージ前に `copilot /review` で最終確認（オプション）
 - Codexが詳細分析済みなのでSonnetで判断可能
 - 設計の根本的な見直しが必要な場合のみOpusを使用
 

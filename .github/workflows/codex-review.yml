@@ -1,0 +1,165 @@
+# GPT-5.2-Codex による自動コードレビュー
+#
+# トリガー:
+# - PRがopenされた時
+# - PRが更新された時
+#
+# 機能:
+# - 変更ファイルをGPT-5.2-Codex (medium) でレビュー
+# - レビュー結果をPRコメントとして投稿
+# - 重大な問題があれば警告
+
+name: Codex Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+    branches: [main]
+
+# 同じPRへの重複実行を防止
+concurrency:
+  group: codex-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    # claude-auto ラベルがついたPRのみ（GLM-4.7実装分）
+    # 手動PRもレビューしたい場合はこの条件を削除
+    if: contains(github.event.pull_request.labels.*.name, 'claude-auto') || contains(github.event.pull_request.labels.*.name, 'needs-review')
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install GitHub Copilot CLI
+        id: install-copilot
+        continue-on-error: true
+        run: npm install -g @github/copilot
+
+      - name: Get changed files
+        id: changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # PRの変更ファイル一覧を取得
+          FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -E '\.(ts|tsx|js|jsx)$' || true)
+
+          if [ -z "$FILES" ]; then
+            echo "No TypeScript/JavaScript files changed"
+            echo "has_files=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changed files:"
+            echo "$FILES"
+            echo "has_files=true" >> $GITHUB_OUTPUT
+            echo "$FILES" > changed_files.txt
+          fi
+
+      - name: Prepare review context
+        if: steps.changed.outputs.has_files == 'true'
+        run: |
+          # レビュー用のコンテキストを準備
+          {
+            echo "# Code Review Request"
+            echo ""
+            echo "## PR Information"
+            echo "- PR #${{ github.event.pull_request.number }}"
+            echo "- Title: ${{ github.event.pull_request.title }}"
+            echo ""
+            echo "## Changed Files"
+            cat changed_files.txt
+            echo ""
+            echo "## Review Guidelines"
+            echo "Based on project rules in .claude/rules/:"
+            echo ""
+            echo "### Check Points"
+            echo "1. **Type Safety**: No \`any\`, proper type definitions"
+            echo "2. **Architecture**: Follows layer structure (components -> hooks -> services)"
+            echo "3. **Security**: No hardcoded secrets, proper input validation"
+            echo "4. **Performance**: Proper memoization, no unnecessary re-renders"
+            echo "5. **Testing**: Tests exist for new functionality"
+            echo ""
+            echo "## Output Format"
+            echo "Provide review in Japanese with:"
+            echo "- **Summary**: Overall assessment (1-2 sentences)"
+            echo "- **Critical Issues**: Must fix before merge (if any)"
+            echo "- **Suggestions**: Nice-to-have improvements (if any)"
+            echo "- **Verdict**: APPROVE / REQUEST_CHANGES / COMMENT"
+          } > review_prompt.txt
+
+      - name: Run Codex Review
+        if: steps.changed.outputs.has_files == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          # Copilot CLIでレビュー実行
+          # Note: GitHub Actions環境ではCopilotアクセス権のあるトークンが必要
+          if ! command -v copilot &> /dev/null; then
+            echo "⚠️ Copilot CLI is not available." > review_result.md
+            echo "" >> review_result.md
+            echo "Copilot CLI requires a token with Copilot access." >> review_result.md
+            echo "Set up a PAT with \`copilot\` scope as \`COPILOT_TOKEN\` secret." >> review_result.md
+          else
+            copilot -p "$(cat review_prompt.txt)" \
+              --model gpt-5.2-codex \
+              --allow-all-tools \
+              > review_result.md 2>&1 || true
+          fi
+
+          # 結果が空の場合のフォールバック
+          if [ ! -s review_result.md ]; then
+            echo "## Review Result" > review_result.md
+            echo "" >> review_result.md
+            echo "Codex review could not be completed. Please review manually." >> review_result.md
+          fi
+
+      - name: Post review comment
+        if: steps.changed.outputs.has_files == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "## 🤖 GPT-5.2-Codex Review"
+            echo ""
+            echo "---"
+            echo ""
+            cat review_result.md
+            echo ""
+            echo "---"
+            echo "> 🔍 Automated review by GPT-5.2-Codex (medium)"
+            echo "> [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          } > /tmp/codex_review_comment.md
+
+          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/codex_review_comment.md
+
+      - name: Post skip message
+        if: steps.changed.outputs.has_files == 'false'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## 🤖 GPT-5.2-Codex Review
+
+            No TypeScript/JavaScript files were changed in this PR. Skipping automated review.
+
+            ---
+            > [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - name: Add codex-reviewed label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --add-label "codex-reviewed"
