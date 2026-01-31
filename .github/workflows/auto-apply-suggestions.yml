@@ -1,0 +1,105 @@
+# Auto Apply Review Suggestions
+#
+# Manually trigger to apply review suggestions to a PR
+# Workflow analyzes review comments and implements suggested improvements
+
+name: Auto Apply Suggestions
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to apply suggestions to'
+        required: true
+        type: number
+
+jobs:
+  apply-suggestions:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ inputs.pr_number }}/head
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract review suggestions
+        id: extract
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          gh pr view $PR_NUMBER \
+            --repo ${{ github.repository }} \
+            --json comments \
+            --jq '.comments[] | select(.author.login == "github-actions") | .body' > review_comments.txt
+
+          SUGGESTION_COUNT=$(grep -c "Recommendation:\|Fix:\|Suggested:" review_comments.txt || echo "0")
+          echo "suggestion_count=$SUGGESTION_COUNT" >> $GITHUB_OUTPUT
+
+          if [ "$SUGGESTION_COUNT" -gt 0 ]; then
+            echo "has_suggestions=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_suggestions=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Found $SUGGESTION_COUNT suggestions:"
+          cat review_comments.txt
+
+      - name: Apply suggestions via PR comment
+        if: steps.extract.outputs.has_suggestions == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ inputs.pr_number }}"
+          SUGGESTION_COUNT="${{ steps.extract.outputs.suggestion_count }}"
+
+          cat > apply_suggestions_comment.md << 'EOF'
+          ## 📋 Review Suggestions Found
+
+          Found **${SUGGESTION_COUNT}** actionable review suggestions in PR #${PR_NUMBER}.
+
+          ### Options
+
+          1. **Auto-apply**: Run this workflow with PR number to apply automatically
+          2. **Manual review**: Review suggestions below and decide which to apply
+
+          ### Review Comments Summary
+
+          $(cat review_comments.txt | grep -A 10 "Recommendation:\|Fix:\|Suggested:" | head -100)
+
+          ### To Apply Automatically
+
+          1. Go to Actions tab → "Auto Apply Suggestions"
+          2. Click "Run workflow"
+          3. Enter PR number: ${PR_NUMBER}
+
+          ### To Apply Manually
+
+          Review suggestions above and apply them locally, then commit with:
+          ```
+          git commit -am "chore: apply review suggestions"
+          ```
+          EOF
+
+          gh pr comment $PR_NUMBER \
+            --repo ${{ github.repository }} \
+            --body "$(cat apply_suggestions_comment.md)"
+
+      - name: Summary
+        if: steps.extract.outputs.has_suggestions == 'false'
+        run: |
+          echo "✅ No actionable review suggestions found."
