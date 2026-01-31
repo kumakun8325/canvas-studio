@@ -70,8 +70,8 @@ jobs:
             exit 1
           fi
 
-          # Generate matrix JSON
-          MATRIX=$(echo "$ISSUES" | tr ',' '\n' | jq -R . | jq -s '{ issue_number: . }')
+          # Generate matrix JSON (compact for single-line GITHUB_OUTPUT)
+          MATRIX=$(echo "$ISSUES" | tr ',' '\n' | jq -R . | jq -sc '{ issue_number: . }')
           ISSUE_COUNT=$(echo "$ISSUES" | tr ',' '\n' | wc -l | tr -d ' ')
 
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
@@ -106,6 +106,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      statuses: write
 
     steps:
       - name: Checkout repository
@@ -238,14 +239,24 @@ jobs:
           head -100 claude_response.txt >> $GITHUB_STEP_SUMMARY || true
 
       - name: Run tests
+        id: tests
         continue-on-error: true
         run: |
-          npm test -- --no-color 2>&1 | tee test_results.txt || true
+          npm test -- --no-color 2>&1 | tee test_results.txt
+          TEST_EXIT=$?
 
           echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -50 test_results.txt >> $GITHUB_STEP_SUMMARY || true
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+          if [ $TEST_EXIT -eq 0 ]; then
+            echo "test_status=success" >> $GITHUB_OUTPUT
+            echo "test_desc=Tests passed" >> $GITHUB_OUTPUT
+          else
+            echo "test_status=failure" >> $GITHUB_OUTPUT
+            echo "test_desc=Tests failed" >> $GITHUB_OUTPUT
+          fi
 
       - name: Check coverage (TDD mode only)
         if: inputs.mode == 'tdd'
@@ -257,6 +268,22 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -30 coverage_results.txt >> $GITHUB_STEP_SUMMARY || true
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Save PR description content
+        id: pr-content
+        run: |
+          # Save task_prompt.txt summary before cleanup (used in PR body)
+          {
+            echo 'task_summary<<TASK_EOF'
+            head -30 task_prompt.txt 2>/dev/null || echo "No task prompt available"
+            echo 'TASK_EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Clean up work files
+        run: |
+          rm -f claude_response.txt prompt.txt task_prompt.txt test_results.txt
+          rm -f coverage_results.txt pr_body.txt issue_body.md
+          rm -rf coverage/
 
       - name: Commit and Push
         id: commit
@@ -286,6 +313,21 @@ jobs:
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Report commit status
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          STATE="${{ steps.tests.outputs.test_status || 'failure' }}"
+          DESC="${{ steps.tests.outputs.test_desc || 'Tests not run' }}"
+
+          gh api "repos/${{ github.repository }}/statuses/${SHA}" \
+            -f state="$STATE" \
+            -f description="$DESC" \
+            -f context="Claude Batch / tests" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
 
       - name: Create Pull Request
         if: steps.commit.outputs.has_changes == 'true'
@@ -318,7 +360,7 @@ jobs:
             echo ""
             echo "## Task"
             echo ""
-            head -30 task_prompt.txt
+            echo "${{ steps.pr-content.outputs.task_summary }}"
             echo ""
             echo "## Checklist"
             echo ""
