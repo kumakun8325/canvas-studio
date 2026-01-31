@@ -9,9 +9,13 @@ import { useSlideHistory } from '../../hooks/useSlideHistory'
  * スライドの追加、削除、選択、並べ替え機能を提供
  */
 export function SlideList() {
-  const { slides } = useSlideStore()
+  // Issue #87: Zustand selector optimization for performance
+  // セレクタパターンを使用して、必要なデータのみを購読し、不要な再レンダリングを防ぐ
+  const slides = useSlideStore((state) => state.slides)
+  const currentSlideId = useEditorStore((state) => state.currentSlideId)
+  const setCurrentSlide = useEditorStore((state) => state.setCurrentSlide)
+
   const { addSlide, deleteSlide, reorderSlides } = useSlideHistory()
-  const { currentSlideId, setCurrentSlide } = useEditorStore()
 
   const handleDelete = useCallback(
     (slideId: string) => {
