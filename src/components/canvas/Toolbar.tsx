@@ -1,6 +1,7 @@
-import { useRef } from "react";
+import { useRef, useMemo, useCallback } from "react";
 import { useEditorStore } from "../../stores/editorStore";
 import { UndoRedoButtons } from "../ui/UndoRedoButtons";
+import { validateImageFile } from "../../lib/validation";
 import type { ToolType } from "../../types";
 
 interface CanvasActions {
@@ -24,41 +25,55 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
   const { activeTool, setActiveTool } = useEditorStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const tools: { id: ToolType; label: string; icon: string }[] = [
-    { id: "select", label: "Select", icon: "↖" },
-    { id: "rect", label: "Rectangle", icon: "▢" },
-    { id: "circle", label: "Circle", icon: "○" },
-    { id: "text", label: "Text", icon: "T" },
-    { id: "image", label: "Image", icon: "🖼" },
-  ];
+  // パフォーマンス改善: tools 配列をメモ化
+  const tools: { id: ToolType; label: string; icon: string }[] = useMemo(
+    () => [
+      { id: "select", label: "Select", icon: "↖" },
+      { id: "rect", label: "Rectangle", icon: "▢" },
+      { id: "circle", label: "Circle", icon: "○" },
+      { id: "text", label: "Text", icon: "T" },
+      { id: "image", label: "Image", icon: "🖼" },
+    ],
+    []
+  );
 
-  const handleToolClick = (tool: ToolType) => {
+  const handleToolClick = useCallback((tool: ToolType) => {
     setActiveTool(tool);
     if (tool === "rect") addRect();
     if (tool === "circle") addCircle();
     if (tool === "text") addText();
     if (tool === "image") fileInputRef.current?.click();
-  };
+  }, [setActiveTool, addRect, addCircle, addText]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) addImage(file);
+    if (!file) return;
+
+    // セキュリティ: 画像ファイルのバリデーション
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      alert(validation.error || "画像のアップロードに失敗しました");
+      e.target.value = "";
+      return;
+    }
+
+    addImage(file);
     // Reset input value to allow selecting the same file again
     e.target.value = "";
-  };
+  }, [addImage]);
 
   // Format last saved time
-  const formatLastSaved = (date: Date | null): string => {
+  const formatLastSaved = useCallback((date: Date | null): string => {
     if (!date) return "";
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     if (diff < 60000) return "たった今";
     if (diff < 3600000) return `${Math.floor(diff / 60000)}分前`;
     return date.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  };
+  }, []);
 
   // Get save status text and color
-  const getSaveStatus = () => {
+  const getSaveStatus = useCallback(() => {
     if (saveError) {
       return { text: "保存エラー", color: "text-red-600" };
     }
@@ -69,9 +84,9 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
       return { text: `保存済み (${formatLastSaved(lastSaved)})`, color: "text-green-600" };
     }
     return { text: "", color: "" };
-  };
+  }, [saveError, isSaving, lastSaved, formatLastSaved]);
 
-  const saveStatus = getSaveStatus();
+  const saveStatus = useMemo(() => getSaveStatus(), [getSaveStatus]);
 
   return (
     <div className="bg-white border-b px-4 py-2 flex gap-2 items-center justify-between">

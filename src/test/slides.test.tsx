@@ -50,7 +50,7 @@ describe('SlideThumb', () => {
           slideId="slide-1"
           index={0}
           isActive={false}
-          thumbnail="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+          thumbnail="https://example.com/image.jpg"
           onSelect={mockOnSelect}
           onDelete={mockOnDelete}
         />
@@ -58,7 +58,43 @@ describe('SlideThumb', () => {
 
       const img = screen.getByAltText('Slide 1')
       expect(img).toBeInTheDocument()
-      expect(img).toHaveAttribute('src', expect.stringContaining('data:image/png'))
+      expect(img).toHaveAttribute('src', 'https://example.com/image.jpg')
+    })
+
+    it('should not render invalid thumbnail URLs (XSS protection)', () => {
+      render(
+        <SlideThumb
+          slideId="slide-1"
+          index={0}
+          isActive={false}
+          thumbnail="javascript:alert(1)"
+          onSelect={mockOnSelect}
+          onDelete={mockOnDelete}
+        />
+      )
+
+      // Should render placeholder instead of image
+      expect(screen.getByText('Slide 1')).toBeInTheDocument()
+      // Image should not be in document
+      expect(screen.queryByAltText('Slide 1')).not.toBeInTheDocument()
+    })
+
+    it('should not render data URLs as thumbnails', () => {
+      render(
+        <SlideThumb
+          slideId="slide-1"
+          index={0}
+          isActive={false}
+          thumbnail="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+          onSelect={mockOnSelect}
+          onDelete={mockOnDelete}
+        />
+      )
+
+      // Should render placeholder instead of image (data URLs not allowed for thumbnails)
+      expect(screen.getByText('Slide 1')).toBeInTheDocument()
+      // Image should not be in document
+      expect(screen.queryByRole('img')).not.toBeInTheDocument()
     })
 
     it('should apply ring class when active', () => {

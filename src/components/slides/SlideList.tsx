@@ -27,7 +27,11 @@ export function SlideList() {
       if (slideId === currentSlideId) {
         const index = slides.findIndex((s) => s.id === slideId)
         const newIndex = index > 0 ? index - 1 : 1
-        setCurrentSlide(slides[newIndex].id)
+        // 配列境界チェック: newIndex が有効範囲内にあることを確認
+        const targetSlide = slides[newIndex]
+        if (targetSlide) {
+          setCurrentSlide(targetSlide.id)
+        }
       }
 
       deleteSlide(slideId)
