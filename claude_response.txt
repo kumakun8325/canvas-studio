@@ -1,22 +1,43 @@
-## まとめ
+すべてのテストがパスしました。
 
-**Issue #58 の調査結果:**
+---
 
-Issue #58 で報告されていた問題は、**既に修正済み**であることが確認できました。
+## Phase 3: レビュー
 
-### 修正済みの内容
+### 修正内容の確認
 
-**1. sendToBack関数のバグ**
-- 問題: `objects.unshift(active)` がローカル配列を変更するだけでキャンバスに反映されない
-- 現在の実装: `canvas.sendToBack(active)` を使用し、正しく Fabric.js API で実装済み
+**変更ファイル:**
+1. `src/components/slides/SlideList.tsx` 
+   - `w-40` → `w-52 min-w-52` に変更（160px → 208px）
 
-**2. 履歴記録の未実装**
-- 問題: `recordAction` が呼ばれていないため Undo/Redo が機能しない
-- 現在の実装: `executeLayerOperation` ヘルパー関数内で `recordAction` を呼び出し、履歴記録が正しく動作
+2. `src/components/slides/SlideThumb.tsx`
+   - サムネイル `w-32 h-20` → `w-44 h-24` に変更（128x80px → 176x96px）
 
-### テスト結果
+### コードレビュー
 
-- Issue #58 専用テスト: **4 tests 全てパス** (`src/test/issue58-layer-operations.test.tsx`)
-- 全テスト: **162 tests パス** (4 skipped)
+| 項目 | チェック |
+|------|---------|
+| 問題の解決 | ✅ スライドパネルの幅が208pxに拡張され、`min-w-52` で最小幅が保証 |
+| 視認性 | ✅ サムネイルサイズも拡張され、より見やすくなった |
+| コード品質 | ✅ シンプルな修正で副作用なし |
+| テスト | ✅ 177件すべてパス |
+| ビルド | ✅ ビルド成功 |
 
-`phase8-export.test.ts` で Fabric.js の既存の問題（canvas 要素作成エラー）が発生していますが、これは Issue #58 とは無関係の既存問題です。
+---
+
+## 修正完了
+
+スライドパネルの幅が狭すぎる問題を修正しました。
+
+### 修正内容
+
+| ファイル | 変更 |
+|--------|------|
+| `src/components/slides/SlideList.tsx:70` | `w-40` → `w-52 min-w-52` (160px → 208px + 最小幅保証) |
+| `src/components/slides/SlideThumb.tsx:34` | `w-32 h-20` → `w-44 h-24` (128x80px → 176x96px) |
+
+### 確認事項
+
+- ✅ ビルド成功
+- ✅ テスト177件すべてパス
+- ✅ `min-w-52` によりレスポンシブ環境でも最小幅が保証

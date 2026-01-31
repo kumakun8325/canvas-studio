@@ -31,7 +31,7 @@ export function SlideThumb({
       </div>
 
       {/* サムネイルまたはプレースホルダー */}
-      <div className="w-32 h-20 bg-white border rounded shadow-sm flex items-center justify-center">
+      <div className="w-44 h-24 bg-white border rounded shadow-sm flex items-center justify-center">
         {thumbnail ? (
           <img
             src={thumbnail}

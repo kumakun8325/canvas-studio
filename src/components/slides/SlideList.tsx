@@ -67,7 +67,7 @@ export function SlideList() {
   )
 
   return (
-    <div className="w-40 bg-gray-50 border-r p-2 overflow-y-auto">
+    <div className="w-52 min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
       <div className="flex flex-col gap-2">
         {slides.map((slide, index) => (
           <div
