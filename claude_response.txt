@@ -1,22 +1,41 @@
+⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
+⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
 ## まとめ
 
-**Issue #58 の調査結果:**
+### Issue #75: ツールバーの↑↑↓↓ボタンの機能が不明瞭・UIの改善が必要
 
-Issue #58 で報告されていた問題は、**既に修正済み**であることが確認できました。
+**完了した対応:**
 
-### 修正済みの内容
+1. **機能の特定**
+   - ↑↑ ボタン: `bringToFront` - 選択したオブジェクトを最前面に移動
+   - ↓↓ ボタン: `sendToBack` - 選択したオブジェクトを最背面に移動
 
-**1. sendToBack関数のバグ**
-- 問題: `objects.unshift(active)` がローカル配列を変更するだけでキャンバスに反映されない
-- 現在の実装: `canvas.sendToBack(active)` を使用し、正しく Fabric.js API で実装済み
+2. **UI/UX改善**
+   - ツールチップ文言をより明確に変更:
+     - `title="前面に移動"` → `title="最前面に移動"`
+     - `title="背面に移動"` → `title="最背面に移動"`
+   - アイコンを変更して直感性向上:
+     - `↑↑` → `⬆️` （上矢印絵文字）
+     - `↓↓` → `⬇️` （下矢印絵文字）
+   - `text-lg` クラス追加で視認性向上
 
-**2. 履歴記録の未実装**
-- 問題: `recordAction` が呼ばれていないため Undo/Redo が機能しない
-- 現在の実装: `executeLayerOperation` ヘルパー関数内で `recordAction` を呼び出し、履歴記録が正しく動作
+3. **アクセシビリティ向上**
+   - `aria-label` 属性を追加:
+     - 「選択したオブジェクトを最前面に移動」
+     - 「選択したオブジェクトを最背面に移動」
 
-### テスト結果
+4. **テスト追加**
+   - 5つのテストケースを追加:
+     - ボタンのレンダリングとツールチップ確認
+     - クリック時の動作確認
+     - aria-label の確認
 
-- Issue #58 専用テスト: **4 tests 全てパス** (`src/test/issue58-layer-operations.test.tsx`)
-- 全テスト: **162 tests パス** (4 skipped)
+**変更ファイル:**
+- `src/components/canvas/Toolbar.tsx` (変更)
+- `src/components/canvas/Toolbar.test.tsx` (新規追加)
 
-`phase8-export.test.ts` で Fabric.js の既存の問題（canvas 要素作成エラー）が発生していますが、これは Issue #58 とは無関係の既存問題です。
+**検証結果:**
+- ✅ 全テストパス (182 passed)
+- ✅ ビルド成功
+- ✅ ESLintチェック通過（変更ファイル）
+- ✅ 既存機能に影響なし
