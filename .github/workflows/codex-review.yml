@@ -117,19 +117,22 @@ jobs:
 
       - name: Post review comment
         if: steps.changed.outputs.has_files == 'true'
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## 🤖 GPT-5.2-Codex Review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "## 🤖 GPT-5.2-Codex Review"
+            echo ""
+            echo "---"
+            echo ""
+            cat review_result.md
+            echo ""
+            echo "---"
+            echo "> 🔍 Automated review by GPT-5.2-Codex (medium)"
+            echo "> [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          } > /tmp/codex_review_comment.md
 
-            ${{ steps.changed.outputs.has_files == 'true' && '---' || '' }}
-
-            $(cat review_result.md)
-
-            ---
-            > 🔍 Automated review by GPT-5.2-Codex (medium)
-            > [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/codex_review_comment.md
 
       - name: Post skip message
         if: steps.changed.outputs.has_files == 'false'
