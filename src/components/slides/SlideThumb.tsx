@@ -1,3 +1,5 @@
+import { isValidImageUrl } from '../../lib/imageValidation'
+
 interface SlideThumbProps {
   slideId: string
   index: number
@@ -18,6 +20,9 @@ export function SlideThumb({
   onSelect,
   onDelete,
 }: SlideThumbProps) {
+  // Issue #87: サムネイルURLのバリデーション（XSS保護）
+  const isThumbnailValid = thumbnail && isValidImageUrl(thumbnail)
+
   return (
     <div
       onClick={onSelect}
@@ -31,8 +36,8 @@ export function SlideThumb({
       </div>
 
       {/* サムネイルまたはプレースホルダー */}
-      <div className="w-32 h-20 bg-white border rounded shadow-sm flex items-center justify-center">
-        {thumbnail ? (
+      <div className="w-44 h-24 bg-white border rounded shadow-sm flex items-center justify-center">
+        {isThumbnailValid ? (
           <img
             src={thumbnail}
             alt={`Slide ${index + 1}`}

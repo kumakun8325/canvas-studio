@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useEditorStore } from "../../stores/editorStore";
+import { useSlideStore } from "../../stores/slideStore";
 import { UndoRedoButtons } from "../ui/UndoRedoButtons";
 import type { ToolType } from "../../types";
 
@@ -21,8 +22,16 @@ interface ToolbarProps {
 
 export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, saveError = null }: ToolbarProps) {
   const { addRect, addCircle, addText, addImage, bringToFront, sendToBack } = canvasActions;
-  const { activeTool, setActiveTool } = useEditorStore();
+  const activeTool = useEditorStore((state) => state.activeTool);
+  const setActiveTool = useEditorStore((state) => state.setActiveTool);
+  const setCurrentSlide = useEditorStore((state) => state.setCurrentSlide);
+  const { project, clearProject } = useSlideStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBackToHome = () => {
+    setCurrentSlide(null);
+    clearProject();
+  };
 
   const tools: { id: ToolType; label: string; icon: string }[] = [
     { id: "select", label: "Select", icon: "↖" },
@@ -40,11 +49,18 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
     if (tool === "image") fileInputRef.current?.click();
   };
 
+  // Issue #87: form.reset()を使用したファイル入力のリセット（DOM直接操作を回避）
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) addImage(file);
-    // Reset input value to allow selecting the same file again
-    e.target.value = "";
+    if (file) {
+      addImage(file);
+      // form.reset() を使用してファイル入力をリセット
+      // DOMの直接操作（e.target.value = ""）を回避
+      const form = e.target.form;
+      if (form) {
+        form.reset();
+      }
+    }
   };
 
   // Format last saved time
@@ -74,65 +90,87 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
   const saveStatus = getSaveStatus();
 
   return (
-    <div className="bg-white border-b px-4 py-2 flex gap-2 items-center justify-between">
-      <div className="flex gap-2 items-center">
-        {/* 元に戻す/やり直し */}
-        <UndoRedoButtons />
-
-        <div className="w-px h-6 bg-gray-300 mx-2" />
-
-        {/* ツール */}
-        {tools.map((tool) => (
+    <form className="contents" onSubmit={(e) => e.preventDefault()}>
+      <div className="bg-white border-b px-4 py-2 flex gap-2 items-center justify-between">
+        <div className="flex gap-2 items-center">
+          {/* ホームに戻る */}
           <button
-            key={tool.id}
-            onClick={() => handleToolClick(tool.id)}
-            className={`px-3 py-2 rounded transition-colors ${
-              activeTool === tool.id
-                ? "bg-blue-500 text-white"
-                : "bg-gray-100 hover:bg-gray-200"
-            }`}
-            title={tool.label}
+            onClick={handleBackToHome}
+            className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 flex items-center gap-1"
+            title="プロジェクト一覧に戻る"
           >
-            {tool.icon}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
           </button>
-        ))}
 
-        {/* Hidden file input for image upload */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept="image/*"
-          onChange={handleImageChange}
-        />
+          {/* プロジェクト名 */}
+          {project && (
+            <span className="text-sm font-medium text-gray-700 ml-2">
+              {project.title}
+            </span>
+          )}
 
-        <div className="w-px h-6 bg-gray-300 mx-2" />
+          <div className="w-px h-6 bg-gray-300 mx-2" />
 
-        {/* レイヤー操作 */}
-        <button
-          onClick={bringToFront}
-          className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
-          title="最前面に移動"
-          aria-label="選択したオブジェクトを最前面に移動"
-        >
-          ⏫
-        </button>
-        <button
-          onClick={sendToBack}
-          className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
-          title="最背面に移動"
-          aria-label="選択したオブジェクトを最背面に移動"
-        >
-          ⏬
-        </button>
-      </div>
+          {/* 元に戻す/やり直し */}
+          <UndoRedoButtons />
 
-      {/* 保存ステータス */}
-      {saveStatus.text && (
-        <div className={`text-sm ${saveStatus.color} font-medium`}>
-          {saveStatus.text}
+          <div className="w-px h-6 bg-gray-300 mx-2" />
+
+          {/* ツール */}
+          {tools.map((tool) => (
+            <button
+              key={tool.id}
+              onClick={() => handleToolClick(tool.id)}
+              className={`px-3 py-2 rounded transition-colors ${
+                activeTool === tool.id
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-100 hover:bg-gray-200"
+              }`}
+              title={tool.label}
+            >
+              {tool.icon}
+            </button>
+          ))}
+
+          {/* Hidden file input for image upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*"
+            onChange={handleImageChange}
+          />
+
+          <div className="w-px h-6 bg-gray-300 mx-2" />
+
+          {/* レイヤー操作 */}
+          <button
+            onClick={bringToFront}
+            className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
+            title="最前面に移動"
+            aria-label="選択したオブジェクトを最前面に移動"
+          >
+            ⏫
+          </button>
+          <button
+            onClick={sendToBack}
+            className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
+            title="最背面に移動"
+            aria-label="選択したオブジェクトを最背面に移動"
+          >
+            ⏬
+          </button>
         </div>
-      )}
-    </div>
+
+        {/* 保存ステータス */}
+        {saveStatus.text && (
+          <div className={`text-sm ${saveStatus.color} font-medium`}>
+            {saveStatus.text}
+          </div>
+        )}
+      </div>
+    </form>
   );
 }

@@ -8,6 +8,7 @@ interface SlideStore {
   templateConfig: TemplateConfig | null
 
   setProject: (project: Project) => void
+  clearProject: () => void
   addSlide: () => void
   updateSlide: (slideId: string, canvasJson: string) => void
   deleteSlide: (slideId: string) => void
@@ -15,7 +16,8 @@ interface SlideStore {
   createProject: (
     title: string,
     template: TemplateType,
-    config?: TemplateConfig
+    config?: TemplateConfig,
+    ownerId?: string
   ) => void
   getTemplateConfig: () => TemplateConfig
 }
@@ -33,6 +35,8 @@ export const useSlideStore = create<SlideStore>((set, get) => ({
   templateConfig: null,
 
   setProject: (project) => set({ project, slides: project.slides }),
+
+  clearProject: () => set({ project: null, slides: [createEmptySlide()], templateConfig: null }),
 
   addSlide: () => set((state) => ({
     slides: [...state.slides, createEmptySlide()]
@@ -57,21 +61,24 @@ export const useSlideStore = create<SlideStore>((set, get) => ({
     return { slides: newSlides }
   }),
 
-  createProject: (title, template, config) => {
+  createProject: (title, template, config, ownerId) => {
     const templateConfig = config || TEMPLATE_CONFIGS[template]
+    const now = Date.now()
+    const initialSlide = createEmptySlide()
+
     const newProject: Project = {
       id: crypto.randomUUID(),
       title,
-      slides: [],
+      slides: [initialSlide],
       template,
-      ownerId: '', // 後でuseAuthから設定
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      ownerId: ownerId || '',
+      createdAt: now,
+      updatedAt: now,
     }
 
     set({
       project: newProject,
-      slides: [],
+      slides: [initialSlide],
       templateConfig,
     })
   },
