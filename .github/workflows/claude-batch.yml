@@ -70,8 +70,8 @@ jobs:
             exit 1
           fi
 
-          # Generate matrix JSON
-          MATRIX=$(echo "$ISSUES" | tr ',' '\n' | jq -R . | jq -s '{ issue_number: . }')
+          # Generate matrix JSON (compact for single-line GITHUB_OUTPUT)
+          MATRIX=$(echo "$ISSUES" | tr ',' '\n' | jq -R . | jq -sc '{ issue_number: . }')
           ISSUE_COUNT=$(echo "$ISSUES" | tr ',' '\n' | wc -l | tr -d ' ')
 
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
