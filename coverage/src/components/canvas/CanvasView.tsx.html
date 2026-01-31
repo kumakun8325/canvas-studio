@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/23</span>
+                <span class='fraction'>0/36</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/23</span>
+                <span class='fraction'>0/36</span>
             </div>
         
             
@@ -104,7 +104,34 @@
 <a name='L39'></a><a href='#L39'>39</a>
 <a name='L40'></a><a href='#L40'>40</a>
 <a name='L41'></a><a href='#L41'>41</a>
-<a name='L42'></a><a href='#L42'>42</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -122,7 +149,28 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -150,6 +198,9 @@
 interface CanvasActions {
   containerRef: RefObject&lt;HTMLDivElement | null&gt;;
   deleteSelected: () =&gt; void;
+  copy?: () =&gt; void;
+  paste?: () =&gt; void;
+  cut?: () =&gt; void;
 }
 &nbsp;
 interface CanvasViewProps {
@@ -158,22 +209,43 @@ interface CanvasViewProps {
 }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export function CanvasView({ canvasActions }: CanvasViewProps) {</span>
-<span class="cstat-no" title="statement not covered" >  const { containerRef, deleteSelected } = canvasActions;</span>
+<span class="cstat-no" title="statement not covered" >  const { containerRef, deleteSelected, copy, paste, cut } = canvasActions;</span>
 &nbsp;
-  // Delete key handler
+  // Keyboard shortcuts handler
 <span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    const handleKeyDown = (e: KeyboardEvent) =&gt; {</span>
+      // Don't trigger if editing text
+<span class="cstat-no" title="statement not covered" >      const tag = (e.target as HTMLElement)?.tagName;</span>
+<span class="cstat-no" title="statement not covered" >      if (tag === "INPUT" || tag === "TEXTAREA") return;</span>
+&nbsp;
+      // Delete / Backspace
 <span class="cstat-no" title="statement not covered" >      if (e.key === "Delete" || e.key === "Backspace") {</span>
-        // Don't delete if editing text
-<span class="cstat-no" title="statement not covered" >        if (document.activeElement?.tagName === "TEXTAREA") return;</span>
 <span class="cstat-no" title="statement not covered" >        e.preventDefault();</span>
 <span class="cstat-no" title="statement not covered" >        deleteSelected();</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+&nbsp;
+      // Ctrl+C / Cmd+C - Copy
+<span class="cstat-no" title="statement not covered" >      if ((e.ctrlKey || e.metaKey) &amp;&amp; e.key === "c") {</span>
+<span class="cstat-no" title="statement not covered" >        e.preventDefault();</span>
+<span class="cstat-no" title="statement not covered" >        copy?.();</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+&nbsp;
+      // Ctrl+V / Cmd+V - Paste
+<span class="cstat-no" title="statement not covered" >      if ((e.ctrlKey || e.metaKey) &amp;&amp; e.key === "v") {</span>
+<span class="cstat-no" title="statement not covered" >        e.preventDefault();</span>
+<span class="cstat-no" title="statement not covered" >        paste?.();</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+&nbsp;
+      // Ctrl+X / Cmd+X - Cut
+<span class="cstat-no" title="statement not covered" >      if ((e.ctrlKey || e.metaKey) &amp;&amp; e.key === "x") {</span>
+<span class="cstat-no" title="statement not covered" >        e.preventDefault();</span>
+<span class="cstat-no" title="statement not covered" >        cut?.();</span>
 <span class="cstat-no" title="statement not covered" >      }</span>
 <span class="cstat-no" title="statement not covered" >    };</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    window.addEventListener("keydown", handleKeyDown);</span>
 <span class="cstat-no" title="statement not covered" >    return () =&gt; window.removeEventListener("keydown", handleKeyDown);</span>
-<span class="cstat-no" title="statement not covered" >  }, [deleteSelected]);</span>
+<span class="cstat-no" title="statement not covered" >  }, [deleteSelected, copy, paste, cut]);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return (</span>
 <span class="cstat-no" title="statement not covered" >    &lt;div</span>
@@ -193,7 +265,7 @@ interface CanvasViewProps {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-21T14:51:19.046Z
+                at 2026-01-31T12:13:20.039Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

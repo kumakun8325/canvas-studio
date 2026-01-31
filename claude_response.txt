@@ -1,41 +1,34 @@
-⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
-⚠️  [BashTool] Pre-flight check is taking longer than expected. Run with ANTHROPIC_LOG=debug to check for failed or slow API requests.
-## まとめ
+すべてのテストがパスしました（189 passed）。
 
-### Issue #75: ツールバーの↑↑↓↓ボタンの機能が不明瞭・UIの改善が必要
+---
 
-**完了した対応:**
+## 実装完了サマリー
 
-1. **機能の特定**
-   - ↑↑ ボタン: `bringToFront` - 選択したオブジェクトを最前面に移動
-   - ↓↓ ボタン: `sendToBack` - 選択したオブジェクトを最背面に移動
+### Issue #75: ツールバーのレイヤー操作ボタンのUI改善
 
-2. **UI/UX改善**
-   - ツールチップ文言をより明確に変更:
-     - `title="前面に移動"` → `title="最前面に移動"`
-     - `title="背面に移動"` → `title="最背面に移動"`
-   - アイコンを変更して直感性向上:
-     - `↑↑` → `⬆️` （上矢印絵文字）
-     - `↓↓` → `⬇️` （下矢印絵文字）
-   - `text-lg` クラス追加で視認性向上
+#### 実装内容
 
-3. **アクセシビリティ向上**
-   - `aria-label` 属性を追加:
-     - 「選択したオブジェクトを最前面に移動」
-     - 「選択したオブジェクトを最背面に移動」
+1. **アイコンの改善**: `⬆️/⬇️` → `⏫/⏬` (二重矢印絵文字)
+   - 二重矢印は「最前面/最背面」のレイヤー操作としてより直感的
+   - Unicode 絵文字で追加の依存関係なし
 
-4. **テスト追加**
-   - 5つのテストケースを追加:
-     - ボタンのレンダリングとツールチップ確認
-     - クリック時の動作確認
-     - aria-label の確認
+2. **既存のアクセシビリティ機能を維持**
+   - `title` 属性によるホバーツールチップ
+   - `aria-label` によるスクリーンリーダー対応
 
-**変更ファイル:**
-- `src/components/canvas/Toolbar.tsx` (変更)
-- `src/components/canvas/Toolbar.test.tsx` (新規追加)
+3. **テストカバレッジの向上**
+   - レイヤー操作ボタンの既存テストを新しいアイコンに更新
+   - 保存ステータス表示のテストを7件追加
+   - 最終カバレッジ: **Line 89.36% / Branch 93.75%**
 
-**検証結果:**
-- ✅ 全テストパス (182 passed)
-- ✅ ビルド成功
-- ✅ ESLintチェック通過（変更ファイル）
-- ✅ 既存機能に影響なし
+#### 変更ファイル
+
+| ファイル | 変更内容 |
+|--------|----------|
+| `src/components/canvas/Toolbar.tsx:118,126` | アイコンを `⬆️/⬇️` → `⏫/⏬` に変更 |
+| `src/components/canvas/Toolbar.test.tsx` | テストを更新・追加（5件→12件） |
+
+#### テスト結果
+
+- **全テスト**: 189 passed, 4 skipped
+- **Toolbarカバレッジ**: Line 89.36%, Branch 93.75%

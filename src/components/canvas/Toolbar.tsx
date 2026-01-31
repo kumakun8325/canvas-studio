@@ -115,7 +115,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
           title="最前面に移動"
           aria-label="選択したオブジェクトを最前面に移動"
         >
-          ⬆️
+          ⏫
         </button>
         <button
           onClick={sendToBack}
@@ -123,7 +123,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
           title="最背面に移動"
           aria-label="選択したオブジェクトを最背面に移動"
         >
-          ⬇️
+          ⏬
         </button>
       </div>
 
