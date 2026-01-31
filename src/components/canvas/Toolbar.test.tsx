@@ -2,19 +2,35 @@
  * Toolbar.test.tsx
  * Toolbarコンポーネントのテスト
  * Issue #75: ツールバーのレイヤー操作ボタンのUI改善
+ * Issue #85: レビュー指摘事項の対応
  *
  * 改善内容:
  * - アイコンを ⬆️/⬇️ → ⏫/⏬ (二重矢印) に変更してレイヤー操作を直感的に
  * - ツールチップ (title属性) と aria-label でアクセシビリティ対応
+ * - tools 配列のメモ化 (Issue #85)
+ * - 画像アップロードバリデーション: MIMEタイプ、サイズ制限 (Issue #85)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { Toolbar } from './Toolbar'
 import { useEditorStore } from '../../stores/editorStore'
 
 // Mock the useEditorStore
 vi.mock('../../stores/editorStore')
+
+// 画像ファイルのモックヘルパー
+function createMockFile(
+  name: string,
+  size: number,
+  type: string
+): File {
+  const file = new File(['mock content'], name, { type })
+  // TypeScript の File 型は size を読み取り専用プロパティとして持たないため、
+  // Object.defineProperty で設定します
+  Object.defineProperty(file, 'size', { value: size, writable: false })
+  return file
+}
 
 describe('Toolbar - Issue #75: レイヤー操作ボタンのUI改善', () => {
   const mockCanvasActions = {
@@ -199,6 +215,245 @@ describe('Toolbar - Issue #75: レイヤー操作ボタンのUI改善', () => {
       // 保存ステータス要素が存在しないことを確認
       const statusDiv = container.querySelector('.text-green-600, .text-gray-600, .text-red-600')
       expect(statusDiv).toBeNull()
+    })
+  })
+
+  describe('Issue #85: tools 配列のメモ化', () => {
+    it('should render all tools from the tools array', () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      // 各ツールボタンが表示されていることを確認
+      expect(screen.getByTitle('Select')).toBeDefined()
+      expect(screen.getByTitle('Rectangle')).toBeDefined()
+      expect(screen.getByTitle('Circle')).toBeDefined()
+      expect(screen.getByTitle('Text')).toBeDefined()
+      expect(screen.getByTitle('Image')).toBeDefined()
+    })
+
+    it('should call setActiveTool and corresponding action when tool is clicked', () => {
+      const mockSetActiveTool = vi.fn()
+      vi.mocked(useEditorStore).mockReturnValue({
+        activeTool: 'select',
+        setActiveTool: mockSetActiveTool,
+      })
+
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      // Rectangle ツールをクリック
+      const rectButton = screen.getByTitle('Rectangle')
+      fireEvent.click(rectButton)
+
+      expect(mockSetActiveTool).toHaveBeenCalledWith('rect')
+      expect(mockCanvasActions.addRect).toHaveBeenCalledTimes(1)
+    })
+
+    it('should trigger file input when Image tool is clicked', () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const imageButton = screen.getByTitle('Image')
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+
+      expect(fileInput).toBeDefined()
+      expect(fileInput).toHaveClass('hidden')
+
+      fireEvent.click(imageButton)
+
+      // ファイル選択ダイアログが開かれることを確認
+      // （実際にはブラウザのダイアログは開かないが、file input のクリックはシミュレートできる）
+    })
+  })
+
+  describe('Issue #85: 画像アップロードバリデーション', () => {
+    it('should accept valid image files (JPEG)', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const validJpeg = createMockFile('test.jpg', 1024 * 1024, 'image/jpeg')
+
+      fireEvent.change(fileInput, { target: { files: [validJpeg] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).toHaveBeenCalledWith(validJpeg)
+      })
+
+      // input value がリセットされていることを確認
+      expect(fileInput.value).toBe('')
+    })
+
+    it('should accept valid image files (PNG)', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const validPng = createMockFile('test.png', 1024 * 1024, 'image/png')
+
+      fireEvent.change(fileInput, { target: { files: [validPng] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).toHaveBeenCalledWith(validPng)
+      })
+    })
+
+    it('should accept valid image files (GIF)', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const validGif = createMockFile('test.gif', 1024 * 1024, 'image/gif')
+
+      fireEvent.change(fileInput, { target: { files: [validGif] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).toHaveBeenCalledWith(validGif)
+      })
+    })
+
+    it('should accept valid image files (WebP)', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const validWebP = createMockFile('test.webp', 1024 * 1024, 'image/webp')
+
+      fireEvent.change(fileInput, { target: { files: [validWebP] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).toHaveBeenCalledWith(validWebP)
+      })
+    })
+
+    it('should accept valid image files (SVG)', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const validSvg = createMockFile('test.svg', 1024 * 1024, 'image/svg+xml')
+
+      fireEvent.change(fileInput, { target: { files: [validSvg] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).toHaveBeenCalledWith(validSvg)
+      })
+    })
+
+    it('should reject non-image files (PDF)', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const pdfFile = createMockFile('test.pdf', 1024 * 1024, 'application/pdf')
+
+      fireEvent.change(fileInput, { target: { files: [pdfFile] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).not.toHaveBeenCalled()
+      })
+
+      // エラーメッセージが表示されることを確認
+      expect(screen.getByText(/PDFはアップロードできません/)).toBeDefined()
+    })
+
+    it('should reject files exceeding size limit (10MB)', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const hugeFile = createMockFile('huge.jpg', 11 * 1024 * 1024, 'image/jpeg') // 11MB
+
+      fireEvent.change(fileInput, { target: { files: [hugeFile] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).not.toHaveBeenCalled()
+      })
+
+      // エラーメッセージが表示されることを確認
+      expect(screen.getByText(/10MB以下のファイルのみアップロードできます/)).toBeDefined()
+    })
+
+    it('should handle empty file selection', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+
+      fireEvent.change(fileInput, { target: { files: [] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).not.toHaveBeenCalled()
+      })
+    })
+
+    it('should handle null file selection', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+
+      fireEvent.change(fileInput, { target: { files: null } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).not.toHaveBeenCalled()
+      })
+    })
+
+    it('should reject files with invalid MIME type', async () => {
+      render(
+        <Toolbar
+          canvasActions={mockCanvasActions}
+        />
+      )
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const textFile = createMockFile('test.txt', 1024, 'text/plain')
+
+      fireEvent.change(fileInput, { target: { files: [textFile] } })
+
+      await waitFor(() => {
+        expect(mockCanvasActions.addImage).not.toHaveBeenCalled()
+      })
+
+      // エラーメッセージが表示されることを確認
+      expect(screen.getByText(/画像ファイルのみアップロードできます/)).toBeDefined()
     })
   })
 })

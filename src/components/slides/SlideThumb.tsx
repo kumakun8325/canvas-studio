@@ -8,6 +8,46 @@ interface SlideThumbProps {
 }
 
 /**
+ * サムネイルURLのバリデーション (XSS対策)
+ * 許可されるプロトコル: http, https, data (image/* のみ)
+ */
+function isValidThumbnailUrl(url: string): boolean {
+  if (!url) return false
+
+  try {
+    const parsed = new URL(url)
+    const protocol = parsed.protocol.toLowerCase()
+
+    // 許可されるプロトコル: http:, https:
+    const allowedProtocols = ['http:', 'https:']
+    if (allowedProtocols.includes(protocol)) {
+      return true
+    }
+
+    // data: URL の場合、画像フォーマットのみ許可
+    if (protocol === 'data:') {
+      // data: URL全体をチェック（pathnameは先頭の'data:'を含まない）
+      const dataString = url.toLowerCase()
+      const allowedDataTypes = [
+        'data:image/png',
+        'data:image/jpeg',
+        'data:image/jpg',
+        'data:image/gif',
+        'data:image/webp',
+        'data:image/svg+xml',
+        'data:image/bmp',
+      ]
+      return allowedDataTypes.some(type => dataString.startsWith(type))
+    }
+
+    return false
+  } catch {
+    // URLパースに失敗した場合は無効
+    return false
+  }
+}
+
+/**
  * スライドのサムネイルコンポーネント
  * スライド一覧サイドバーに表示される各スライドのサムネイルを描画
  */
@@ -18,6 +58,8 @@ export function SlideThumb({
   onSelect,
   onDelete,
 }: SlideThumbProps) {
+  const isValidThumbnail = thumbnail && isValidThumbnailUrl(thumbnail)
+
   return (
     <div
       onClick={onSelect}
@@ -32,7 +74,7 @@ export function SlideThumb({
 
       {/* サムネイルまたはプレースホルダー */}
       <div className="w-44 h-24 bg-white border rounded shadow-sm flex items-center justify-center">
-        {thumbnail ? (
+        {isValidThumbnail ? (
           <img
             src={thumbnail}
             alt={`Slide ${index + 1}`}

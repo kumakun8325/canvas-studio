@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { SlideThumb } from './SlideThumb'
 import { useSlideStore } from '../../stores/slideStore'
 import { useEditorStore } from '../../stores/editorStore'
@@ -42,6 +42,14 @@ export function SlideList() {
     [reorderSlides]
   )
 
+  // 各スライドの onSelect コールバックをメモ化
+  const slideCallbacks = useMemo(() => {
+    return slides.map((slide) => ({
+      onSelect: () => setCurrentSlide(slide.id),
+      onDelete: () => handleDelete(slide.id),
+    }))
+  }, [slides, setCurrentSlide, handleDelete])
+
   return (
     <div className="shrink-0 w-52 min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
       <div className="flex flex-col gap-2">
@@ -58,8 +66,8 @@ export function SlideList() {
               index={index}
               isActive={slide.id === currentSlideId}
               thumbnail={slide.thumbnail}
-              onSelect={() => setCurrentSlide(slide.id)}
-              onDelete={() => handleDelete(slide.id)}
+              onSelect={slideCallbacks[index].onSelect}
+              onDelete={slideCallbacks[index].onDelete}
             />
           </div>
         ))}
