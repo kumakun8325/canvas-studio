@@ -195,7 +195,6 @@ describe('SlideList', () => {
       const { container } = render(<SlideList />)
 
       const slideList = container.firstChild as HTMLElement
-      const computedStyle = window.getComputedStyle(slideList)
 
       // w-52 = 13rem = 208px, min-w-52 should enforce minimum width
       // Check that the element has min-width class or style
