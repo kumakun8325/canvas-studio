@@ -382,6 +382,9 @@ jobs:
             --head "$BRANCH_NAME" \
             $LABEL_ARGS || echo "PR likely already exists, skipping creation."
 
+          # Ensure labels are applied (workaround for GitHub API timing)
+          gh pr edit "$BRANCH_NAME:main" --add-label claude-auto --repo ${{ github.repository }} || true
+
       - name: Comment on issue (completed)
         if: steps.commit.outputs.has_changes == 'true'
         uses: peter-evans/create-or-update-comment@v4
