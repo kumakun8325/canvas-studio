@@ -18,11 +18,22 @@ env:
 
 jobs:
   add-to-project:
-    if: github.event.action == 'opened'
+    if: github.event.action == 'opened' && vars.PROJECT_URL != ''
     runs-on: ubuntu-latest
     steps:
+      - name: Check PAT availability
+        id: check
+        run: |
+          if [ -z "${{ secrets.ADD_TO_PROJECT_PAT }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "ADD_TO_PROJECT_PAT is not set. Skipping."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Add to Project
-        uses: actions/add-to-project@v1
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/add-to-project@v1.0.2
         with:
           project-url: ${{ env.PROJECT_URL }}
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
