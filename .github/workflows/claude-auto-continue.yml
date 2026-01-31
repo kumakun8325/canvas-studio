@@ -11,7 +11,9 @@ on:
 
 jobs:
   pickup-next-issue:
-    if: github.event.pull_request.merged == true
+    if: >-
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'claude-auto')
     runs-on: ubuntu-latest
 
     permissions:
@@ -57,8 +59,34 @@ jobs:
             echo "has_next=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Trigger Claude on next Issue
+      - name: Check for existing PR
         if: steps.find-issue.outputs.has_next == 'true'
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER="${{ steps.find-issue.outputs.issue_number }}"
+
+          # Check if there's already an open PR for this issue
+          EXISTING_PR=$(gh pr list \
+            --repo ${{ github.repository }} \
+            --state open \
+            --search "Closes #${ISSUE_NUMBER} in:body" \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #${EXISTING_PR} already exists for Issue #${ISSUE_NUMBER}, skipping"
+            echo "has_existing_pr=true" >> $GITHUB_OUTPUT
+          else
+            echo "No existing PR for Issue #${ISSUE_NUMBER}"
+            echo "has_existing_pr=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Claude on next Issue
+        if: >-
+          steps.find-issue.outputs.has_next == 'true' &&
+          steps.check-pr.outputs.has_existing_pr == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -111,17 +111,19 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
         {/* レイヤー操作 */}
         <button
           onClick={bringToFront}
-          className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
-          title="前面に移動"
+          className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
+          title="最前面に移動"
+          aria-label="選択したオブジェクトを最前面に移動"
         >
-          ↑↑
+          ⏫
         </button>
         <button
           onClick={sendToBack}
-          className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
-          title="背面に移動"
+          className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
+          title="最背面に移動"
+          aria-label="選択したオブジェクトを最背面に移動"
         >
-          ↓↓
+          ⏬
         </button>
       </div>
 
