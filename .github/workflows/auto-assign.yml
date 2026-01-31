@@ -48,9 +48,7 @@ jobs:
         if: steps.changed.outputs.files != ''
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # For GLM API:
-          # ANTHROPIC_API_KEY: ${{ secrets.ZAI_API_KEY }}
-          # ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
           echo "Reviewing changed files..."
           

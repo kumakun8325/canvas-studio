@@ -44,6 +44,8 @@ jobs:
           node-version: '20'
 
       - name: Install GitHub Copilot CLI
+        id: install-copilot
+        continue-on-error: true
         run: npm install -g @github/copilot
 
       - name: Get changed files
@@ -102,11 +104,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Copilot CLIでレビュー実行
-          # Note: GitHub Actions環境ではGITHUB_TOKENで認証
-          copilot -p "$(cat review_prompt.txt)" \
-            --model gpt-5.2-codex \
-            --allow-all-tools \
-            > review_result.md 2>&1 || true
+          # Note: GitHub Actions環境ではCopilotアクセス権のあるトークンが必要
+          if ! command -v copilot &> /dev/null; then
+            echo "⚠️ Copilot CLI is not available." > review_result.md
+            echo "" >> review_result.md
+            echo "Copilot CLI requires a token with Copilot access." >> review_result.md
+            echo "Set up a PAT with \`copilot\` scope as \`COPILOT_TOKEN\` secret." >> review_result.md
+          else
+            copilot -p "$(cat review_prompt.txt)" \
+              --model gpt-5.2-codex \
+              --allow-all-tools \
+              > review_result.md 2>&1 || true
+          fi
 
           # 結果が空の場合のフォールバック
           if [ ! -s review_result.md ]; then
