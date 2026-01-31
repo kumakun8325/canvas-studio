@@ -1,0 +1,175 @@
+# Batch Review Complete Notification
+#
+# 全てのバッチPRのCodexレビューが完了した時にサマリーIssueを作成し、
+# GitHub通知（→Gmail）で知らせる。
+#
+# フロー:
+# codex-review.yml → codex-reviewed ラベル追加
+#   → このワークフローがトリガー
+#   → 同一バッチの全PRチェック
+#   → 全完了 → サマリーIssue作成
+
+name: Batch Review Notify
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  check-batch-complete:
+    runs-on: ubuntu-latest
+    # codex-reviewed ラベルが追加された AND claude-batch ラベル付きPR
+    if: >-
+      github.event.label.name == 'codex-reviewed' &&
+      contains(github.event.pull_request.labels.*.name, 'claude-batch')
+
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+
+    steps:
+      - name: Extract batch issue numbers from PR body
+        id: batch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # PR本文から "Part of parallel execution (74,75)" を抽出
+          BATCH_ISSUES=$(echo "$PR_BODY" | grep -oP 'Part of parallel execution \(\K[0-9,]+(?=\))' || true)
+
+          if [ -z "$BATCH_ISSUES" ]; then
+            echo "Could not extract batch issue numbers from PR body. Skipping."
+            echo "found=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Batch issues: $BATCH_ISSUES"
+          echo "batch_issues=$BATCH_ISSUES" >> $GITHUB_OUTPUT
+          echo "found=true" >> $GITHUB_OUTPUT
+
+      - name: Check if all batch PRs are reviewed
+        if: steps.batch.outputs.found == 'true'
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BATCH_ISSUES: ${{ steps.batch.outputs.batch_issues }}
+        run: |
+          ALL_REVIEWED=true
+          TOTAL=0
+          REVIEWED=0
+          SUMMARY=""
+
+          # カンマ区切りのIssue番号を処理
+          IFS=',' read -ra ISSUES <<< "$BATCH_ISSUES"
+
+          for ISSUE_NUM in "${ISSUES[@]}"; do
+            ISSUE_NUM=$(echo "$ISSUE_NUM" | tr -d ' ')
+            TOTAL=$((TOTAL + 1))
+
+            # このIssueに対応するPRを検索（ブランチ名 claude/issue-N）
+            BRANCH="claude/issue-${ISSUE_NUM}"
+            PR_JSON=$(gh pr list --head "$BRANCH" --json number,title,labels,state --limit 1)
+            PR_COUNT=$(echo "$PR_JSON" | jq length)
+
+            if [ "$PR_COUNT" -eq 0 ]; then
+              echo "No PR found for issue #${ISSUE_NUM} (branch: $BRANCH)"
+              SUMMARY="${SUMMARY}| #${ISSUE_NUM} | - | No PR found | - |\n"
+              ALL_REVIEWED=false
+              continue
+            fi
+
+            PR_NUMBER=$(echo "$PR_JSON" | jq -r '.[0].number')
+            PR_TITLE=$(echo "$PR_JSON" | jq -r '.[0].title')
+            PR_STATE=$(echo "$PR_JSON" | jq -r '.[0].state')
+            HAS_REVIEWED=$(echo "$PR_JSON" | jq -r '.[0].labels | map(.name) | any(. == "codex-reviewed")')
+
+            if [ "$HAS_REVIEWED" == "true" ]; then
+              REVIEWED=$((REVIEWED + 1))
+
+              # レビューコメントからVerdictを抽出
+              VERDICT=$(gh pr view "$PR_NUMBER" --comments --json comments \
+                | jq -r '.comments[] | select(.body | contains("Codex Review")) | .body' \
+                | grep -oiP '(?:Verdict|判定)[:\s]*\K\S+' | tail -1 || echo "N/A")
+
+              [ -z "$VERDICT" ] && VERDICT="N/A"
+              SUMMARY="${SUMMARY}| #${ISSUE_NUM} | #${PR_NUMBER} | ${PR_TITLE} | ${VERDICT} |\n"
+            else
+              echo "PR #${PR_NUMBER} for issue #${ISSUE_NUM} not yet reviewed"
+              SUMMARY="${SUMMARY}| #${ISSUE_NUM} | #${PR_NUMBER} | ${PR_TITLE} | Pending |\n"
+              ALL_REVIEWED=false
+            fi
+          done
+
+          echo "Reviewed: $REVIEWED / $TOTAL"
+          echo "all_reviewed=$ALL_REVIEWED" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "reviewed=$REVIEWED" >> $GITHUB_OUTPUT
+
+          # サマリーをファイルに保存（改行を含むため）
+          echo -e "$SUMMARY" > /tmp/batch_summary.txt
+
+      - name: Check for existing notification issue
+        if: steps.batch.outputs.found == 'true' && steps.check.outputs.all_reviewed == 'true'
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BATCH_ISSUES: ${{ steps.batch.outputs.batch_issues }}
+        run: |
+          # 重複防止: 同じバッチの通知Issueが既にあるかチェック
+          SEARCH="Batch Review Complete ($BATCH_ISSUES)"
+          EXISTING=$(gh issue list --search "\"$SEARCH\" in:title" --json number --limit 1)
+          COUNT=$(echo "$EXISTING" | jq length)
+
+          if [ "$COUNT" -gt 0 ]; then
+            echo "Notification issue already exists. Skipping."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create summary notification issue
+        if: >-
+          steps.batch.outputs.found == 'true' &&
+          steps.check.outputs.all_reviewed == 'true' &&
+          steps.existing.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BATCH_ISSUES: ${{ steps.batch.outputs.batch_issues }}
+          TOTAL: ${{ steps.check.outputs.total }}
+          REVIEWED: ${{ steps.check.outputs.reviewed }}
+        run: |
+          SUMMARY=$(cat /tmp/batch_summary.txt)
+          ACTIONS_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Issue本文をファイルに書き出し（インデント問題を回避）
+          {
+            echo "## Batch Review Complete"
+            echo ""
+            echo "並列実装 ($BATCH_ISSUES) の全PRに対するCodexレビューが完了しました。"
+            echo ""
+            echo "### Review Summary"
+            echo ""
+            echo "| Issue | PR | Title | Verdict |"
+            echo "|-------|-----|-------|---------|"
+            echo -e "$SUMMARY"
+            echo "**Result**: ${REVIEWED}/${TOTAL} PRs reviewed"
+            echo ""
+            echo "### Next Steps"
+            echo ""
+            echo "1. 各PRのレビューコメントを確認"
+            echo "2. 問題がなければマージ"
+            echo "3. 問題があれば修正Issueを作成"
+            echo ""
+            echo "---"
+            echo "> Auto-generated by [Batch Review Notify](${ACTIONS_URL})"
+          } > /tmp/issue_body.md
+
+          gh issue create \
+            --title "Batch Review Complete ($BATCH_ISSUES)" \
+            --assignee kumakun8325 \
+            --label "batch-review-complete" \
+            --body-file /tmp/issue_body.md
+
+          echo "## Notification Issue Created" >> $GITHUB_STEP_SUMMARY
+          echo "All $TOTAL PRs for batch ($BATCH_ISSUES) have been reviewed." >> $GITHUB_STEP_SUMMARY

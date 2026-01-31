@@ -143,3 +143,10 @@ jobs:
 
             ---
             > [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - name: Add codex-reviewed label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --add-label "codex-reviewed"
