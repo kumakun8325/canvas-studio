@@ -13,17 +13,10 @@ export function SlideList() {
   const { addSlide, deleteSlide, reorderSlides } = useSlideHistory()
   const { currentSlideId, setCurrentSlide } = useEditorStore()
 
-  /**
-   * スライドを削除
-   * 最後の1枚は削除できない
-   * 現在のスライドを削除する場合は、隣のスライドを選択
-   */
   const handleDelete = useCallback(
     (slideId: string) => {
-      // 最後の1枚は削除不可
       if (slides.length <= 1) return
 
-      // 現在のスライドを削除する場合、別のスライドを選択
       if (slideId === currentSlideId) {
         const index = slides.findIndex((s) => s.id === slideId)
         const newIndex = index > 0 ? index - 1 : 1
@@ -35,27 +28,10 @@ export function SlideList() {
     [slides, currentSlideId, setCurrentSlide, deleteSlide]
   )
 
-  /**
-   * スライドを選択
-   */
-  const handleSelect = useCallback(
-    (slideId: string) => {
-      setCurrentSlide(slideId)
-    },
-    [setCurrentSlide]
-  )
-
-  /**
-   * ドラッグ開始ハンドラー
-   */
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('slideIndex', String(index))
   }, [])
 
-  /**
-   * ドロップハンドラー
-   * スライドの並べ替えを実行
-   */
   const handleDrop = useCallback(
     (e: React.DragEvent, toIndex: number) => {
       const fromIndex = Number(e.dataTransfer.getData('slideIndex'))
@@ -67,7 +43,7 @@ export function SlideList() {
   )
 
   return (
-    <div className="w-52 min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
+    <div className="shrink-0 w-52 min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
       <div className="flex flex-col gap-2">
         {slides.map((slide, index) => (
           <div
@@ -82,7 +58,7 @@ export function SlideList() {
               index={index}
               isActive={slide.id === currentSlideId}
               thumbnail={slide.thumbnail}
-              onSelect={() => handleSelect(slide.id)}
+              onSelect={() => setCurrentSlide(slide.id)}
               onDelete={() => handleDelete(slide.id)}
             />
           </div>

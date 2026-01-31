@@ -1,43 +1,35 @@
-すべてのテストがパスしました。
-
----
-
-## Phase 3: レビュー
-
-### 修正内容の確認
-
-**変更ファイル:**
-1. `src/components/slides/SlideList.tsx` 
-   - `w-40` → `w-52 min-w-52` に変更（160px → 208px）
-
-2. `src/components/slides/SlideThumb.tsx`
-   - サムネイル `w-32 h-20` → `w-44 h-24` に変更（128x80px → 176x96px）
-
-### コードレビュー
-
-| 項目 | チェック |
-|------|---------|
-| 問題の解決 | ✅ スライドパネルの幅が208pxに拡張され、`min-w-52` で最小幅が保証 |
-| 視認性 | ✅ サムネイルサイズも拡張され、より見やすくなった |
-| コード品質 | ✅ シンプルな修正で副作用なし |
-| テスト | ✅ 177件すべてパス |
-| ビルド | ✅ ビルド成功 |
-
----
-
 ## 修正完了
 
-スライドパネルの幅が狭すぎる問題を修正しました。
+Issue #74: 左スライドパネルの幅が狭すぎてサムネイルが見えない問題を修正しました。
 
-### 修正内容
+### 変更内容
 
-| ファイル | 変更 |
-|--------|------|
-| `src/components/slides/SlideList.tsx:70` | `w-40` → `w-52 min-w-52` (160px → 208px + 最小幅保証) |
-| `src/components/slides/SlideThumb.tsx:34` | `w-32 h-20` → `w-44 h-24` (128x80px → 176x96px) |
+| ファイル | 変更内容 |
+|--------|---------|
+| `src/components/slides/SlideList.tsx` | `shrink-0` クラスを追加して、flexコンテナ内でパネルが圧縮されないようにした |
+| `src/test/slides.test.tsx` | レイアウトとサイジングのテストケースを2件追加 |
 
-### 確認事項
+### 技術的な詳細
 
-- ✅ ビルド成功
-- ✅ テスト177件すべてパス
-- ✅ `min-w-52` によりレスポンシブ環境でも最小幅が保証
+**根本原因:**
+`Editor.tsx` の `<div className="flex-1 flex">` コンテナ内で、`SlideList` がデフォルトの `flex-shrink: 1` の対象となり、画面幅に応じて圧縮されていた。
+
+**解決策:**
+`SlideList.tsx` のルート要素に `shrink-0` (Tailwind CSS = `flex-shrink: 0`) を追加し、flexコンテナ内で圧縮されないようにした。
+
+```diff
+- <div className="w-52 min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
++ <div className="shrink-0 w-52 min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
+```
+
+### テスト結果
+
+- ✅ 179件のテストすべてパス
+- ✅ 追加した2件のテストもパス
+  - `should have minimum width to prevent panel from being too narrow`
+  - `should have flex-shrink-0 to prevent being compressed in flex container`
+
+### リファクタリング
+
+- 冗長なJSDocコメントを削除
+- `handleSelect` 関数をインライン化（`setCurrentSlide` を直接呼び出すように変更）

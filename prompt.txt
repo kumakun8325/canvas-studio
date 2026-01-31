@@ -1,0 +1,53 @@
+Issue #74: Bug: 左スライドパネルの幅が狭すぎてサムネイルが見えない
+
+## 問題
+
+localhostでテスト中、左側のスライドパネルの幅が極端に狭く、スライドのサムネイルがまったく見えない状態になっている。
+
+## スクリーンショット
+
+左端に非常に細い縦のバーがあるだけで、スライドのサムネイルやテキストが表示されていない。
+
+## 期待する動作
+
+- スライドパネルが適切な幅（最低150px〜200px程度）で表示される
+- スライドのサムネイルが見える
+- スライド番号が確認できる
+- スライドの追加・選択操作ができる
+
+## 関連PR
+
+- PR #27 (Issue #25): Slide Management実装
+
+## 調査ポイント
+
+- スライドパネルのCSSの `width` や `min-width` を確認
+- Tailwind CSSのクラスが適切に設定されているか
+- レスポンシブ対応で幅が潰れている可能性
+
+## 対応方針
+
+- スライドパネルの幅を適切に確保する（min-width設定）
+- サムネイルが正しく表示されるようにする
+
+# Quality Assurance Protocol
+Follow this 3-phase process strictly:
+
+## Phase 1: Implementation (Coder)
+Reference: .claude/skills/tdd-workflow/SKILL.md
+- If TDD mode, write failing tests first (RED).
+- BUG FIXING: You MUST reproduce the bug with a code based test case. Do not say 'no issues found' if the user reported a bug.
+- Implement minimal code to pass tests (GREEN).
+
+## Phase 2: Refactoring (Refactorer)
+Reference: .claude/skills/refactoring/SKILL.md
+- Improve code quality after passing tests.
+- Remove duplication, improve naming, use early returns.
+
+## Phase 3: Review (Reviewer)
+Reference: .claude/skills/code-review/SKILL.md
+- Perform a self-review of your changes.
+- Check against the criteria in the skill file.
+- If issues found, fix them before finishing.
+
+IMPORTANT: Output all explanations, comments, and PR descriptions in Japanese.

@@ -190,6 +190,28 @@ describe('SlideList', () => {
     })
   })
 
+  describe('layout and sizing', () => {
+    it('should have minimum width to prevent panel from being too narrow', () => {
+      const { container } = render(<SlideList />)
+
+      const slideList = container.firstChild as HTMLElement
+      const computedStyle = window.getComputedStyle(slideList)
+
+      // w-52 = 13rem = 208px, min-w-52 should enforce minimum width
+      // Check that the element has min-width class or style
+      expect(slideList.className).toContain('min-w-')
+    })
+
+    it('should have flex-shrink-0 to prevent being compressed in flex container', () => {
+      const { container } = render(<SlideList />)
+
+      const slideList = container.firstChild as HTMLElement
+
+      // flex-shrink-0 should be set to prevent compression
+      expect(slideList.className).toContain('shrink-0')
+    })
+  })
+
   describe('rendering', () => {
     it('should render all slides', () => {
       render(<SlideList />)
