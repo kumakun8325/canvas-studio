@@ -13,7 +13,7 @@ name: Codex Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, labeled]
     branches: [main]
 
 # 同じPRへの重複実行を防止
