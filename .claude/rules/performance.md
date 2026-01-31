@@ -4,18 +4,18 @@
 
 ### クォータ最適化モデル選択
 
-| Phase | Step | Model | 用途 | コスト |
-|-------|------|-------|------|--------|
-| 設計 | 要件・設計 | 🟣 Opus | 複雑な設計・アーキテクチャ | Pro消費 |
-| 設計 | 設計レビュー | 🟢 Codex (xhigh) | 設計の問題点洗い出し | Plus内 |
-| 設計 | 設計改善 | 🟡 Sonnet | 指摘に基づく改善 | Pro消費（軽量）|
-| 実装 | /dispatch | 🟣 Opus (ローカル) | Issue作成・ワークフロー起動 | Pro消費 |
-| 実装 | 並列実装 | 🔵 GLM-4.7 (GitHub Actions) | コーディング | Pro消費なし |
-| 実装 | 自己点検 | 🔵 GLM-4.7 (GitHub Actions) | セルフレビュー | Pro消費なし |
-| レビュー | 実装チェック | 🟢 Codex (medium) | コード品質チェック | Plus内 |
-| レビュー | 修正Issue | 🟡 Sonnet | Issue作成（必要時のみ）| Pro消費（軽量）|
-| 最終 | 詳細分析 | 🟢 Codex (xhigh) | 詳細な分析 | Plus内 |
-| 最終 | 判断・承認 | 🟡 Sonnet | 承認判断 | Pro消費（軽量）|
+| Phase | Step | Model | ツール | 用途 | コスト |
+|-------|------|-------|--------|------|--------|
+| 設計 | 要件・設計 | 🟣 Opus | Claude Code | 複雑な設計・アーキテクチャ | Pro消費 |
+| 設計 | 設計レビュー | 🟢 GPT-5.2-Codex (xhigh) | `copilot` CLI | 設計の問題点洗い出し | Copilot Pro |
+| 設計 | 設計改善 | 🟡 Sonnet | Claude Code | 指摘に基づく改善 | Pro消費（軽量）|
+| 実装 | /dispatch | 🟣 Opus (ローカル) | Claude Code | Issue作成・ワークフロー起動 | Pro消費 |
+| 実装 | 並列実装 | 🔵 GLM-4.7 | GitHub Actions | コーディング | Pro消費なし |
+| 実装 | 自己点検 | 🔵 GLM-4.7 | GitHub Actions | セルフレビュー | Pro消費なし |
+| レビュー | 実装チェック | 🟢 GPT-5.2-Codex (medium) | GitHub Actions | コード品質チェック | Copilot Pro |
+| レビュー | 修正Issue | 🟡 Sonnet | Claude Code | Issue作成（必要時のみ）| Pro消費（軽量）|
+| 最終 | 詳細分析 | 🟢 GPT-5.2-Codex (xhigh) | `copilot` CLI | 詳細な分析 | Copilot Pro |
+| 最終 | 判断・承認 | 🟡 Sonnet | Claude Code | 承認判断 | Pro消費（軽量）|
 
 ### Opus使用基準
 
@@ -30,9 +30,9 @@ Opusは以下の場合のみ使用（クォータ節約）:
 ### Sonnet使用基準
 
 Extended Thinking OFF で使用:
-- Codexの指摘に基づく改善（指摘が明確なため）
+- GPT-5.2-Codexの指摘に基づく改善（指摘が明確なため）
 - Issue作成
-- 最終判断・承認（Codexが詳細分析済みのため）
+- 最終判断・承認（GPT-5.2-Codexが詳細分析済みのため）
 
 ## Context Window Management
 

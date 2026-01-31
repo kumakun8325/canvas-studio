@@ -11,7 +11,7 @@
 ```
 Phase 1: 設計
 ├── Step 1: 要件・設計          🟣 Opus
-├── Step 2: 設計レビュー        🟢 Codex (xhigh)
+├── Step 2: 設計レビュー        🟢 GPT-5.2-Codex (xhigh) via copilot CLI
 └── Step 3: 設計改善            🟡 Sonnet
 
 Phase 2: 実装（並列処理）  ← 現在
@@ -22,11 +22,11 @@ Phase 2: 実装（並列処理）  ← 現在
 └── Step 6: 自己点検            🔵 GLM-4.7 (GitHub Actions)
 
 Phase 3: レビュー
-├── Step 7: 実装チェック        🟢 Codex (medium)
+├── Step 7: 実装チェック        🟢 GPT-5.2-Codex (medium) via GitHub Actions
 └── Step 8: 修正Issue作成       🟡 Sonnet (必要時のみ)
 
 Phase 4: 最終レビュー
-├── Step 9a: 詳細分析           🟢 Codex (xhigh)
+├── Step 9a: 詳細分析           🟢 GPT-5.2-Codex (xhigh) via copilot CLI
 └── Step 9b: 判断・承認         🟡 Sonnet
     └── 【例外】重大変更時      🟣 Opus
 ```
@@ -130,7 +130,7 @@ GitHub Actions が自動実行:
 
 ※ 手動実装の場合は各 Worker が `/finish` を実行
 
-### Step 7: 実装チェック (🟢 Codex medium)
+### Step 7: 実装チェック (🟢 GPT-5.2-Codex medium via GitHub Actions)
 - コード品質チェック
 - 設計適合性確認
 - テストカバレッジ確認
@@ -138,8 +138,8 @@ GitHub Actions が自動実行:
 ### Step 8: 修正Issue作成 (🟡 Sonnet)
 問題があれば Issue 作成
 
-### Step 9: 最終レビュー (🟢 Codex xhigh → 🟡 Sonnet)
-1. Codex で詳細分析
+### Step 9: 最終レビュー (🟢 GPT-5.2-Codex xhigh → 🟡 Sonnet)
+1. GPT-5.2-Codex (copilot CLI) で詳細分析
 2. Sonnet で判断・承認
 3. PR マージ (02 → 03 → 04 の順)
 
