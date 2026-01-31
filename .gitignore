@@ -31,3 +31,17 @@ dist-ssr
 .claude/memory/session-state.md
 .claude/memory/.last-compact
 .claude/memory/.session-log
+
+# CI/Claude work files
+claude_response.txt
+prompt.txt
+task_prompt.txt
+test_results.txt
+coverage_results.txt
+pr_body.txt
+issue_body.md
+review_result.md
+changed_files.txt
+
+# Test coverage
+coverage/
