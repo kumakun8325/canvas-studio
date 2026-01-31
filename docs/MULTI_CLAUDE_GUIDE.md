@@ -214,4 +214,4 @@ git commit -m "Resolve merge conflicts"
 ## 🔗 関連ドキュメント
 
 - [GitHub Actions連携](GITHUB_ACTIONS_SETUP.md) - スマホからの非同期開発
-- [開発ワークフロー](DEVELOPMENT_WORKFLOW.md) - SDD + 2AI分業の全体像
+- [開発ワークフロー](DEVELOPMENT_WORKFLOW.md) - SDD + マルチAI分業の全体像

@@ -1,0 +1,177 @@
+# Task Completion - PRマージ時にtasks.mdを自動更新
+#
+# トリガー:
+# 1. claude-auto ラベル付きIssueがクローズされた時
+# 2. PRがmainにマージされた時（Closes #N を含む場合）
+#
+# 動作:
+# - Issue番号からPhase/Task番号を特定
+# - docs/tasks.md の該当行を [ ] → [x] に更新
+# - 自動コミット
+
+name: Task Completion
+
+on:
+  issues:
+    types: [closed]
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  update-tasks:
+    # claude-autoラベル付きIssueがクローズ、またはPRがマージされた場合
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude-auto')) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Extract task info from issue
+        id: extract
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" == "issues" ]; then
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+            ISSUE_TITLE="${{ github.event.issue.title }}"
+          else
+            # PRからクローズされるIssue番号を取得
+            PR_BODY="${{ github.event.pull_request.body }}"
+            # "Closes #N" または "Fixes #N" からIssue番号を抽出
+            ISSUE_NUMBER=$(echo "$PR_BODY" | grep -oP '(?:Closes|Fixes|Resolves)\s*#\K\d+' | head -1)
+
+            if [ -z "$ISSUE_NUMBER" ]; then
+              echo "No linked issue found in PR body"
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            ISSUE_TITLE=$(gh issue view $ISSUE_NUMBER --json title -q '.title')
+          fi
+
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "issue_title=$ISSUE_TITLE" >> $GITHUB_OUTPUT
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+          # タイトルからPhase/Task番号を抽出
+          # 例: "Task 02: Basic Canvas" → phase=2
+          # 例: "Phase 3.2: SlideThumb" → phase=3, task=2
+
+          if [[ "$ISSUE_TITLE" =~ [Tt]ask[[:space:]]*0?([0-9]+) ]]; then
+            PHASE="${BASH_REMATCH[1]}"
+            echo "phase=$PHASE" >> $GITHUB_OUTPUT
+            echo "Detected Phase: $PHASE from title: $ISSUE_TITLE"
+          elif [[ "$ISSUE_TITLE" =~ [Pp]hase[[:space:]]*([0-9]+)\.([0-9]+) ]]; then
+            PHASE="${BASH_REMATCH[1]}"
+            TASK="${BASH_REMATCH[2]}"
+            echo "phase=$PHASE" >> $GITHUB_OUTPUT
+            echo "task=$TASK" >> $GITHUB_OUTPUT
+            echo "Detected Phase: $PHASE, Task: $TASK from title: $ISSUE_TITLE"
+          else
+            echo "Could not extract phase/task from title: $ISSUE_TITLE"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update tasks.md
+        if: steps.extract.outputs.skip != 'true'
+        run: |
+          PHASE="${{ steps.extract.outputs.phase }}"
+          TASK="${{ steps.extract.outputs.task }}"
+          ISSUE_TITLE="${{ steps.extract.outputs.issue_title }}"
+
+          if [ ! -f "docs/tasks.md" ]; then
+            echo "docs/tasks.md not found"
+            exit 0
+          fi
+
+          echo "Updating tasks.md for Phase $PHASE"
+
+          # Phase全体を完了にする場合（Task番号なし）
+          if [ -z "$TASK" ]; then
+            # Phase N のセクション内の全ての [ ] を [x] に変更
+            # sedで Phase N: から次の ## まで、または Phase N+1 まで処理
+            python3 << EOF
+          import re
+
+          with open('docs/tasks.md', 'r') as f:
+              content = f.read()
+
+          # Find the Phase section and mark all tasks as complete
+          phase = "$PHASE"
+          pattern = rf'(## Phase {phase}[^\n]*\n)(.*?)(?=\n## Phase|\n---|\Z)'
+
+          def replace_checkboxes(match):
+              header = match.group(1)
+              body = match.group(2)
+              # Replace [ ] with [x]
+              updated_body = re.sub(r'\[ \]', '[x]', body)
+              return header + updated_body
+
+          updated = re.sub(pattern, replace_checkboxes, content, flags=re.DOTALL)
+
+          if updated != content:
+              with open('docs/tasks.md', 'w') as f:
+                  f.write(updated)
+              print(f"Updated Phase {phase} tasks to completed")
+          else:
+              print(f"No changes needed for Phase {phase}")
+          EOF
+          else
+            # 特定のタスクのみ完了にする場合
+            python3 << EOF
+          import re
+
+          with open('docs/tasks.md', 'r') as f:
+              content = f.read()
+
+          phase = "$PHASE"
+          task = "$TASK"
+
+          # Find specific task line: "- [ ] N.M ..."
+          pattern = rf'(- \[ \] {phase}\.{task}\s)'
+
+          updated = re.sub(pattern, f'- [x] {phase}.{task} ', content)
+
+          if updated != content:
+              with open('docs/tasks.md', 'w') as f:
+                  f.write(updated)
+              print(f"Updated task {phase}.{task} to completed")
+          else:
+              print(f"No changes needed for task {phase}.{task}")
+          EOF
+          fi
+
+      - name: Commit changes
+        if: steps.extract.outputs.skip != 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          if [ -n "$(git status --porcelain docs/tasks.md)" ]; then
+            git add docs/tasks.md
+            git commit -m "chore: mark task as completed (#${{ steps.extract.outputs.issue_number }})"
+            git push
+            echo "✅ tasks.md updated and committed"
+          else
+            echo "No changes to commit"
+          fi
+
+      - name: Summary
+        if: steps.extract.outputs.skip != 'true'
+        run: |
+          echo "## ✅ Task Completion" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Issue**: #${{ steps.extract.outputs.issue_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Title**: ${{ steps.extract.outputs.issue_title }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Phase**: ${{ steps.extract.outputs.phase }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Updated \`docs/tasks.md\` automatically." >> $GITHUB_STEP_SUMMARY
