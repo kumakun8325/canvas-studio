@@ -25,13 +25,13 @@ jobs:
   review:
     runs-on: ubuntu-latest
     timeout-minutes: 15  # Copilotレビューのタイムアウト
-    # claude-auto ラベルがついたPRのみ（GLM-4.7実装分）
-    # 手動PRもレビューしたい場合はこの条件を削除
-    if: contains(github.event.pull_request.labels.*.name, 'claude-auto') || contains(github.event.pull_request.labels.*.name, 'needs-review')
+    # すべてのPRをレビュー（skip-codex-review ラベルでオプトアウト可能）
+    if: "!contains(github.event.pull_request.labels.*.name, 'skip-codex-review')"
 
     permissions:
       contents: read
       pull-requests: write
+      actions: write
 
     steps:
       - name: Checkout repository
@@ -222,7 +222,7 @@ jobs:
             echo "No critical issues, no auto-fix needed"
           fi
 
-      - name: Add labels based on review result
+      - name: Add labels and trigger auto-fix
         if: steps.review.outputs.review_available == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -232,9 +232,14 @@ jobs:
             --add-label "codex-reviewed"
 
           if [ "$NEEDS_FIX" == "true" ]; then
+            # ラベル追加（トラッキング用）
             gh pr edit ${{ github.event.pull_request.number }} \
               --add-label "auto-fix"
-            echo "✅ Added auto-fix label"
+
+            # workflow_dispatch で自動修正ワークフローを起動
+            gh workflow run auto-apply-suggestions.yml \
+              -f pr_number=${{ github.event.pull_request.number }}
+            echo "✅ Triggered auto-fix workflow via workflow_dispatch"
           fi
 
       - name: Trigger auto-merge

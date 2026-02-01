@@ -1,10 +1,11 @@
 # Auto Apply Review Suggestions
 #
 # トリガー:
-# - auto-fix ラベルが追加された時（CodexレビューでCritical Issues検出時）
+# - auto-fix ラベルが追加された時
+#   (Codex Review または Claude Code Review で Critical Issues 検出時)
 #
 # 機能:
-# - レビューコメントから修正内容を抽出
+# - レビューコメントから修正内容を抽出（Codex / Claude 両対応）
 # - 修正回数に応じてAIを選択して修正を適用:
 #   - 1回目: Claude Code
 #   - 2回目: GPT-5.2-Codex medium
@@ -18,24 +19,52 @@ on:
   pull_request:
     types: [labeled]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to apply fixes to'
+        required: true
+        type: number
 
 jobs:
   apply-fixes:
     runs-on: ubuntu-latest
     timeout-minutes: 30  # Claude/Copilot実行のタイムアウト
-    # auto-fix ラベルが追加された場合のみ実行
-    if: github.event.label.name == 'auto-fix' && github.event.pull_request.head.repo.full_name == github.repository
+    # labeled: auto-fix ラベルが追加された場合のみ
+    # workflow_dispatch: 常に実行（レビューワークフローから呼び出し）
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'auto-fix' && github.event.pull_request.head.repo.full_name == github.repository)
 
     permissions:
       contents: write
       issues: write
       pull-requests: write
+      actions: write
 
     steps:
+      - name: Resolve PR info
+        id: pr-info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            PR_NUMBER="${{ github.event.inputs.pr_number }}"
+          else
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          fi
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+
+          PR_JSON=$(gh pr view "$PR_NUMBER" --json headRefName,title)
+          HEAD_REF=$(echo "$PR_JSON" | jq -r '.headRefName')
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+          echo "HEAD_REF=$HEAD_REF" >> $GITHUB_ENV
+          echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
+
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/head
+          ref: ${{ env.HEAD_REF }}
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -51,21 +80,36 @@ jobs:
         id: extract
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ env.PR_NUMBER }}
         run: |
-          gh pr view $PR_NUMBER \
-            --repo ${{ github.repository }} \
-            --comments \
-            --jq '.comments[] | select(.body | contains("GPT-5.2-Codex Review")) | .body' > review_comments.txt
+          # Codex Review と Claude Code Review の両方からコメントを取得
+          gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.body | test("GPT-5.2-Codex Review|Claude Code Review")) | .body' \
+            > review_comments.txt || true
+
+          if [ ! -s review_comments.txt ]; then
+            echo "No review comments found"
+            echo "has_critical_issues=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           cat review_comments.txt
 
-          if grep -q "Critical Issues:" review_comments.txt; then
+          # Critical Issues の検出（両方のレビュー形式に対応）
+          if grep -qiE "(Critical Issues|REQUEST_CHANGES|🔴|severity.*critical)" review_comments.txt; then
             echo "has_critical_issues=true" >> $GITHUB_OUTPUT
-            grep -A 100 "Critical Issues:" review_comments.txt | grep -E "^\s*-\s" > critical_issues.txt || true
-          elif grep -q "REQUEST_CHANGES" review_comments.txt; then
-            echo "has_critical_issues=true" >> $GITHUB_OUTPUT
-            cat review_comments.txt > critical_issues.txt
+
+            # Critical Issues セクションを抽出
+            {
+              grep -A 100 "Critical Issues" review_comments.txt | grep -E "^\s*(-\s|###\s|\*\*)" || true
+              grep -B 2 -A 5 "🔴" review_comments.txt || true
+              grep -B 2 -A 5 -i "severity.*critical" review_comments.txt || true
+            } | sort -u > critical_issues.txt
+
+            # フォールバック: 抽出が空の場合はコメント全体を使用
+            if [ ! -s critical_issues.txt ]; then
+              cat review_comments.txt > critical_issues.txt
+            fi
           else
             echo "has_critical_issues=false" >> $GITHUB_OUTPUT
           fi
@@ -107,7 +151,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels -q '.labels[].name')
+          PR_LABELS=$(gh pr view ${{ env.PR_NUMBER }} --json labels -q '.labels[].name')
 
           FIX_COUNT=0
           for i in 1 2 3 4 5; do
@@ -151,7 +195,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr edit ${{ github.event.pull_request.number }} \
+          gh pr edit ${{ env.PR_NUMBER }} \
             --remove-label "auto-fix"
 
       - name: Add attempt label
@@ -161,7 +205,7 @@ jobs:
           FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
         run: |
           ATTEMPT_LABEL="auto-fix-attempt-$FIX_COUNT"
-          gh pr edit ${{ github.event.pull_request.number }} \
+          gh pr edit ${{ env.PR_NUMBER }} \
             --add-label "$ATTEMPT_LABEL"
 
       - name: Comment on PR (started)
@@ -170,7 +214,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MODEL: ${{ steps.select-model.outputs.model }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} \
+          gh pr comment ${{ env.PR_NUMBER }} \
             --body "🔧 **Auto-fix started (${{ steps.select-model.outputs.model }})**
 
             Critical issues found in review. Applying automatic fixes...
@@ -374,8 +418,8 @@ jobs:
 
             git commit -m "$COMMIT_MSG
 
-            Auto-generated by GitHub Actions based on Codex review feedback."
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+            Auto-generated by GitHub Actions based on review feedback."
+            git push origin HEAD:${{ env.HEAD_REF }}
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
@@ -387,11 +431,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
         run: |
-          # 5回未満であれば、再度auto-fixラベルを追加してループを続ける
+          # 5回未満であれば、workflow_dispatch で再トリガー
           if [ "$FIX_COUNT" -lt 5 ]; then
-            gh pr edit ${{ github.event.pull_request.number }} \
-              --add-label "auto-fix"
-            echo "🔄 Re-triggered auto-fix (attempt #$FIX_COUNT completed)"
+            gh workflow run auto-apply-suggestions.yml \
+              -f pr_number=${{ env.PR_NUMBER }}
+            echo "🔄 Re-triggered auto-fix via workflow_dispatch (attempt #$FIX_COUNT completed)"
           fi
 
       - name: Comment on PR (success)
@@ -408,7 +452,7 @@ jobs:
             STATUS_EMOJI="⚠️"
           fi
 
-          gh pr comment ${{ github.event.pull_request.number }} \
+          gh pr comment ${{ env.PR_NUMBER }} \
             --body "$STATUS_EMOJI **Auto-fix completed ($MODEL)**
 
             Fixes have been applied and pushed.
@@ -429,7 +473,7 @@ jobs:
           FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
           MODEL: ${{ steps.select-model.outputs.model }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} \
+          gh pr comment ${{ env.PR_NUMBER }} \
             --body "ℹ️ **Auto-fix: No changes made ($MODEL)**
 
             AI reviewed the issues but did not make any code changes.
@@ -454,8 +498,8 @@ jobs:
           ## Manual Review Required - Unfixable Issues
 
           ### Pull Request
-          - PR: #${{ github.event.pull_request.number }}
-          - Title: ${{ github.event.pull_request.title }}
+          - PR: #${{ env.PR_NUMBER }}
+          - Title: ${{ env.PR_TITLE }}
 
           ### Review Feedback
           $REVIEW_COMMENT
@@ -478,15 +522,15 @@ jobs:
           EOF
 
           ISSUE_NUMBER=$(gh issue create \
-            --title "Manual Review Required: PR #${{ github.event.pull_request.number }}" \
+            --title "Manual Review Required: PR #${{ env.PR_NUMBER }}" \
             --label "human-review-needed" \
             --body-file issue_body.md \
             --jq '.number')
 
-          gh pr edit ${{ github.event.pull_request.number }} \
+          gh pr edit ${{ env.PR_NUMBER }} \
             --remove-label "auto-fix"
 
-          gh pr comment ${{ github.event.pull_request.number }} \
+          gh pr comment ${{ env.PR_NUMBER }} \
             --body "❌ **Auto-fix: Issues require manual review**
 
             The detected issues need human intervention.
@@ -510,8 +554,8 @@ jobs:
           Auto-fix attempts have exceeded the maximum (5 attempts).
 
           ### Pull Request
-          - PR: #${{ github.event.pull_request.number }}
-          - Title: ${{ github.event.pull_request.title }}
+          - PR: #${{ env.PR_NUMBER }}
+          - Title: ${{ env.PR_TITLE }}
 
           ### Review Feedback
           $REVIEW_COMMENT
@@ -524,12 +568,12 @@ jobs:
           EOF
 
           ISSUE_NUMBER=$(gh issue create \
-            --title "Manual Review Required: PR #${{ github.event.pull_request.number }}" \
+            --title "Manual Review Required: PR #${{ env.PR_NUMBER }}" \
             --label "human-review-needed" \
             --body-file issue_body.md \
             --jq '.number')
 
-          gh pr comment ${{ github.event.pull_request.number }} \
+          gh pr comment ${{ env.PR_NUMBER }} \
             --body "❌ **Auto-fix stopped**
 
           Maximum attempts (5) reached. Human review required.
@@ -544,7 +588,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} \
+          gh pr comment ${{ env.PR_NUMBER }} \
             --body "ℹ️ **Auto-fix: No critical issues found**
 
             No action needed based on review.
