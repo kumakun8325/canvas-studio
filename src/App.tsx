@@ -5,10 +5,12 @@ import { Toast } from './components/ui/Toast'
 import { Spinner } from './components/ui/Spinner'
 import { useAuth } from './hooks/useAuth'
 import { useSlideStore } from './stores/slideStore'
+import { useTheme } from './hooks/useTheme'
 
 function App() {
   const { user, loading } = useAuth()
   const { project } = useSlideStore()
+  useTheme() // テーマ初期化・OS監視
 
   // Show loading state while checking authentication
   if (loading) {

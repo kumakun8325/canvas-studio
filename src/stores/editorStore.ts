@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import type { EditorState, ToolType } from '../types'
 
 interface EditorStore extends EditorState {
+  isDarkMode: boolean
+  setDarkMode: (isDark: boolean) => void
   setCurrentSlide: (slideId: string | null) => void
   setSelectedObjects: (objectIds: string[]) => void
   setActiveTool: (tool: ToolType) => void
@@ -18,10 +20,12 @@ export const useEditorStore = create<EditorStore>((set) => ({
   selectedObjectIds: [],
   activeTool: 'select',
   zoom: 1,
+  isDarkMode: false,
   // デフォルトは両方のパネルを開く
   isSlideListOpen: true,
   isPropertyPanelOpen: true,
 
+  setDarkMode: (isDark) => set({ isDarkMode: isDark }),
   setCurrentSlide: (slideId) => set({ currentSlideId: slideId }),
   setSelectedObjects: (objectIds) => set({ selectedObjectIds: objectIds }),
   setActiveTool: (tool) => set({ activeTool: tool }),
