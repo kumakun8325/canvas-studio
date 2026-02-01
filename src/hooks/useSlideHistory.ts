@@ -54,11 +54,12 @@ export function useSlideHistory() {
           "スライドを削除",
           () => {
             const currentSlides = useSlideStore.getState().slides;
+            const safeIndex = Math.min(index, currentSlides.length);
             useSlideStore.setState({
               slides: [
-                ...currentSlides.slice(0, index),
+                ...currentSlides.slice(0, safeIndex),
                 slideToDelete,
-                ...currentSlides.slice(index),
+                ...currentSlides.slice(safeIndex),
               ],
             });
           },
@@ -79,13 +80,15 @@ export function useSlideHistory() {
   const reorderSlides = useCallback(
     (fromIndex: number, toIndex: number) => {
       const { reorderSlides: reorderSlidesFromStore } = useSlideStore.getState();
+      // アクション時点のスライド状態をスナップショット
+      const slidesSnapshot = [...useSlideStore.getState().slides];
       // 履歴を記録
       recordAction(
         createHistoryAction(
           "slide:reordered",
           "スライドを並べ替え",
           () => {
-            useSlideStore.setState({ slides });
+            useSlideStore.setState({ slides: slidesSnapshot });
           },
           () => {
             const currentSlides = useSlideStore.getState().slides;
@@ -100,7 +103,7 @@ export function useSlideHistory() {
       // スライドを並べ替え
       reorderSlidesFromStore(fromIndex, toIndex);
     },
-    [slides, recordAction],
+    [recordAction],
   );
 
   return {

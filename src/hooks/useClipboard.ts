@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react'
 import * as fabric from 'fabric'
 import { createHistoryAction, useHistory } from './useHistory'
+import { useHistoryStore } from '../stores/historyStore'
 import type { ClipboardData, ClipboardObjectData } from '../types'
 
 interface UseClipboardReturn {
@@ -33,23 +34,26 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
     const canvas = canvasRef.current
     if (!canvas || !clipboardRef.current) return
 
-    const { objects } = clipboardRef.current
-    const pastedObjectIds: string[] = []
+    // ペースト時にクリップボードデータをスナップショット（後のコピー操作で上書きされないように）
+    const snapshotObjects = clipboardRef.current.objects.map((obj: ClipboardObjectData) => ({ ...obj }))
+
+    // バッチ開始: paste 中の canvas auto-save 履歴記録を抑制
+    useHistoryStore.getState().startBatch()
 
     // オフセットを加えてペースト
-    const promises = objects.map((objData: ClipboardObjectData) => {
+    const pastedFabricObjects: fabric.FabricObject[] = []
+    const promises = snapshotObjects.map((objData: ClipboardObjectData) => {
       return new Promise<void>((resolve) => {
         fabric.util.enlivenObjects([objData]).then((results) => {
           const obj = results[0]
           if (obj instanceof fabric.FabricObject) {
-            const newId = crypto.randomUUID()
-            pastedObjectIds.push(newId)
             obj.set({
-              id: newId,
+              id: crypto.randomUUID(),
               left: (objData.left ?? 0) + 20,
               top: (objData.top ?? 0) + 20,
             })
             canvas.add(obj)
+            pastedFabricObjects.push(obj)
           }
           resolve()
         })
@@ -57,6 +61,9 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
     })
 
     Promise.all(promises).then(() => {
+      // バッチ終了: auto-save 履歴記録の抑制を解除
+      useHistoryStore.getState().endBatch()
+
       canvas.renderAll()
       // 最後に追加したオブジェクトを選択
       const allObjects = canvas.getObjects()
@@ -65,7 +72,10 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
         canvas.setActiveObject(lastObject)
       }
 
-      // Undo/Redo履歴を記録
+      // fabric オブジェクト参照を保持（同期的な undo/redo を実現）
+      const capturedObjects = [...pastedFabricObjects]
+
+      // Undo/Redo履歴を記録（paste のみが1つの履歴エントリとなる）
       recordAction(
         createHistoryAction(
           'paste',
@@ -73,49 +83,23 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
           () => {
             const canvas = canvasRef.current
             if (!canvas) return
-            // ペーストしたオブジェクトを削除
-            const objects = canvas.getObjects()
-            pastedObjectIds.forEach((id) => {
-              const obj = objects.find((o) => o.get('id') === id)
-              if (obj) {
-                canvas.remove(obj)
-              }
-            })
+            capturedObjects.forEach((obj) => canvas.remove(obj))
             canvas.renderAll()
           },
           () => {
             const canvas = canvasRef.current
-            if (!canvas || !clipboardRef.current) return
-            const { objects } = clipboardRef.current
-
-            const redoPromises = objects.map((objData: ClipboardObjectData) => {
-              return new Promise<void>((resolve) => {
-                fabric.util.enlivenObjects([objData]).then((results) => {
-                  const obj = results[0]
-                  if (obj instanceof fabric.FabricObject) {
-                    obj.set({
-                      id: crypto.randomUUID(),
-                      left: (objData.left ?? 0) + 20,
-                      top: (objData.top ?? 0) + 20,
-                    })
-                    canvas.add(obj)
-                  }
-                  resolve()
-                })
-              })
-            })
-
-            Promise.all(redoPromises).then(() => {
-              canvas.renderAll()
-              const allObjects = canvas.getObjects()
-              if (allObjects.length > 0) {
-                const lastObject = allObjects[allObjects.length - 1]
-                canvas.setActiveObject(lastObject)
-              }
-            })
+            if (!canvas) return
+            capturedObjects.forEach((obj) => canvas.add(obj))
+            canvas.renderAll()
+            if (capturedObjects.length > 0) {
+              canvas.setActiveObject(capturedObjects[capturedObjects.length - 1])
+            }
           },
         ),
       )
+    }).catch(() => {
+      // エラー時もバッチフラグを確実に解除
+      useHistoryStore.getState().endBatch()
     })
   }, [canvasRef, recordAction])
 

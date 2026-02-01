@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import * as fabric from "fabric";
 import { useEditorStore } from "../stores/editorStore";
+import { useHistoryStore } from "../stores/historyStore";
 import { useSlideStore } from "../stores/slideStore";
 import { createHistoryAction, useHistory } from "./useHistory";
 
@@ -13,8 +14,10 @@ export function useCanvas(canvasId: string) {
     isInternalUpdate: false,
   });
 
-  const { setSelectedObjects } = useEditorStore();
-  const { slides, updateSlide, getTemplateConfig } = useSlideStore();
+  const setSelectedObjects = useEditorStore((s) => s.setSelectedObjects);
+  const slides = useSlideStore((s) => s.slides);
+  const updateSlide = useSlideStore((s) => s.updateSlide);
+  const getTemplateConfig = useSlideStore((s) => s.getTemplateConfig);
   const currentSlideId = useEditorStore((s) => s.currentSlideId);
   const { recordAction } = useHistory();
 
@@ -25,6 +28,9 @@ export function useCanvas(canvasId: string) {
   const serializeCanvas = useCallback((canvas: fabric.Canvas): string => {
     return JSON.stringify(canvas.toJSON());
   }, []);
+
+  // 操作前のキャンバス状態を保持（履歴用）
+  const previousStateRef = useRef<string | null>(null);
 
   const loadCanvasJson = useCallback(
     async (canvas: fabric.Canvas, json: string | null) => {
@@ -63,9 +69,6 @@ export function useCanvas(canvasId: string) {
   useEffect(() => {
     slideStateRef.current.currentSlideId = currentSlideId;
   }, [currentSlideId]);
-
-  // 操作前のキャンバス状態を保持（履歴用）
-  const previousStateRef = useRef<string | null>(null);
 
   // Save current canvas state to slide store
   const saveCanvasToSlide = useCallback(
@@ -188,12 +191,16 @@ export function useCanvas(canvasId: string) {
 
     // Auto-save events
     const handleSave = () => {
-      // 内部更新中は保存しない
+      // 内部更新中・Undo/Redo 中は保存しない
       if (slideStateRef.current.isInternalUpdate) return;
+      const historyState = useHistoryStore.getState();
+      if (historyState.isUndoRedoInProgress) return;
 
       const slideId = getCurrentSlideId();
       if (slideId) {
-        saveCanvasToSlide(slideId, true);
+        // バッチ操作中: slideStore は更新するが履歴記録はスキップ
+        const recordHistory = !historyState.isBatchOperationInProgress;
+        saveCanvasToSlide(slideId, recordHistory);
       }
     };
 

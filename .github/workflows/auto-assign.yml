@@ -89,7 +89,27 @@ jobs:
           } > /tmp/review_comment.md
 
           gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/review_comment.md
-      
+
+      - name: Submit formal PR review
+        if: steps.changed.outputs.files != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+
+          if [ ! -f review_output.txt ]; then
+            echo "No review output, skipping formal review"
+            exit 0
+          fi
+
+          if grep -qiE "(Critical Issues|REQUEST_CHANGES|🔴|severity.*critical)" review_output.txt; then
+            gh pr review "$PR_NUMBER" --request-changes \
+              --body "Claude Code review detected critical issues. See the review comment for details."
+          else
+            gh pr review "$PR_NUMBER" --approve \
+              --body "Claude Code review passed. No critical issues found."
+          fi
+
       - name: Check for critical issues
         if: steps.changed.outputs.files != ''
         id: check-issues

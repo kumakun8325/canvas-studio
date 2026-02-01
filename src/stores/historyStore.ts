@@ -5,6 +5,8 @@ interface HistoryStore {
   undoStack: HistoryAction[]
   redoStack: HistoryAction[]
   maxHistory: number
+  isUndoRedoInProgress: boolean
+  isBatchOperationInProgress: boolean
 
   push: (action: HistoryAction) => void
   undo: () => void
@@ -12,15 +14,21 @@ interface HistoryStore {
   clear: () => void
   canUndo: () => boolean
   canRedo: () => boolean
+  startBatch: () => void
+  endBatch: () => void
 }
 
 export const useHistoryStore = create<HistoryStore>((set, get) => ({
   undoStack: [],
   redoStack: [],
   maxHistory: 50,
+  isUndoRedoInProgress: false,
+  isBatchOperationInProgress: false,
 
   push: (action) =>
     set((state) => {
+      // undo/redo 中に発火した自動保存による二重記録を防止
+      if (state.isUndoRedoInProgress) return state
       const newUndoStack = [...state.undoStack, action]
       // スタックサイズを制限
       if (newUndoStack.length > state.maxHistory) {
@@ -37,12 +45,16 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     if (state.undoStack.length === 0) return
 
     const action = state.undoStack[state.undoStack.length - 1]
-    action.undo()
-
-    set({
-      undoStack: state.undoStack.slice(0, -1),
-      redoStack: [...state.redoStack, action],
-    })
+    set({ isUndoRedoInProgress: true })
+    try {
+      action.undo()
+    } finally {
+      set({
+        undoStack: state.undoStack.slice(0, -1),
+        redoStack: [...state.redoStack, action],
+        isUndoRedoInProgress: false,
+      })
+    }
   },
 
   redo: () => {
@@ -50,16 +62,23 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     if (state.redoStack.length === 0) return
 
     const action = state.redoStack[state.redoStack.length - 1]
-    action.redo()
-
-    set({
-      redoStack: state.redoStack.slice(0, -1),
-      undoStack: [...state.undoStack, action],
-    })
+    set({ isUndoRedoInProgress: true })
+    try {
+      action.redo()
+    } finally {
+      set({
+        redoStack: state.redoStack.slice(0, -1),
+        undoStack: [...state.undoStack, action],
+        isUndoRedoInProgress: false,
+      })
+    }
   },
 
   clear: () => set({ undoStack: [], redoStack: [] }),
 
   canUndo: () => get().undoStack.length > 0,
   canRedo: () => get().redoStack.length > 0,
+
+  startBatch: () => set({ isBatchOperationInProgress: true }),
+  endBatch: () => set({ isBatchOperationInProgress: false }),
 }))
