@@ -115,7 +115,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
 
@@ -381,6 +381,9 @@ jobs:
             --base main \
             --head "$BRANCH_NAME" \
             $LABEL_ARGS || echo "PR likely already exists, skipping creation."
+
+          # Ensure labels are applied (workaround for GitHub API timing)
+          gh pr edit "$BRANCH_NAME:main" --add-label claude-auto --repo ${{ github.repository }} || true
 
       - name: Comment on issue (completed)
         if: steps.commit.outputs.has_changes == 'true'
