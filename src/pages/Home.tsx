@@ -38,8 +38,8 @@ export function Home() {
       setProjectError(null)
       try {
         const userProjects = await listProjects(user.uid)
-        // Sort by updatedAt descending
-        const sorted = userProjects.sort((a, b) => b.updatedAt - a.updatedAt)
+        // Sort by updatedAt descending (use spread to avoid mutation)
+        const sorted = [...userProjects].sort((a, b) => b.updatedAt - a.updatedAt)
         setProjects(sorted)
       } catch (err) {
         setProjectError('プロジェクトの読み込みに失敗しました')
