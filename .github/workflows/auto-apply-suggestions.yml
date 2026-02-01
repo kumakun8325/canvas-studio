@@ -1,37 +1,48 @@
 # Auto Apply Review Suggestions
 #
-# Manually trigger to apply review suggestions to a PR
-# Workflow analyzes review comments and implements suggested improvements
+# トリガー:
+# - auto-fix ラベルが追加された時（CodexレビューでCritical Issues検出時）
+#
+# 機能:
+# - レビューコメントから修正内容を抽出
+# - 修正回数に応じてAIを選択して修正を適用:
+#   - 1回目: Claude Code
+#   - 2回目: GPT-5.2-Codex medium
+#   - 3回目: GPT-5.2-Codex xhigh
+# - テストを実行
+# - コミット＆プッシュして自動再レビューをトリガー
 
-name: Auto Apply Suggestions
+name: Auto Apply Review Suggestions
 
 on:
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: 'PR number to apply suggestions to'
-        required: true
-        type: number
+  pull_request:
+    types: [labeled]
+    branches: [main]
 
 jobs:
-  apply-suggestions:
+  apply-fixes:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # Claude/Copilot実行のタイムアウト
+    # auto-fix ラベルが追加された場合のみ実行
+    if: github.event.label.name == 'auto-fix' && github.event.pull_request.head.repo.full_name == github.repository
 
     permissions:
       contents: write
+      issues: write
       pull-requests: write
 
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: refs/pull/${{ inputs.pr_number }}/head
+          ref: refs/pull/${{ github.event.pull_request.number }}/head
           fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -40,66 +51,503 @@ jobs:
         id: extract
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           gh pr view $PR_NUMBER \
             --repo ${{ github.repository }} \
-            --json comments \
-            --jq '.comments[] | select(.author.login == "github-actions") | .body' > review_comments.txt
+            --comments \
+            --jq '.comments[] | select(.body | contains("GPT-5.2-Codex Review")) | .body' > review_comments.txt
 
-          SUGGESTION_COUNT=$(grep -c "Recommendation:\|Fix:\|Suggested:" review_comments.txt || echo "0")
-          echo "suggestion_count=$SUGGESTION_COUNT" >> $GITHUB_OUTPUT
-
-          if [ "$SUGGESTION_COUNT" -gt 0 ]; then
-            echo "has_suggestions=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_suggestions=false" >> $GITHUB_OUTPUT
-          fi
-
-          echo "Found $SUGGESTION_COUNT suggestions:"
           cat review_comments.txt
 
-      - name: Apply suggestions via PR comment
-        if: steps.extract.outputs.has_suggestions == 'true'
+          if grep -q "Critical Issues:" review_comments.txt; then
+            echo "has_critical_issues=true" >> $GITHUB_OUTPUT
+            grep -A 100 "Critical Issues:" review_comments.txt | grep -E "^\s*-\s" > critical_issues.txt || true
+          elif grep -q "REQUEST_CHANGES" review_comments.txt; then
+            echo "has_critical_issues=true" >> $GITHUB_OUTPUT
+            cat review_comments.txt > critical_issues.txt
+          else
+            echo "has_critical_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if fixable
+        id: check-fixable
+        if: steps.extract.outputs.has_critical_issues == 'true'
+        run: |
+          # 自動修正不可能な問題のパターンを検出
+          UNFIXABLE_PATTERNS=(
+            "Major refactoring needed"
+            "Design change required"
+            "External dependency issue"
+            "Breaking change required"
+            "Needs architectural review"
+            "Requires discussion"
+          )
+
+          IS_FIXABLE=true
+
+          for PATTERN in "${UNFIXABLE_PATTERNS[@]}"; do
+            if grep -iq "$PATTERN" critical_issues.txt; then
+              echo "Found unfixable pattern: $PATTERN"
+              IS_FIXABLE=false
+              break
+            fi
+          done
+
+          if [ "$IS_FIXABLE" = true ]; then
+            echo "is_fixable=true" >> $GITHUB_OUTPUT
+            echo "✅ Issues appear to be fixable"
+          else
+            echo "is_fixable=false" >> $GITHUB_OUTPUT
+            echo "❌ Issues require manual review"
+          fi
+
+      - name: Check fix attempt count
+        id: check-count
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_NUMBER="${{ inputs.pr_number }}"
-          SUGGESTION_COUNT="${{ steps.extract.outputs.suggestion_count }}"
+          PR_LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels -q '.labels[].name')
 
-          cat > apply_suggestions_comment.md << 'EOF'
-          ## 📋 Review Suggestions Found
+          FIX_COUNT=0
+          for i in 1 2 3 4 5; do
+            if echo "$PR_LABELS" | grep -q "auto-fix-attempt-$i"; then
+              FIX_COUNT=$i
+            fi
+          done
 
-          Found **${SUGGESTION_COUNT}** actionable review suggestions in PR #${PR_NUMBER}.
+          FIX_COUNT=$((FIX_COUNT + 1))
+          echo "fix_count=$FIX_COUNT" >> $GITHUB_OUTPUT
 
-          ### Options
+          if [ $FIX_COUNT -gt 5 ]; then
+            echo "exceeded_max=true" >> $GITHUB_OUTPUT
+            echo "❌ Fix attempts exceeded maximum (5)"
+          else
+            echo "exceeded_max=false" >> $GITHUB_OUTPUT
+            echo "🔧 Fix attempt #$FIX_COUNT"
+          fi
 
-          1. **Auto-apply**: Run this workflow with PR number to apply automatically
-          2. **Manual review**: Review suggestions below and decide which to apply
+      - name: Determine AI model
+        id: select-model
+        env:
+          FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
+        run: |
+          case "$FIX_COUNT" in
+            1)
+              MODEL="Claude Code"
+              ;;
+            2)
+              MODEL="GPT-5.2-Codex (medium)"
+              ;;
+            *)
+              MODEL="GPT-5.2-Codex (xhigh)"
+              ;;
+          esac
 
-          ### Review Comments Summary
+          echo "model=$MODEL" >> $GITHUB_OUTPUT
+          echo "Using: $MODEL"
 
-          $(cat review_comments.txt | grep -A 10 "Recommendation:\|Fix:\|Suggested:" | head -100)
+      - name: Remove auto-fix label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --remove-label "auto-fix"
 
-          ### To Apply Automatically
+      - name: Add attempt label
+        if: steps.check-count.outputs.exceeded_max == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
+        run: |
+          ATTEMPT_LABEL="auto-fix-attempt-$FIX_COUNT"
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --add-label "$ATTEMPT_LABEL"
 
-          1. Go to Actions tab → "Auto Apply Suggestions"
-          2. Click "Run workflow"
-          3. Enter PR number: ${PR_NUMBER}
+      - name: Comment on PR (started)
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODEL: ${{ steps.select-model.outputs.model }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "🔧 **Auto-fix started (${{ steps.select-model.outputs.model }})**
 
-          ### To Apply Manually
+            Critical issues found in review. Applying automatic fixes...
+            Attempt #${{ steps.check-count.outputs.fix_count }}/5
 
-          Review suggestions above and apply them locally, then commit with:
-          ```
-          git commit -am "chore: apply review suggestions"
-          ```
+            This may take a few minutes.
+
+            ---
+            [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      - name: Apply fixes via Claude Code (1st attempt)
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count == '1'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
+        run: |
+          cat > fix_prompt.txt << EOF
+          以下のレビュー指摘に基づいて、コードを修正してください。
+
+          ## Critical Issues to Fix
+          $(cat critical_issues.txt)
+
+          ## Instructions
+          1. 上記のCritical Issuesを修正してください
+          2. 修正後にテストを実行してください (npm run test:run)
+          3. テストに失敗した場合は修正を続けてください
+          4. 重要: 修正が完了したら、コミットはしないでください（ワークフローが処理します）
+
+          ## Requirements
+          - Type Safety: anyを使用しない
+          - Architecture: レイヤー構造に従う (components -> hooks -> services)
+          - Security: ハードコードされたシークレットなし
+          - Performance: 適切なメモ化、不要な再レンダリングなし
+          - Testing: 新機能のテストが必要
+
+          重要: 日本語で説明してください。
           EOF
 
-          gh pr comment $PR_NUMBER \
-            --repo ${{ github.repository }} \
-            --body "$(cat apply_suggestions_comment.md)"
+          npm install -g @anthropic-ai/claude-code
 
-      - name: Summary
-        if: steps.extract.outputs.has_suggestions == 'false'
+          claude --dangerously-skip-permissions --print "$(cat fix_prompt.txt)" > claude_fix_output.txt 2>&1 || true
+
+          echo "## 🤖 Claude Fix Output" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          head -200 claude_fix_output.txt >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Apply fixes via GPT-5.2-Codex (medium, 2nd attempt)
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count == '2'
+        env:
+          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "✅ No actionable review suggestions found."
+          cat > fix_prompt.txt << EOF
+          以下のレビュー指摘に基づいて、コードを修正してください。
+
+          ## Critical Issues to Fix
+          $(cat critical_issues.txt)
+
+          ## Instructions
+          1. 上記のCritical Issuesを修正してください
+          2. 修正後にテストを実行してください (npm run test:run)
+          3. テストに失敗した場合は修正を続けてください
+
+          ## Requirements
+          - Type Safety: anyを使用しない
+          - Architecture: レイヤー構造に従う (components -> hooks -> services)
+          - Security: ハードコードされたシークレットなし
+          - Performance: 適切なメモ化、不要な再レンダリングなし
+          - Testing: 新機能のテストが必要
+
+          重要: 日本語で説明してください。
+          重要: コミットは作成しないでください。変更を適用するだけです。
+          EOF
+
+          npm install -g @github/copilot
+
+          copilot -p "$(cat fix_prompt.txt)" \
+            --model gpt-5.2-codex \
+            --allow-all-tools \
+            > codex_fix_output.txt 2>&1 || true
+
+          echo "## 🤖 GPT-5.2-Codex (medium) Fix Output" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          head -200 codex_fix_output.txt >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Apply fixes via GPT-5.2-Codex (xhigh, 3rd+ attempt)
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count >= '3'
+        env:
+          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > fix_prompt.txt << EOF
+          以下のレビュー指摘に基づいて、コードを修正してください。
+          これは第${{ steps.check-count.outputs.fix_count }}回目の修正試行です。
+
+          ## Critical Issues to Fix
+          $(cat critical_issues.txt)
+
+          ## Instructions
+          1. 上記のCritical Issuesを修正してください
+          2. 修正後にテストを実行してください (npm run test:run)
+          3. テストに失敗した場合は修正を続けてください
+          4. 修正完了後に自己レビューを行い、残った問題がないか確認してください
+
+          ## Self-Review Checklist
+          - 修正によって新たな問題が発生していないか
+          - テストがすべて通過しているか
+          - lintエラーがないか
+          - type errorがないか
+
+          ## Requirements
+          - Type Safety: anyを使用しない
+          - Architecture: レイヤー構造に従う (components -> hooks -> services)
+          - Security: ハードコードされたシークレットなし
+          - Performance: 適切なメモ化、不要な再レンダリングなし
+          - Testing: 新機能のテストが必要
+
+          重要: 日本語で説明してください。
+          重要: コミットは作成しないでください。変更を適用するだけです。
+          EOF
+
+          npm install -g @github/copilot
+
+          copilot -p "$(cat fix_prompt.txt)" \
+            --model gpt-5.2-codex \
+            --allow-all-tools \
+            > codex_fix_output.txt 2>&1 || true
+
+          echo "## 🤖 GPT-5.2-Codex (xhigh) Fix Output" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          head -200 codex_fix_output.txt >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Run tests
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
+        id: tests
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run test:run -- --no-color 2>&1 | tee test_results.txt
+          TEST_EXIT=${PIPESTATUS[0]}
+
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -50 test_results.txt >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+          if [ $TEST_EXIT -eq 0 ]; then
+            echo "test_status=success" >> $GITHUB_OUTPUT
+            echo "test_desc=Tests passed" >> $GITHUB_OUTPUT
+          else
+            echo "test_status=failure" >> $GITHUB_OUTPUT
+            echo "test_desc=Tests failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run lint
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
+        id: lint
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run lint -- --no-color 2>&1 | tee lint_results.txt
+          LINT_EXIT=${PIPESTATUS[0]}
+
+          if [ $LINT_EXIT -eq 0 ]; then
+            echo "lint_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "lint_status=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Clean up work files
+        if: always()
+        run: |
+          rm -f claude_fix_output.txt codex_fix_output.txt fix_prompt.txt critical_issues.txt
+          rm -f review_comments.txt test_results.txt lint_results.txt
+
+      - name: Commit and push fixes
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
+        id: commit
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+
+            TEST_STATUS="${{ steps.tests.outputs.test_status }}"
+            LINT_STATUS="${{ steps.lint.outputs.lint_status }}"
+            FIX_COUNT="${{ steps.check-count.outputs.fix_count }}"
+            MODEL="${{ steps.select-model.outputs.model }}"
+
+            if [ "$TEST_STATUS" != "success" ]; then
+              COMMIT_MSG="fix: apply code review suggestions (tests need review) [attempt $FIX_COUNT, $MODEL]"
+            elif [ "$LINT_STATUS" != "success" ]; then
+              COMMIT_MSG="fix: apply code review suggestions (linting issues) [attempt $FIX_COUNT, $MODEL]"
+            else
+              COMMIT_MSG="fix: apply code review suggestions [attempt $FIX_COUNT, $MODEL]"
+            fi
+
+            git commit -m "$COMMIT_MSG
+
+            Auto-generated by GitHub Actions based on Codex review feedback."
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Re-trigger auto-fix if needed
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
+        run: |
+          # 5回未満であれば、再度auto-fixラベルを追加してループを続ける
+          if [ "$FIX_COUNT" -lt 5 ]; then
+            gh pr edit ${{ github.event.pull_request.number }} \
+              --add-label "auto-fix"
+            echo "🔄 Re-triggered auto-fix (attempt #$FIX_COUNT completed)"
+          fi
+
+      - name: Comment on PR (success)
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEST_STATUS: ${{ steps.tests.outputs.test_status }}
+          LINT_STATUS: ${{ steps.lint.outputs.lint_status }}
+          FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
+          MODEL: ${{ steps.select-model.outputs.model }}
+        run: |
+          STATUS_EMOJI="✅"
+          if [ "$TEST_STATUS" != "success" ] || [ "$LINT_STATUS" != "success" ]; then
+            STATUS_EMOJI="⚠️"
+          fi
+
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "$STATUS_EMOJI **Auto-fix completed ($MODEL)**
+
+            Fixes have been applied and pushed.
+
+            - Attempt: $FIX_COUNT/5
+            - Tests: $TEST_STATUS
+            - Lint: $LINT_STATUS
+
+            The PR update will trigger an automatic re-review.
+
+            ---
+            [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      - name: Comment on PR (no changes)
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.commit.outputs.has_changes == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
+          MODEL: ${{ steps.select-model.outputs.model }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "ℹ️ **Auto-fix: No changes made ($MODEL)**
+
+            AI reviewed the issues but did not make any code changes.
+            This might mean:
+            - The issues require manual review
+            - The changes are already in place
+            - Further clarification is needed
+
+            Please review the issues manually.
+
+            ---
+            [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      - name: Request human review (unfixable)
+        if: steps.check-fixable.outputs.is_fixable == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REVIEW_COMMENT=$(cat review_comments.txt)
+
+          cat > issue_body.md << EOF
+          ## Manual Review Required - Unfixable Issues
+
+          ### Pull Request
+          - PR: #${{ github.event.pull_request.number }}
+          - Title: ${{ github.event.pull_request.title }}
+
+          ### Review Feedback
+          $REVIEW_COMMENT
+
+          ### Why Manual Review?
+          The automated review detected issues that require human intervention:
+          - Major refactoring needed
+          - Design change required
+          - External dependency issue
+          - Breaking change required
+          - Architectural review needed
+          - Requires discussion
+
+          ### Next Steps
+          Please review the PR and apply fixes manually.
+          Once fixed, trigger a new Codex review by pushing changes or adding the `needs-review` label.
+
+          ---
+          Auto-generated by [Auto Apply Review Suggestions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          EOF
+
+          ISSUE_NUMBER=$(gh issue create \
+            --title "Manual Review Required: PR #${{ github.event.pull_request.number }}" \
+            --label "human-review-needed" \
+            --body-file issue_body.md \
+            --jq '.number')
+
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --remove-label "auto-fix"
+
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "❌ **Auto-fix: Issues require manual review**
+
+            The detected issues need human intervention.
+
+          Please review Issue #$ISSUE_NUMBER for details.
+
+          ---
+          [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      - name: Request human review (exceeded attempts)
+        if: steps.check-count.outputs.exceeded_max == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 人間介入依頼のIssueを作成
+          REVIEW_COMMENT=$(cat review_comments.txt)
+
+          cat > issue_body.md << EOF
+          ## Manual Review Required
+
+          Auto-fix attempts have exceeded the maximum (5 attempts).
+
+          ### Pull Request
+          - PR: #${{ github.event.pull_request.number }}
+          - Title: ${{ github.event.pull_request.title }}
+
+          ### Review Feedback
+          $REVIEW_COMMENT
+
+          ### Next Steps
+          Please review the PR and apply fixes manually.
+
+          ---
+          Auto-generated by [Auto Apply Review Suggestions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          EOF
+
+          ISSUE_NUMBER=$(gh issue create \
+            --title "Manual Review Required: PR #${{ github.event.pull_request.number }}" \
+            --label "human-review-needed" \
+            --body-file issue_body.md \
+            --jq '.number')
+
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "❌ **Auto-fix stopped**
+
+          Maximum attempts (5) reached. Human review required.
+
+          Please review Issue #$ISSUE_NUMBER for details.
+
+          ---
+          [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      - name: Comment on PR (no issues)
+        if: steps.extract.outputs.has_critical_issues == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "ℹ️ **Auto-fix: No critical issues found**
+
+            No action needed based on review.
+
+            ---
+            [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"

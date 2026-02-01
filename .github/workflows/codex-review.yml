@@ -24,6 +24,7 @@ concurrency:
 jobs:
   review:
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Copilotレビューのタイムアウト
     # claude-auto ラベルがついたPRのみ（GLM-4.7実装分）
     # 手動PRもレビューしたい場合はこの条件を削除
     if: contains(github.event.pull_request.labels.*.name, 'claude-auto') || contains(github.event.pull_request.labels.*.name, 'needs-review')
@@ -39,9 +40,10 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install GitHub Copilot CLI
         id: install-copilot
@@ -91,7 +93,40 @@ jobs:
             echo "5. **Testing**: Tests exist for new functionality"
             echo ""
             echo "## Output Format"
-            echo "Provide review in Japanese with:"
+            echo ""
+            echo "### JSON Format (machine-readable)"
+            echo "Provide review in the following JSON format first:"
+            echo "\`\`\`json"
+            echo "{"
+            echo "  \"verdict\": \"APPROVE|REQUEST_CHANGES|COMMENT\","
+            echo "  \"summary\": \"Overall assessment (1-2 sentences)\","
+            echo "  \"critical_issues\": ["
+            echo "    {"
+            echo "      \"file\": \"path/to/file.ts\","
+            echo "      \"line\": 123,"
+            echo "      \"description\": \"Issue description\","
+            echo "      \"severity\": \"Critical|Major|Minor\","
+            echo "      \"fixable\": true"
+            echo "    }"
+            echo "  ],"
+            echo "  \"suggestions\": ["
+            echo "    {"
+            echo "      \"file\": \"path/to/file.ts\","
+            echo "      \"description\": \"Suggestion description\""
+            echo "    }"
+            echo "  ],"
+            echo "  \"scores\": {"
+            echo "    \"type_safety\": 5,"
+            echo "    \"architecture\": 5,"
+            echo "    \"performance\": 5,"
+            echo "    \"security\": 5,"
+            echo "    \"testing\": 5"
+            echo "  }"
+            echo "}"
+            echo "\`\`\`"
+            echo ""
+            echo "### Human-Readable Format (comment)"
+            echo "Then provide a human-readable summary in Japanese with:"
             echo "- **Summary**: Overall assessment (1-2 sentences)"
             echo "- **Critical Issues**: Must fix before merge (if any)"
             echo "- **Suggestions**: Nice-to-have improvements (if any)"
@@ -100,30 +135,45 @@ jobs:
 
       - name: Run Codex Review
         if: steps.changed.outputs.has_files == 'true'
+        id: review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN }}
         run: |
           # Copilot CLIでレビュー実行
           # Note: GitHub Actions環境ではCopilotアクセス権のあるトークンが必要
-          if ! command -v copilot &> /dev/null; then
+          REVIEW_AVAILABLE=true
+
+          if [ -z "${COPILOT_TOKEN:-}" ]; then
+            REVIEW_AVAILABLE=false
+            echo "⚠️ COPILOT_TOKEN is not set." > review_result.md
+            echo "" >> review_result.md
+            echo "Copilot CLI requires a token with Copilot access." >> review_result.md
+            echo "Set up a PAT with \`copilot\` scope as \`COPILOT_TOKEN\` secret." >> review_result.md
+          elif ! command -v copilot &> /dev/null; then
+            REVIEW_AVAILABLE=false
             echo "⚠️ Copilot CLI is not available." > review_result.md
             echo "" >> review_result.md
             echo "Copilot CLI requires a token with Copilot access." >> review_result.md
             echo "Set up a PAT with \`copilot\` scope as \`COPILOT_TOKEN\` secret." >> review_result.md
           else
-            copilot -p "$(cat review_prompt.txt)" \
+            if ! copilot -p "$(cat review_prompt.txt)" \
               --model gpt-5.2-codex \
               --allow-all-tools \
-              > review_result.md 2>&1 || true
+              > review_result.md 2>&1; then
+              REVIEW_AVAILABLE=false
+            fi
           fi
 
           # 結果が空の場合のフォールバック
           if [ ! -s review_result.md ]; then
+            REVIEW_AVAILABLE=false
             echo "## Review Result" > review_result.md
             echo "" >> review_result.md
             echo "Codex review could not be completed. Please review manually." >> review_result.md
           fi
+
+          echo "review_available=$REVIEW_AVAILABLE" >> $GITHUB_OUTPUT
 
       - name: Post review comment
         if: steps.changed.outputs.has_files == 'true'
@@ -157,9 +207,77 @@ jobs:
             ---
             > [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-      - name: Add codex-reviewed label
+      - name: Check if auto-fix needed
+        if: steps.changed.outputs.has_files == 'true' && steps.review.outputs.review_available == 'true'
+        id: check-fix
+        run: |
+          if grep -q "REQUEST_CHANGES" review_result.md; then
+            echo "needs_fix=true" >> $GITHUB_OUTPUT
+            echo "Critical issues detected, will trigger auto-fix"
+          elif grep -q "Critical Issues:" review_result.md && grep -A 100 "Critical Issues:" review_result.md | grep -q "^-"; then
+            echo "needs_fix=true" >> $GITHUB_OUTPUT
+            echo "Critical issues found, will trigger auto-fix"
+          else
+            echo "needs_fix=false" >> $GITHUB_OUTPUT
+            echo "No critical issues, no auto-fix needed"
+          fi
+
+      - name: Add labels based on review result
+        if: steps.review.outputs.review_available == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEEDS_FIX: ${{ steps.check-fix.outputs.needs_fix }}
         run: |
           gh pr edit ${{ github.event.pull_request.number }} \
             --add-label "codex-reviewed"
+
+          if [ "$NEEDS_FIX" == "true" ]; then
+            gh pr edit ${{ github.event.pull_request.number }} \
+              --add-label "auto-fix"
+            echo "✅ Added auto-fix label"
+          fi
+
+      - name: Trigger auto-merge
+        if: steps.check-fix.outputs.needs_fix == 'false' && steps.review.outputs.review_available == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          echo "Checking PR #$PR_NUMBER for auto-merge..."
+
+          # まとめてPR情報を取得（効率化）
+          PR_INFO=$(gh pr view $PR_NUMBER --json mergeable,statusCheckRollup -q '.mergeable, .statusCheckRollup[] | select(.conclusion != "success" and .conclusion != null) | {name: .name, conclusion: .conclusion}')
+ 
+          MERGEABLE=$(echo "$PR_INFO" | jq -r '.mergeable // "false"')
+          FAILED_CHECKS=$(echo "$PR_INFO" | jq -r '.statusCheckRollup // [] | length')
+
+          if [ "$FAILED_CHECKS" -eq 0 ]; then
+            echo "All required checks passed, triggering auto-merge..."
+ 
+            if [ "$MERGEABLE" == "true" ]; then
+              gh pr merge $PR_NUMBER \
+                --squash \
+                --subject "Auto-merge after Codex review: ${{ github.event.pull_request.title }}"
+              echo "✅ Auto-merge triggered"
+            else
+              echo "⚠️ PR has conflicts, cannot auto-merge"
+              gh pr comment $PR_NUMBER \
+                --body "ℹ️ **Auto-merge skipped**
+
+                Codex review approved, but PR has conflicts that need to be resolved.
+                Please resolve conflicts and merge manually.
+
+                ---
+                [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            fi
+          else
+            echo "⚠️ Some checks have not passed ($FAILED_CHECKS failed)"
+            gh pr comment $PR_NUMBER \
+              --body "ℹ️ **Auto-merge pending**
+
+              Codex review approved, but some checks have not passed yet ($FAILED_CHECKS failed).
+              Auto-merge will be triggered once all checks pass.
+
+              ---
+              [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          fi

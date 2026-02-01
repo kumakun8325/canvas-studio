@@ -85,7 +85,7 @@ describe('useAuth', () => {
       // Setup
       let authCallback: ((user: User | null) => void) | null = null
       vi.mocked(onAuthStateChanged).mockImplementation((_auth, callback) => {
-        authCallback = callback as any
+        authCallback = callback
         return () => {}
       })
 
@@ -108,7 +108,7 @@ describe('useAuth', () => {
       // Setup
       let authCallback: ((user: User | null) => void) | null = null
       vi.mocked(onAuthStateChanged).mockImplementation((_auth, callback) => {
-        authCallback = callback as any
+        authCallback = callback
         return () => {}
       })
 
@@ -163,7 +163,7 @@ describe('useAuth', () => {
       vi.mocked(onAuthStateChanged).mockImplementation(() => {
         return () => {}
       })
-      vi.mocked(signInWithPopup).mockResolvedValue({ user: mockUser } as any)
+      vi.mocked(signInWithPopup).mockResolvedValue({ user: mockUser } as { user: User })
 
       // Test
       const { result } = renderHook(() => useAuth())
@@ -194,7 +194,7 @@ describe('useAuth', () => {
       await act(async () => {
         try {
           await result.current.signInWithGoogle()
-        } catch (err) {
+        } catch {
           // The hook throws the error after setting it
         }
       })
@@ -240,7 +240,7 @@ describe('useAuth', () => {
       await act(async () => {
         try {
           await result.current.signOut()
-        } catch (err) {
+        } catch {
           // The hook throws the error after setting it
         }
       })

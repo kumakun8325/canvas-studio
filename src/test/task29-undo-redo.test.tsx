@@ -306,7 +306,7 @@ describe("Task 29: Undo/Redo Integration", () => {
       const deletedSlideId = "slide-2";
 
       // Act: スライド削除の履歴を記録
-      let deletedSlide: any = null;
+      const deletedSlide = slides.find((s) => s.id === deletedSlideId);
       act(() => {
         result.current.recordAction({
           type: "slide:deleted",
@@ -323,9 +323,6 @@ describe("Task 29: Undo/Redo Integration", () => {
           },
         });
       });
-
-      // 削除するスライドを保存
-      deletedSlide = slides.find((s) => s.id === deletedSlideId);
 
       // スライドを削除
       act(() => {

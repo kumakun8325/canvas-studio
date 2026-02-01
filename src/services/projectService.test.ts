@@ -11,6 +11,8 @@ import {
   where,
   getDocs,
   deleteDoc,
+  type DocumentReference,
+  type Query,
 } from "firebase/firestore";
 
 // Mock Firebase modules
@@ -68,8 +70,8 @@ describe("projectService", () => {
   describe("saveProject", () => {
     it("should save project to Firestore", async () => {
       // Arrange
-      const mockDocRef = {};
-      vi.mocked(doc).mockReturnValue(mockDocRef as any);
+      const mockDocRef = {} as DocumentReference<Project>;
+      vi.mocked(doc).mockReturnValue(mockDocRef);
       vi.mocked(setDoc).mockResolvedValue(undefined);
 
       // Act
@@ -99,7 +101,7 @@ describe("projectService", () => {
     it("should handle Firestore errors", async () => {
       // Arrange
       const mockError = new Error("Firestore error");
-      vi.mocked(doc).mockReturnValue({} as any);
+      vi.mocked(doc).mockReturnValue({} as DocumentReference<Project>);
       vi.mocked(setDoc).mockRejectedValue(mockError);
 
       // Act & Assert
@@ -110,13 +112,15 @@ describe("projectService", () => {
   describe("loadProject", () => {
     it("should load project from Firestore when it exists", async () => {
       // Arrange
-      const mockDocRef = {};
+      const mockDocRef = {} as DocumentReference<Project>;
       const mockDocSnap = {
         exists: () => true,
         data: () => mockProject,
       };
-      vi.mocked(doc).mockReturnValue(mockDocRef as any);
-      vi.mocked(getDoc).mockResolvedValue(mockDocSnap as any);
+      vi.mocked(doc).mockReturnValue(mockDocRef);
+      vi.mocked(getDoc).mockResolvedValue(
+        mockDocSnap as Awaited<ReturnType<typeof getDoc>>,
+      );
 
       // Act
       const result = await loadProject(mockProjectId);
@@ -137,8 +141,10 @@ describe("projectService", () => {
       const mockDocSnap = {
         exists: () => false,
       };
-      vi.mocked(doc).mockReturnValue(mockDocRef as any);
-      vi.mocked(getDoc).mockResolvedValue(mockDocSnap as any);
+      vi.mocked(doc).mockReturnValue(mockDocRef);
+      vi.mocked(getDoc).mockResolvedValue(
+        mockDocSnap as Awaited<ReturnType<typeof getDoc>>,
+      );
 
       // Act
       const result = await loadProject(mockProjectId);
@@ -150,7 +156,7 @@ describe("projectService", () => {
     it("should handle Firestore errors", async () => {
       // Arrange
       const mockError = new Error("Firestore error");
-      vi.mocked(doc).mockReturnValue({} as any);
+      vi.mocked(doc).mockReturnValue({} as DocumentReference<Project>);
       vi.mocked(getDoc).mockRejectedValue(mockError);
 
       // Act & Assert
@@ -163,8 +169,8 @@ describe("projectService", () => {
   describe("listProjects", () => {
     it("should list all projects for a user", async () => {
       // Arrange
-      const mockCollectionRef = {};
-      const mockQuery = {};
+      const mockCollectionRef = {} as ReturnType<typeof collection>;
+      const mockQuery = {} as Query<Project>;
       const mockQuerySnapshot = {
         docs: [
           {
@@ -172,10 +178,12 @@ describe("projectService", () => {
           },
         ],
       };
-      vi.mocked(collection).mockReturnValue(mockCollectionRef as any);
-      vi.mocked(where).mockReturnValue("ownerId" as any);
-      vi.mocked(query).mockReturnValue(mockQuery as any);
-      vi.mocked(getDocs).mockResolvedValue(mockQuerySnapshot as any);
+      vi.mocked(collection).mockReturnValue(mockCollectionRef);
+      vi.mocked(where).mockReturnValue("ownerId");
+      vi.mocked(query).mockReturnValue(mockQuery);
+      vi.mocked(getDocs).mockResolvedValue(
+        mockQuerySnapshot as Awaited<ReturnType<typeof getDocs>>,
+      );
 
       // Act
       const result = await listProjects(mockUserId);
@@ -190,15 +198,17 @@ describe("projectService", () => {
 
     it("should return empty array when user has no projects", async () => {
       // Arrange
-      const mockCollectionRef = {};
-      const mockQuery = {};
+      const mockCollectionRef = {} as ReturnType<typeof collection>;
+      const mockQuery = {} as Query<Project>;
       const mockQuerySnapshot = {
         docs: [],
       };
-      vi.mocked(collection).mockReturnValue(mockCollectionRef as any);
-      vi.mocked(where).mockReturnValue("ownerId" as any);
-      vi.mocked(query).mockReturnValue(mockQuery as any);
-      vi.mocked(getDocs).mockResolvedValue(mockQuerySnapshot as any);
+      vi.mocked(collection).mockReturnValue(mockCollectionRef);
+      vi.mocked(where).mockReturnValue("ownerId");
+      vi.mocked(query).mockReturnValue(mockQuery);
+      vi.mocked(getDocs).mockResolvedValue(
+        mockQuerySnapshot as Awaited<ReturnType<typeof getDocs>>,
+      );
 
       // Act
       const result = await listProjects(mockUserId);
@@ -210,9 +220,9 @@ describe("projectService", () => {
     it("should handle Firestore errors", async () => {
       // Arrange
       const mockError = new Error("Firestore error");
-      vi.mocked(collection).mockReturnValue({} as any);
-      vi.mocked(where).mockReturnValue("ownerId" as any);
-      vi.mocked(query).mockReturnValue({} as any);
+      vi.mocked(collection).mockReturnValue({} as ReturnType<typeof collection>);
+      vi.mocked(where).mockReturnValue("ownerId");
+      vi.mocked(query).mockReturnValue({} as Query<Project>);
       vi.mocked(getDocs).mockRejectedValue(mockError);
 
       // Act & Assert
@@ -223,8 +233,8 @@ describe("projectService", () => {
   describe("deleteProject", () => {
     it("should delete project from Firestore", async () => {
       // Arrange
-      const mockDocRef = {};
-      vi.mocked(doc).mockReturnValue(mockDocRef as any);
+      const mockDocRef = {} as DocumentReference<Project>;
+      vi.mocked(doc).mockReturnValue(mockDocRef);
       vi.mocked(deleteDoc).mockResolvedValue(undefined);
 
       // Act
@@ -242,7 +252,7 @@ describe("projectService", () => {
     it("should handle Firestore errors", async () => {
       // Arrange
       const mockError = new Error("Firestore error");
-      vi.mocked(doc).mockReturnValue({} as any);
+      vi.mocked(doc).mockReturnValue({} as DocumentReference<Project>);
       vi.mocked(deleteDoc).mockRejectedValue(mockError);
 
       // Act & Assert
@@ -257,7 +267,7 @@ describe("projectService", () => {
       // Arrange
       const title = "New Project";
       const mockDocRef = {};
-      vi.mocked(doc).mockReturnValue(mockDocRef as any);
+      vi.mocked(doc).mockReturnValue(mockDocRef);
       vi.mocked(setDoc).mockResolvedValue(undefined);
 
       // Act
@@ -285,7 +295,7 @@ describe("projectService", () => {
 
     it("should generate unique IDs for each project", async () => {
       // Arrange
-      vi.mocked(doc).mockReturnValue({} as any);
+      vi.mocked(doc).mockReturnValue({} as DocumentReference<Project>);
       vi.mocked(setDoc).mockResolvedValue(undefined);
 
       // Act
@@ -306,7 +316,7 @@ describe("projectService", () => {
 
     it("should create project with initial slide for auto-save", async () => {
       // Arrange
-      vi.mocked(doc).mockReturnValue({} as any);
+      vi.mocked(doc).mockReturnValue({} as DocumentReference<Project>);
       vi.mocked(setDoc).mockResolvedValue(undefined);
 
       // Act
