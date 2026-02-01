@@ -35,11 +35,13 @@ describe('ExportDialog', () => {
     })
 
     it('should pass cmyk option to onExport callback when enabled', async () => {
-      let exportOptions: any = null
-      const captureExport = vi.fn((options) => {
+      let exportOptions: Parameters<typeof mockOnExport>[0] | null = null
+      const captureExport = vi.fn(
+        (options: Parameters<typeof mockOnExport>[0]) => {
         exportOptions = options
         return Promise.resolve()
-      })
+        },
+      )
 
       render(
         <ExportDialog
@@ -90,11 +92,13 @@ describe('ExportDialog', () => {
     })
 
     it('should pass bleed option to onExport callback', async () => {
-      let exportOptions: any = null
-      const captureExport = vi.fn((options) => {
+      let exportOptions: Parameters<typeof mockOnExport>[0] | null = null
+      const captureExport = vi.fn(
+        (options: Parameters<typeof mockOnExport>[0]) => {
         exportOptions = options
         return Promise.resolve()
-      })
+        },
+      )
 
       render(
         <ExportDialog
@@ -145,11 +149,13 @@ describe('ExportDialog', () => {
     })
 
     it('should pass trimMarks option to onExport callback when enabled', async () => {
-      let exportOptions: any = null
-      const captureExport = vi.fn((options) => {
+      let exportOptions: Parameters<typeof mockOnExport>[0] | null = null
+      const captureExport = vi.fn(
+        (options: Parameters<typeof mockOnExport>[0]) => {
         exportOptions = options
         return Promise.resolve()
-      })
+        },
+      )
 
       render(
         <ExportDialog

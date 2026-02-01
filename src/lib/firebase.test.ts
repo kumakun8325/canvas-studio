@@ -2,10 +2,10 @@
  * Firebase initialization tests
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getAuth, connectAuthEmulator } from 'firebase/auth'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
-import { getStorage, connectStorageEmulator } from 'firebase/storage'
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app'
+import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth'
+import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore'
+import { getStorage, connectStorageEmulator, type FirebaseStorage } from 'firebase/storage'
 
 // Mock Firebase modules
 vi.mock('firebase/app', () => ({
@@ -65,9 +65,9 @@ describe('firebase', () => {
       process.env.VITE_FIREBASE_MESSAGING_SENDER_ID = mockConfig.messagingSenderId
       process.env.VITE_FIREBASE_APP_ID = mockConfig.appId
 
-      const mockApp = { name: 'test-app' }
+      const mockApp = { name: 'test-app' } as FirebaseApp
       vi.mocked(getApps).mockReturnValue([])
-      vi.mocked(initializeApp).mockReturnValue(mockApp as any)
+      vi.mocked(initializeApp).mockReturnValue(mockApp)
 
       // Test
       const { initFirebase } = await import('./firebase')
@@ -94,9 +94,9 @@ describe('firebase', () => {
       process.env.VITE_FIREBASE_MESSAGING_SENDER_ID = mockConfig.messagingSenderId
       process.env.VITE_FIREBASE_APP_ID = mockConfig.appId
 
-      const mockExistingApp = { name: 'existing-app' }
-      vi.mocked(getApps).mockReturnValue([mockExistingApp as any])
-      vi.mocked(getApp).mockReturnValue(mockExistingApp as any)
+      const mockExistingApp = { name: 'existing-app' } as FirebaseApp
+      vi.mocked(getApps).mockReturnValue([mockExistingApp])
+      vi.mocked(getApp).mockReturnValue(mockExistingApp)
 
       // Test
       const { initFirebase } = await import('./firebase')
@@ -128,11 +128,11 @@ describe('firebase', () => {
       process.env.VITE_FIREBASE_MESSAGING_SENDER_ID = mockConfig.messagingSenderId
       process.env.VITE_FIREBASE_APP_ID = mockConfig.appId
 
-      const mockApp = { name: 'test-app' }
-      const mockAuth = { currentUser: null }
+      const mockApp = { name: 'test-app' } as FirebaseApp
+      const mockAuth = { currentUser: null } as Auth
       vi.mocked(getApps).mockReturnValue([])
-      vi.mocked(initializeApp).mockReturnValue(mockApp as any)
-      vi.mocked(getAuth as any).mockReturnValue(mockAuth)
+      vi.mocked(initializeApp).mockReturnValue(mockApp)
+      vi.mocked(getAuth).mockReturnValue(mockAuth)
 
       // Test
       const { getAuthInstance } = await import('./firebase')
@@ -153,11 +153,11 @@ describe('firebase', () => {
       process.env.VITE_FIREBASE_MESSAGING_SENDER_ID = mockConfig.messagingSenderId
       process.env.VITE_FIREBASE_APP_ID = mockConfig.appId
 
-      const mockApp = { name: 'test-app' }
-      const mockDb = { type: 'firestore' }
+      const mockApp = { name: 'test-app' } as FirebaseApp
+      const mockDb = { type: 'firestore' } as Firestore
       vi.mocked(getApps).mockReturnValue([])
-      vi.mocked(initializeApp).mockReturnValue(mockApp as any)
-      vi.mocked(getFirestore as any).mockReturnValue(mockDb)
+      vi.mocked(initializeApp).mockReturnValue(mockApp)
+      vi.mocked(getFirestore).mockReturnValue(mockDb)
 
       // Test
       const { getFirestoreInstance } = await import('./firebase')
@@ -178,11 +178,15 @@ describe('firebase', () => {
       process.env.VITE_FIREBASE_MESSAGING_SENDER_ID = mockConfig.messagingSenderId
       process.env.VITE_FIREBASE_APP_ID = mockConfig.appId
 
-      const mockApp = { name: 'test-app' }
-      const mockStorage = { type: 'storage' }
+      const mockApp = { name: 'test-app' } as FirebaseApp
+      const mockStorage = {
+        app: mockApp,
+        maxOperationRetryTime: 0,
+        maxUploadRetryTime: 0,
+      } as FirebaseStorage
       vi.mocked(getApps).mockReturnValue([])
-      vi.mocked(initializeApp).mockReturnValue(mockApp as any)
-      vi.mocked(getStorage as any).mockReturnValue(mockStorage)
+      vi.mocked(initializeApp).mockReturnValue(mockApp)
+      vi.mocked(getStorage).mockReturnValue(mockStorage)
 
       // Test
       const { getStorageInstance } = await import('./firebase')
@@ -204,16 +208,20 @@ describe('firebase', () => {
       process.env.VITE_FIREBASE_APP_ID = mockConfig.appId
       process.env.VITE_FIREBASE_EMULATOR_HOST = 'localhost:9099'
 
-      const mockApp = { name: 'test-app' }
-      const mockAuth = { currentUser: null }
-      const mockDb = { type: 'firestore' }
-      const mockStorage = { type: 'storage' }
+      const mockApp = { name: 'test-app' } as FirebaseApp
+      const mockAuth = { currentUser: null } as Auth
+      const mockDb = { type: 'firestore' } as Firestore
+      const mockStorage = {
+        app: mockApp,
+        maxOperationRetryTime: 0,
+        maxUploadRetryTime: 0,
+      } as FirebaseStorage
 
       vi.mocked(getApps).mockReturnValue([])
-      vi.mocked(initializeApp).mockReturnValue(mockApp as any)
-      vi.mocked(getAuth as any).mockReturnValue(mockAuth)
-      vi.mocked(getFirestore as any).mockReturnValue(mockDb)
-      vi.mocked(getStorage as any).mockReturnValue(mockStorage)
+      vi.mocked(initializeApp).mockReturnValue(mockApp)
+      vi.mocked(getAuth).mockReturnValue(mockAuth)
+      vi.mocked(getFirestore).mockReturnValue(mockDb)
+      vi.mocked(getStorage).mockReturnValue(mockStorage)
 
       // Test
       const { initFirebase } = await import('./firebase')
