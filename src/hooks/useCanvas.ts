@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import * as fabric from "fabric";
 import { useEditorStore } from "../stores/editorStore";
+import { useHistoryStore } from "../stores/historyStore";
 import { useSlideStore } from "../stores/slideStore";
 import { createHistoryAction, useHistory } from "./useHistory";
 
@@ -190,8 +191,9 @@ export function useCanvas(canvasId: string) {
 
     // Auto-save events
     const handleSave = () => {
-      // 内部更新中は保存しない
+      // 内部更新中・Undo/Redo 中は保存しない
       if (slideStateRef.current.isInternalUpdate) return;
+      if (useHistoryStore.getState().isUndoRedoInProgress) return;
 
       const slideId = getCurrentSlideId();
       if (slideId) {
