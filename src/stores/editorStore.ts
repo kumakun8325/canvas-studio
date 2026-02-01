@@ -13,6 +13,9 @@ interface EditorStore extends EditorState {
   isPropertyPanelOpen: boolean
   toggleSlideList: () => void
   togglePropertyPanel: () => void
+  // ダークモード
+  isDarkMode: boolean
+  setDarkMode: (isDark: boolean) => void
 }
 
 export const useEditorStore = create<EditorStore>((set) => ({
@@ -24,6 +27,8 @@ export const useEditorStore = create<EditorStore>((set) => ({
   // デフォルトは両方のパネルを開く
   isSlideListOpen: true,
   isPropertyPanelOpen: true,
+  // ダークモード（デフォルトはライト）
+  isDarkMode: false,
 
   setDarkMode: (isDark) => set({ isDarkMode: isDark }),
   setCurrentSlide: (slideId) => set({ currentSlideId: slideId }),
@@ -32,4 +37,5 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setZoom: (zoom) => set({ zoom }),
   toggleSlideList: () => set((state) => ({ isSlideListOpen: !state.isSlideListOpen })),
   togglePropertyPanel: () => set((state) => ({ isPropertyPanelOpen: !state.isPropertyPanelOpen })),
+  setDarkMode: (isDark) => set({ isDarkMode: isDark }),
 }))
