@@ -9,6 +9,7 @@ import { useToast } from '../hooks/useToast'
 import { TemplateSelector } from '../components/templates/TemplateSelector'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { Spinner } from '../components/ui/Spinner'
+import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { listProjects, deleteProject } from '../services/projectService'
 import type { Project, TemplateType, TemplateConfig } from '../types'
 
@@ -116,13 +117,18 @@ export function Home() {
   // Not logged in - show login button
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md">
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">Canvas Studio</h1>
-          <p className="text-gray-600 mb-8">Create beautiful presentations with ease</p>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        {/* テーマ切り替えボタン（右上固定） */}
+        <div className="fixed top-4 right-4 z-10">
+          <ThemeToggle className="bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-sm" />
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 p-8 rounded-lg shadow-md dark:shadow-gray-900/50 text-center max-w-md">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Canvas Studio</h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-8">Create beautiful presentations with ease</p>
           <button
             onClick={signInWithGoogle}
-            className="inline-flex items-center gap-3 bg-white border border-gray-300 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -144,7 +150,7 @@ export function Home() {
             </svg>
             Sign in with Google
           </button>
-          <p className="text-sm text-gray-500 mt-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
             By signing in, you agree to our Terms of Service and Privacy Policy
           </p>
         </div>
@@ -154,16 +160,17 @@ export function Home() {
 
   // Logged in - show project list
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-white dark:bg-gray-900 shadow-sm dark:shadow-gray-900/50">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Canvas Studio</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Canvas Studio</h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">{user.email}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">{user.email}</span>
+            <ThemeToggle className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700" />
             <button
               onClick={signOut}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             >
               ログアウト
             </button>
@@ -177,7 +184,7 @@ export function Home() {
         <div className="mb-8">
           <button
             onClick={() => setShowTemplateSelector(true)}
-            className="inline-flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors shadow-sm dark:shadow-gray-900/50"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -188,7 +195,7 @@ export function Home() {
 
         {/* Error message */}
         {projectError && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-lg">
             {projectError}
           </div>
         )}
@@ -198,8 +205,8 @@ export function Home() {
           <Spinner message="プロジェクトを読み込み中..." className="py-12" />
         ) : projects.length === 0 ? (
           /* No projects */
-          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-            <div className="text-gray-400 mb-4">
+          <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg shadow-sm dark:shadow-gray-900/50">
+            <div className="text-gray-400 dark:text-gray-500 mb-4">
               <svg
                 className="w-16 h-16 mx-auto"
                 fill="none"
@@ -214,25 +221,25 @@ export function Home() {
                 />
               </svg>
             </div>
-            <p className="text-gray-600 mb-2">プロジェクトがありません</p>
-            <p className="text-sm text-gray-500">
+            <p className="text-gray-600 dark:text-gray-300 mb-2">プロジェクトがありません</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               「新規プロジェクト作成」ボタンから始めましょう
             </p>
           </div>
         ) : (
           /* Project list */
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">マイプロジェクト</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">マイプロジェクト</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {projects.map((project) => (
                 <div
                   key={project.id}
                   onClick={() => handleSelectProject(project)}
-                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                  className="bg-white dark:bg-gray-900 rounded-lg shadow-sm dark:shadow-gray-900/50 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow cursor-pointer group"
                 >
                   {/* Thumbnail placeholder */}
-                  <div className="h-32 bg-gray-100 rounded-t-lg flex items-center justify-center">
-                    <div className="text-gray-400">
+                  <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-t-lg flex items-center justify-center">
+                    <div className="text-gray-400 dark:text-gray-500">
                       <svg
                         className="w-12 h-12"
                         fill="none"
@@ -252,17 +259,17 @@ export function Home() {
                   <div className="p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-800 truncate">{project.title}</h3>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <h3 className="font-medium text-gray-800 dark:text-gray-100 truncate">{project.title}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           {project.slides.length} スライド · {project.template}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                           最終更新: {formatDate(project.updatedAt)}
                         </p>
                       </div>
                       <button
                         onClick={(e) => handleDeleteClick(project.id, e)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-all"
                         title="削除"
                       >
                         <svg
