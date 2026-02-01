@@ -13,8 +13,10 @@ export function useCanvas(canvasId: string) {
     isInternalUpdate: false,
   });
 
-  const { setSelectedObjects } = useEditorStore();
-  const { slides, updateSlide, getTemplateConfig } = useSlideStore();
+  const setSelectedObjects = useEditorStore((s) => s.setSelectedObjects);
+  const slides = useSlideStore((s) => s.slides);
+  const updateSlide = useSlideStore((s) => s.updateSlide);
+  const getTemplateConfig = useSlideStore((s) => s.getTemplateConfig);
   const currentSlideId = useEditorStore((s) => s.currentSlideId);
   const { recordAction } = useHistory();
 
@@ -25,6 +27,9 @@ export function useCanvas(canvasId: string) {
   const serializeCanvas = useCallback((canvas: fabric.Canvas): string => {
     return JSON.stringify(canvas.toJSON());
   }, []);
+
+  // 操作前のキャンバス状態を保持（履歴用）
+  const previousStateRef = useRef<string | null>(null);
 
   const loadCanvasJson = useCallback(
     async (canvas: fabric.Canvas, json: string | null) => {
@@ -63,9 +68,6 @@ export function useCanvas(canvasId: string) {
   useEffect(() => {
     slideStateRef.current.currentSlideId = currentSlideId;
   }, [currentSlideId]);
-
-  // 操作前のキャンバス状態を保持（履歴用）
-  const previousStateRef = useRef<string | null>(null);
 
   // Save current canvas state to slide store
   const saveCanvasToSlide = useCallback(

@@ -33,11 +33,12 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
     const canvas = canvasRef.current
     if (!canvas || !clipboardRef.current) return
 
-    const { objects } = clipboardRef.current
+    // ペースト時にクリップボードデータをスナップショット（後のコピー操作で上書きされないように）
+    const snapshotObjects = clipboardRef.current.objects.map((obj: ClipboardObjectData) => ({ ...obj }))
     const pastedObjectIds: string[] = []
 
     // オフセットを加えてペースト
-    const promises = objects.map((objData: ClipboardObjectData) => {
+    const promises = snapshotObjects.map((objData: ClipboardObjectData) => {
       return new Promise<void>((resolve) => {
         fabric.util.enlivenObjects([objData]).then((results) => {
           const obj = results[0]
@@ -65,6 +66,9 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
         canvas.setActiveObject(lastObject)
       }
 
+      // redo で再利用するために ID をスナップショット
+      const capturedIds = [...pastedObjectIds]
+
       // Undo/Redo履歴を記録
       recordAction(
         createHistoryAction(
@@ -75,7 +79,7 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
             if (!canvas) return
             // ペーストしたオブジェクトを削除
             const objects = canvas.getObjects()
-            pastedObjectIds.forEach((id) => {
+            capturedIds.forEach((id) => {
               const obj = objects.find((o) => o.get('id') === id)
               if (obj) {
                 canvas.remove(obj)
@@ -85,16 +89,16 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
           },
           () => {
             const canvas = canvasRef.current
-            if (!canvas || !clipboardRef.current) return
-            const { objects } = clipboardRef.current
+            if (!canvas) return
 
-            const redoPromises = objects.map((objData: ClipboardObjectData) => {
+            let idIndex = 0
+            const redoPromises = snapshotObjects.map((objData: ClipboardObjectData) => {
               return new Promise<void>((resolve) => {
                 fabric.util.enlivenObjects([objData]).then((results) => {
                   const obj = results[0]
                   if (obj instanceof fabric.FabricObject) {
                     obj.set({
-                      id: crypto.randomUUID(),
+                      id: capturedIds[idIndex++],
                       left: (objData.left ?? 0) + 20,
                       top: (objData.top ?? 0) + 20,
                     })
