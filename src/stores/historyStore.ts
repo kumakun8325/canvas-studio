@@ -6,6 +6,7 @@ interface HistoryStore {
   redoStack: HistoryAction[]
   maxHistory: number
   isUndoRedoInProgress: boolean
+  isBatchOperationInProgress: boolean
 
   push: (action: HistoryAction) => void
   undo: () => void
@@ -13,6 +14,8 @@ interface HistoryStore {
   clear: () => void
   canUndo: () => boolean
   canRedo: () => boolean
+  startBatch: () => void
+  endBatch: () => void
 }
 
 export const useHistoryStore = create<HistoryStore>((set, get) => ({
@@ -20,6 +23,7 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
   redoStack: [],
   maxHistory: 50,
   isUndoRedoInProgress: false,
+  isBatchOperationInProgress: false,
 
   push: (action) =>
     set((state) => {
@@ -74,4 +78,7 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
 
   canUndo: () => get().undoStack.length > 0,
   canRedo: () => get().redoStack.length > 0,
+
+  startBatch: () => set({ isBatchOperationInProgress: true }),
+  endBatch: () => set({ isBatchOperationInProgress: false }),
 }))

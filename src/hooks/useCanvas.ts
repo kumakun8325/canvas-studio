@@ -191,9 +191,10 @@ export function useCanvas(canvasId: string) {
 
     // Auto-save events
     const handleSave = () => {
-      // 内部更新中・Undo/Redo 中は保存しない
+      // 内部更新中・Undo/Redo 中・バッチ操作中は保存しない
       if (slideStateRef.current.isInternalUpdate) return;
-      if (useHistoryStore.getState().isUndoRedoInProgress) return;
+      const historyState = useHistoryStore.getState();
+      if (historyState.isUndoRedoInProgress || historyState.isBatchOperationInProgress) return;
 
       const slideId = getCurrentSlideId();
       if (slideId) {

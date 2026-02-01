@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react'
 import * as fabric from 'fabric'
 import { createHistoryAction, useHistory } from './useHistory'
+import { useHistoryStore } from '../stores/historyStore'
 import type { ClipboardData, ClipboardObjectData } from '../types'
 
 interface UseClipboardReturn {
@@ -36,6 +37,9 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
     // ペースト時にクリップボードデータをスナップショット（後のコピー操作で上書きされないように）
     const snapshotObjects = clipboardRef.current.objects.map((obj: ClipboardObjectData) => ({ ...obj }))
 
+    // バッチ開始: paste 中の canvas auto-save 履歴記録を抑制
+    useHistoryStore.getState().startBatch()
+
     // オフセットを加えてペースト
     const pastedFabricObjects: fabric.FabricObject[] = []
     const promises = snapshotObjects.map((objData: ClipboardObjectData) => {
@@ -57,6 +61,9 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
     })
 
     Promise.all(promises).then(() => {
+      // バッチ終了: auto-save 抑制を解除
+      useHistoryStore.getState().endBatch()
+
       canvas.renderAll()
       // 最後に追加したオブジェクトを選択
       const allObjects = canvas.getObjects()
@@ -68,7 +75,7 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
       // fabric オブジェクト参照を保持（同期的な undo/redo を実現）
       const capturedObjects = [...pastedFabricObjects]
 
-      // Undo/Redo履歴を記録（undo/redo は同期的に実行される）
+      // Undo/Redo履歴を記録（paste のみが1つの履歴エントリとなる）
       recordAction(
         createHistoryAction(
           'paste',
