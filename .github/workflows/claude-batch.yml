@@ -391,7 +391,7 @@ jobs:
         with:
           issue-number: ${{ matrix.issue_number }}
           body: |
-            ✅ **Claude Code completed (Batch Mode)**
+            ✅ **Claude Code completed (Batch Mode)
 
             **Mode**: ${{ inputs.mode == 'tdd' && '🧪 TDD' || '🤖 Auto' }}
             **Branch**: `${{ env.branch_name }}`
@@ -401,6 +401,19 @@ jobs:
 
             ---
             [View Actions Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - name: Trigger CI workflows for PR
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ env.branch_name }}
+        run: |
+          # 空のコミットを作成して pull_request イベントをトリガー
+          # これにより test.yml と codeql.yml が自動実行される
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit --allow-empty -m "chore: Trigger CI workflows"
+          git push origin "$BRANCH_NAME"
 
       - name: Comment on issue (no changes)
         if: steps.commit.outputs.has_changes == 'false'
