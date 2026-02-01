@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useToast } from '../../hooks/useToast'
 import type { ExportOptions } from '../../types'
 
 interface ExportDialogProps {
@@ -14,6 +15,7 @@ export function ExportDialog({
   onExport,
   onClose,
 }: ExportDialogProps) {
+  const { error: showError } = useToast()
   const [format, setFormat] = useState<ExportFormat>('png')
   const [quality, setQuality] = useState(92)
   const [cmyk, setCmyk] = useState(false)
@@ -42,7 +44,7 @@ export function ExportDialog({
       onClose()
     } catch (error) {
       console.error('Export failed:', error)
-      alert('エクスポートに失敗しました')
+      showError('エクスポートに失敗しました')
     } finally {
       setIsExporting(false)
     }
