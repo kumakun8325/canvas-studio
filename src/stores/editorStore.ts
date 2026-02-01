@@ -6,6 +6,11 @@ interface EditorStore extends EditorState {
   setSelectedObjects: (objectIds: string[]) => void
   setActiveTool: (tool: ToolType) => void
   setZoom: (zoom: number) => void
+  // パネルの開閉状態（レスポンシブ対応）
+  isSlideListOpen: boolean
+  isPropertyPanelOpen: boolean
+  toggleSlideList: () => void
+  togglePropertyPanel: () => void
 }
 
 export const useEditorStore = create<EditorStore>((set) => ({
@@ -13,9 +18,14 @@ export const useEditorStore = create<EditorStore>((set) => ({
   selectedObjectIds: [],
   activeTool: 'select',
   zoom: 1,
+  // デフォルトは両方のパネルを開く
+  isSlideListOpen: true,
+  isPropertyPanelOpen: true,
 
   setCurrentSlide: (slideId) => set({ currentSlideId: slideId }),
   setSelectedObjects: (objectIds) => set({ selectedObjectIds: objectIds }),
   setActiveTool: (tool) => set({ activeTool: tool }),
   setZoom: (zoom) => set({ zoom }),
+  toggleSlideList: () => set((state) => ({ isSlideListOpen: !state.isSlideListOpen })),
+  togglePropertyPanel: () => set((state) => ({ isPropertyPanelOpen: !state.isPropertyPanelOpen })),
 }))
