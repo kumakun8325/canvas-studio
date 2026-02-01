@@ -61,7 +61,7 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
     })
 
     Promise.all(promises).then(() => {
-      // バッチ終了: auto-save 抑制を解除
+      // バッチ終了: auto-save 履歴記録の抑制を解除
       useHistoryStore.getState().endBatch()
 
       canvas.renderAll()
@@ -97,6 +97,9 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
           },
         ),
       )
+    }).catch(() => {
+      // エラー時もバッチフラグを確実に解除
+      useHistoryStore.getState().endBatch()
     })
   }, [canvasRef, recordAction])
 

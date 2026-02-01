@@ -191,14 +191,16 @@ export function useCanvas(canvasId: string) {
 
     // Auto-save events
     const handleSave = () => {
-      // 内部更新中・Undo/Redo 中・バッチ操作中は保存しない
+      // 内部更新中・Undo/Redo 中は保存しない
       if (slideStateRef.current.isInternalUpdate) return;
       const historyState = useHistoryStore.getState();
-      if (historyState.isUndoRedoInProgress || historyState.isBatchOperationInProgress) return;
+      if (historyState.isUndoRedoInProgress) return;
 
       const slideId = getCurrentSlideId();
       if (slideId) {
-        saveCanvasToSlide(slideId, true);
+        // バッチ操作中: slideStore は更新するが履歴記録はスキップ
+        const recordHistory = !historyState.isBatchOperationInProgress;
+        saveCanvasToSlide(slideId, recordHistory);
       }
     };
 
