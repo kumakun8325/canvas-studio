@@ -3,6 +3,7 @@ import { useEditorStore } from "../../stores/editorStore";
 import { useSlideStore } from "../../stores/slideStore";
 import { UndoRedoButtons } from "../ui/UndoRedoButtons";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { useTheme } from "../../hooks/useTheme";
 import type { ToolType } from "../../types";
 
 interface CanvasActions {
@@ -32,6 +33,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
 
   // レスポンシブ判定
   const isTablet = useMediaQuery("(max-width: 1023px)");
+  const { isDark, toggleTheme } = useTheme();
 
   const handleBackToHome = () => {
     setCurrentSlide(null);
@@ -96,12 +98,12 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
 
   return (
     <form className="contents" onSubmit={(e) => e.preventDefault()}>
-      <div className="bg-white border-b px-2 lg:px-4 py-2 flex gap-2 items-center justify-between overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-2 lg:px-4 py-2 flex gap-2 items-center justify-between overflow-x-auto">
         <div className="flex gap-1 lg:gap-2 items-center">
           {/* ホームに戻る */}
           <button
             onClick={handleBackToHome}
-            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 hover:bg-gray-200 flex items-center gap-1"
+            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-1"
             title="プロジェクト一覧に戻る"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,17 +113,17 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
 
           {/* プロジェクト名（タブレット以下では非表示） */}
           {project && (
-            <span className="hidden lg:block text-sm font-medium text-gray-700 ml-2">
+            <span className="hidden lg:block text-sm font-medium text-gray-700 dark:text-gray-300 ml-2">
               {project.title}
             </span>
           )}
 
-          <div className="w-px h-6 bg-gray-300 mx-2" />
+          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2" />
 
           {/* 元に戻す/やり直し */}
           <UndoRedoButtons />
 
-          <div className="w-px h-6 bg-gray-300 mx-2" />
+          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2" />
 
           {/* ツール */}
           {tools.map((tool) => (
@@ -131,7 +133,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
               className={`p-2 lg:px-3 lg:py-2 rounded transition-colors ${
                 activeTool === tool.id
                   ? "bg-blue-500 text-white"
-                  : "bg-gray-100 hover:bg-gray-200"
+                  : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
               title={tool.label}
             >
@@ -148,12 +150,12 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
             onChange={handleImageChange}
           />
 
-          <div className="w-px h-6 bg-gray-300 mx-2" />
+          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2" />
 
           {/* レイヤー操作 */}
           <button
             onClick={bringToFront}
-            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
+            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-lg"
             title="最前面に移動"
             aria-label="選択したオブジェクトを最前面に移動"
           >
@@ -161,7 +163,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
           </button>
           <button
             onClick={sendToBack}
-            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
+            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-lg"
             title="最背面に移動"
             aria-label="選択したオブジェクトを最背面に移動"
           >
@@ -174,7 +176,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
           <div className="flex gap-2 items-center">
             <button
               onClick={toggleSlideList}
-              className="p-2 rounded bg-gray-100 hover:bg-gray-200"
+              className="p-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
               title="スライド一覧を開閉"
               aria-label="スライド一覧を開閉"
             >
@@ -182,7 +184,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
             </button>
             <button
               onClick={togglePropertyPanel}
-              className="p-2 rounded bg-gray-100 hover:bg-gray-200"
+              className="p-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
               title="プロパティパネルを開閉"
               aria-label="プロパティパネルを開閉"
             >
@@ -191,12 +193,32 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
           </div>
         )}
 
-        {/* 保存ステータス */}
-        {saveStatus.text && (
-          <div className={`text-xs lg:text-sm ${saveStatus.color} font-medium whitespace-nowrap`}>
-            {saveStatus.text}
-          </div>
-        )}
+        <div className="flex gap-2 items-center">
+          {/* 保存ステータス */}
+          {saveStatus.text && (
+            <div className={`text-xs lg:text-sm ${saveStatus.color} font-medium whitespace-nowrap`}>
+              {saveStatus.text}
+            </div>
+          )}
+
+          {/* テーマ切り替え */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            title={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+            aria-label={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+          >
+            {isDark ? (
+              <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
     </form>
   );

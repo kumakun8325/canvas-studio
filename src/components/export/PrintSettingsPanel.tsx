@@ -22,18 +22,18 @@ export function PrintSettingsPanel({
   onChange,
 }: PrintSettingsPanelProps) {
   return (
-    <div className="border rounded-lg p-4 bg-gray-50">
-      <h3 className="font-medium mb-3">印刷設定（名刺）</h3>
+    <div className="border dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
+      <h3 className="font-medium dark:text-gray-100 mb-3">印刷設定（名刺）</h3>
 
       {/* 塗り足し */}
       <div className="mb-3">
-        <label className="block text-sm font-medium mb-1">塗り足し</label>
+        <label className="block text-sm font-medium dark:text-gray-200 mb-1">塗り足し</label>
         <select
           value={settings.bleed}
           onChange={(e) =>
             onChange({ ...settings, bleed: Number(e.target.value) })
           }
-          className="w-full border rounded px-3 py-2 text-sm"
+          className="w-full border dark:border-gray-600 rounded px-3 py-2 text-sm dark:bg-gray-800 dark:text-gray-100"
         >
           <option value={2}>2mm</option>
           <option value={3}>3mm（標準）</option>
@@ -51,7 +51,7 @@ export function PrintSettingsPanel({
               onChange({ ...settings, trimMarks: e.target.checked })
             }
           />
-          <span className="text-sm">トンボ（裁断マーク）</span>
+          <span className="text-sm dark:text-gray-300">トンボ（裁断マーク）</span>
         </label>
       </div>
 
@@ -65,7 +65,7 @@ export function PrintSettingsPanel({
               onChange({ ...settings, registrationMarks: e.target.checked })
             }
           />
-          <span className="text-sm">レジストレーションマーク</span>
+          <span className="text-sm dark:text-gray-300">レジストレーションマーク</span>
         </label>
       </div>
 
@@ -79,13 +79,13 @@ export function PrintSettingsPanel({
               onChange({ ...settings, cmyk: e.target.checked })
             }
           />
-          <span className="text-sm">CMYK変換（印刷向け）</span>
+          <span className="text-sm dark:text-gray-300">CMYK変換（印刷向け）</span>
         </label>
       </div>
 
       {/* DPI */}
       <div className="mb-3">
-        <label className="block text-sm font-medium mb-1">解像度</label>
+        <label className="block text-sm font-medium dark:text-gray-200 mb-1">解像度</label>
         <div className="flex gap-4">
           <label className="flex items-center gap-1">
             <input
@@ -95,7 +95,7 @@ export function PrintSettingsPanel({
               checked={settings.dpi === 'screen'}
               onChange={() => onChange({ ...settings, dpi: 'screen' })}
             />
-            <span className="text-sm">96 DPI（確認用）</span>
+            <span className="text-sm dark:text-gray-300">96 DPI（確認用）</span>
           </label>
           <label className="flex items-center gap-1">
             <input
@@ -105,13 +105,13 @@ export function PrintSettingsPanel({
               checked={settings.dpi === 'print'}
               onChange={() => onChange({ ...settings, dpi: 'print' })}
             />
-            <span className="text-sm">300 DPI（印刷用）</span>
+            <span className="text-sm dark:text-gray-300">300 DPI（印刷用）</span>
           </label>
         </div>
       </div>
 
       {/* プレビュー */}
-      <div className="mt-4 pt-4 border-t">
+      <div className="mt-4 pt-4 border-t dark:border-gray-600">
         <BleedPreview
           width={BUSINESS_CARD.WIDTH_MM}
           height={BUSINESS_CARD.HEIGHT_MM}
@@ -145,16 +145,16 @@ function BleedPreview({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="text-xs text-gray-500 mb-2">
+      <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
         仕上がり: {width}×{height}mm / 塗り足し込み: {width + bleed * 2}×{height + bleed * 2}mm
       </div>
       <div
-        className="relative border border-gray-300 bg-white"
+        className="relative border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
         style={{ width: totalWidth, height: totalHeight }}
       >
         {/* 塗り足し領域（赤） */}
         <div
-          className="absolute bg-red-100 border border-red-300"
+          className="absolute bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700"
           style={{
             left: 0,
             top: 0,
@@ -214,7 +214,7 @@ function BleedPreview({
           </>
         )}
       </div>
-      <div className="text-xs text-gray-400 mt-1">
+      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         赤: 塗り足し / 青枠: 仕上がり位置
       </div>
     </div>

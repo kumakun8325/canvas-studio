@@ -34,14 +34,14 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-        <h2 className="text-xl font-bold mb-4 text-gray-800">{title}</h2>
-        <p className="text-gray-600 mb-6">{message}</p>
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-40">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+        <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">{title}</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
         <div className="flex justify-end gap-3">
           <button
             onClick={handleCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-gray-300"
           >
             {cancelLabel}
           </button>

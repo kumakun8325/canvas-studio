@@ -25,13 +25,13 @@ jobs:
   review:
     runs-on: ubuntu-latest
     timeout-minutes: 15  # Copilotレビューのタイムアウト
-    # claude-auto ラベルがついたPRのみ（GLM-4.7実装分）
-    # 手動PRもレビューしたい場合はこの条件を削除
-    if: contains(github.event.pull_request.labels.*.name, 'claude-auto') || contains(github.event.pull_request.labels.*.name, 'needs-review')
+    # すべてのPRをレビュー（skip-codex-review ラベルでオプトアウト可能）
+    if: "!contains(github.event.pull_request.labels.*.name, 'skip-codex-review')"
 
     permissions:
       contents: read
       pull-requests: write
+      actions: write
 
     steps:
       - name: Checkout repository
@@ -137,25 +137,24 @@ jobs:
         if: steps.changed.outputs.has_files == 'true'
         id: review
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN }}
+          # Copilot CLI は COPILOT_GITHUB_TOKEN → GH_TOKEN → GITHUB_TOKEN の順で認証を試行
+          # Copilot用PATがあればそちらを優先、なければデフォルトトークンにフォールバック
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           # Copilot CLIでレビュー実行
-          # Note: GitHub Actions環境ではCopilotアクセス権のあるトークンが必要
           REVIEW_AVAILABLE=true
 
-          if [ -z "${COPILOT_TOKEN:-}" ]; then
+          if [ -z "${COPILOT_GITHUB_TOKEN:-}" ]; then
             REVIEW_AVAILABLE=false
-            echo "⚠️ COPILOT_TOKEN is not set." > review_result.md
+            echo "⚠️ No authentication token available." > review_result.md
             echo "" >> review_result.md
             echo "Copilot CLI requires a token with Copilot access." >> review_result.md
-            echo "Set up a PAT with \`copilot\` scope as \`COPILOT_TOKEN\` secret." >> review_result.md
+            echo "Set \`COPILOT_TOKEN\` or \`COPILOT_GITHUB_TOKEN\` secret with a PAT that has copilot scope." >> review_result.md
           elif ! command -v copilot &> /dev/null; then
             REVIEW_AVAILABLE=false
             echo "⚠️ Copilot CLI is not available." > review_result.md
             echo "" >> review_result.md
-            echo "Copilot CLI requires a token with Copilot access." >> review_result.md
-            echo "Set up a PAT with \`copilot\` scope as \`COPILOT_TOKEN\` secret." >> review_result.md
+            echo "Install with: \`npm install -g @github/copilot\`" >> review_result.md
           else
             if ! copilot -p "$(cat review_prompt.txt)" \
               --model gpt-5.2-codex \
@@ -222,7 +221,15 @@ jobs:
             echo "No critical issues, no auto-fix needed"
           fi
 
-      - name: Add labels based on review result
+      - name: Ensure labels exist
+        if: steps.review.outputs.review_available == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "codex-reviewed" --description "Codex Review completed" --color "0e8a16" 2>/dev/null || true
+          gh label create "auto-fix" --description "Auto-fix triggered by review" --color "d93f0b" 2>/dev/null || true
+
+      - name: Add labels and trigger auto-fix
         if: steps.review.outputs.review_available == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -232,9 +239,17 @@ jobs:
             --add-label "codex-reviewed"
 
           if [ "$NEEDS_FIX" == "true" ]; then
+            # ラベル追加（トラッキング用）
             gh pr edit ${{ github.event.pull_request.number }} \
               --add-label "auto-fix"
-            echo "✅ Added auto-fix label"
+
+            # workflow_dispatch で自動修正ワークフローを起動
+            if gh workflow run auto-apply-suggestions.yml \
+              -f pr_number=${{ github.event.pull_request.number }} 2>/dev/null; then
+              echo "✅ Triggered auto-fix workflow via workflow_dispatch"
+            else
+              echo "::warning::workflow_dispatch trigger not available yet (requires merge to main)"
+            fi
           fi
 
       - name: Trigger auto-merge
@@ -245,11 +260,10 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           echo "Checking PR #$PR_NUMBER for auto-merge..."
 
-          # まとめてPR情報を取得（効率化）
-          PR_INFO=$(gh pr view $PR_NUMBER --json mergeable,statusCheckRollup -q '.mergeable, .statusCheckRollup[] | select(.conclusion != "success" and .conclusion != null) | {name: .name, conclusion: .conclusion}')
- 
-          MERGEABLE=$(echo "$PR_INFO" | jq -r '.mergeable // "false"')
-          FAILED_CHECKS=$(echo "$PR_INFO" | jq -r '.statusCheckRollup // [] | length')
+          MERGEABLE=$(gh pr view $PR_NUMBER --json mergeable --jq '.mergeable')
+
+          FAILED_CHECKS=$(gh pr view $PR_NUMBER --json statusCheckRollup \
+            --jq '[.statusCheckRollup[] | select(.conclusion != "SUCCESS" and .conclusion != "SKIPPED" and .conclusion != null and .conclusion != "")] | length')
 
           if [ "$FAILED_CHECKS" -eq 0 ]; then
             echo "All required checks passed, triggering auto-merge..."

@@ -13,7 +13,7 @@ name: Auto Retry Failed
 
 on:
   workflow_run:
-    workflows: ["Codex Review", "Auto Apply Review Suggestions", "Claude Batch Implementation"]
+    workflows: ["Codex Review", "Auto Code Review", "Auto Apply Review Suggestions", "Claude Batch Implementation"]
     types: [completed]
 
 jobs:

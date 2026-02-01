@@ -36,11 +36,11 @@ export class ErrorBoundary extends React.Component<
       const isDev = import.meta.env.DEV
 
       return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-950">
           <div className="max-w-md w-full mx-4">
-            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 text-center">
               {/* Error icon */}
-              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mb-4">
                 <svg
                   className="w-8 h-8 text-red-500"
                   fill="none"
@@ -57,10 +57,10 @@ export class ErrorBoundary extends React.Component<
               </div>
 
               {/* Error message */}
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
                 エラーが発生しました
               </h1>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 予期しないエラーが発生しました。ページをリロードしてください。
               </p>
 
@@ -75,10 +75,10 @@ export class ErrorBoundary extends React.Component<
               {/* Show error details in development */}
               {isDev && this.state.error && (
                 <details className="mt-6 text-left">
-                  <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
+                  <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
                     エラー詳細 (開発モード)
                   </summary>
-                  <div className="mt-2 p-4 bg-red-50 rounded-lg overflow-auto max-h-48">
+                  <div className="mt-2 p-4 bg-red-50 dark:bg-red-950 rounded-lg overflow-auto max-h-48">
                     <p className="text-sm font-mono text-red-800 mb-2">
                       {this.state.error.message}
                     </p>

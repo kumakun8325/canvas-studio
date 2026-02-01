@@ -14,15 +14,21 @@ on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
 
+# 同じPRへの重複実行を防止
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   claude-review:
     # Skip draft PRs
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: read
       pull-requests: write
+      actions: write
     
     steps:
       - name: Checkout repository
@@ -84,6 +90,63 @@ jobs:
 
           gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/review_comment.md
       
+      - name: Check for critical issues
+        if: steps.changed.outputs.files != ''
+        id: check-issues
+        run: |
+          if [ ! -f review_output.txt ]; then
+            echo "needs_fix=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Critical Issues / REQUEST_CHANGES / 🔴 のいずれかがあれば修正が必要
+          if grep -qiE "(Critical Issues|REQUEST_CHANGES|🔴|severity.*critical)" review_output.txt; then
+            echo "needs_fix=true" >> $GITHUB_OUTPUT
+            echo "Critical issues detected in Claude review"
+          else
+            echo "needs_fix=false" >> $GITHUB_OUTPUT
+            echo "No critical issues found"
+          fi
+
+      - name: Ensure labels exist
+        if: steps.changed.outputs.files != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "claude-reviewed" --description "Claude Code Review completed" --color "6f42c1" 2>/dev/null || true
+          gh label create "auto-fix" --description "Auto-fix triggered by review" --color "d93f0b" 2>/dev/null || true
+
+      - name: Trigger auto-fix workflow
+        if: steps.check-issues.outputs.needs_fix == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # ラベル追加（トラッキング用）
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --add-label "auto-fix" \
+            --add-label "claude-reviewed"
+
+          # workflow_dispatch で自動修正ワークフローを起動
+          # Note: GITHUB_TOKEN でのラベル追加は他のワークフローをトリガーしないため
+          # workflow_dispatch を使用（これは例外的にトリガー可能）
+          # Note: workflow_dispatch はデフォルトブランチのワークフロー定義を参照するため
+          # 初回マージ後から有効になる
+          if gh workflow run auto-apply-suggestions.yml \
+            -f pr_number=${{ github.event.pull_request.number }} 2>/dev/null; then
+            echo "Triggered auto-fix workflow via workflow_dispatch"
+          else
+            echo "::warning::workflow_dispatch trigger not available yet (requires merge to main)"
+            echo "auto-fix label has been added for manual triggering"
+          fi
+
+      - name: Add reviewed label (no issues)
+        if: steps.changed.outputs.files != '' && steps.check-issues.outputs.needs_fix == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --add-label "claude-reviewed"
+
       - name: No files to review
         if: steps.changed.outputs.files == ''
         run: echo "No files to review"

@@ -42,9 +42,9 @@ export function TemplateSelector({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
-        <h2 className="text-xl font-bold mb-4">テンプレートを選択</h2>
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg">
+        <h2 className="text-xl font-bold dark:text-gray-100 mb-4">テンプレートを選択</h2>
 
         {/* テンプレート一覧 */}
         <div className="grid grid-cols-2 gap-3 mb-4">
@@ -56,13 +56,13 @@ export function TemplateSelector({
                 p-4 border rounded-lg text-left transition-all
                 ${
                   selectedTemplate === template
-                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 ring-2 ring-blue-500'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                 }
               `}
             >
-              <div className="font-medium">{TEMPLATE_LABELS[template]}</div>
-              <div className="text-sm text-gray-500">
+              <div className="font-medium dark:text-gray-100">{TEMPLATE_LABELS[template]}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {TEMPLATE_DESCRIPTIONS[template]}
               </div>
             </button>
@@ -71,29 +71,29 @@ export function TemplateSelector({
 
         {/* カスタムサイズ入力 */}
         {selectedTemplate === 'custom' && (
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-            <div className="text-sm font-medium mb-2">カスタムサイズ (px)</div>
+          <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm font-medium dark:text-gray-100 mb-2">カスタムサイズ (px)</div>
             <div className="flex gap-4">
               <div>
-                <label className="text-xs text-gray-500">幅</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">幅</label>
                 <input
                   type="number"
                   value={customWidth}
                   onChange={(e) => setCustomWidth(Number(e.target.value))}
                   min={100}
                   max={4096}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-800 dark:text-gray-100"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">高さ</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">高さ</label>
                 <input
                   type="number"
                   value={customHeight}
                   onChange={(e) => setCustomHeight(Number(e.target.value))}
                   min={100}
                   max={4096}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-800 dark:text-gray-100"
                 />
               </div>
             </div>
@@ -121,7 +121,7 @@ export function TemplateSelector({
           {onCancel && (
             <button
               onClick={onCancel}
-              className="px-4 py-2 border rounded hover:bg-gray-50"
+              className="px-4 py-2 border dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
             >
               キャンセル
             </button>
@@ -147,13 +147,13 @@ function TemplatePreview({ width, height }: { width: number; height: number }) {
 
   return (
     <div
-      className="border-2 border-gray-300 bg-white shadow-sm"
+      className="border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm"
       style={{
         width: previewWidth,
         height: previewHeight,
       }}
     >
-      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
         {width} x {height}
       </div>
     </div>

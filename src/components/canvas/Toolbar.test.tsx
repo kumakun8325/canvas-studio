@@ -16,6 +16,16 @@ import { useEditorStore } from '../../stores/editorStore'
 // Mock the useEditorStore
 vi.mock('../../stores/editorStore')
 
+// Mock the useTheme hook
+vi.mock('../../hooks/useTheme', () => ({
+  useTheme: () => ({
+    isDark: false,
+    themeMode: 'system' as const,
+    setThemeMode: vi.fn(),
+    toggleTheme: vi.fn(),
+  }),
+}))
+
 describe('Toolbar - Issue #75: レイヤー操作ボタンのUI改善', () => {
   const mockCanvasActions = {
     addRect: vi.fn(),
@@ -227,15 +237,16 @@ describe('Toolbar - Issue #75: レイヤー操作ボタンのUI改善', () => {
     })
 
     it('should not display status when no save info is provided', () => {
-      const { container } = render(
+      render(
         <Toolbar
           canvasActions={mockCanvasActions}
         />
       )
 
-      // 保存ステータス要素が存在しないことを確認
-      const statusDiv = container.querySelector('.text-green-600, .text-gray-600, .text-red-600')
-      expect(statusDiv).toBeNull()
+      // 保存ステータステキストが表示されていないことを確認
+      expect(screen.queryByText('保存中...')).toBeNull()
+      expect(screen.queryByText(/保存済み/)).toBeNull()
+      expect(screen.queryByText('保存エラー')).toBeNull()
     })
   })
 })

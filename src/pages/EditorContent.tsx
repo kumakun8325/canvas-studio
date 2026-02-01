@@ -55,7 +55,7 @@ export function EditorContent() {
   }, [project, currentSlideId]);
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-white dark:bg-gray-900">
       <Toolbar
         canvasActions={canvasActions}
         isSaving={isSaving}

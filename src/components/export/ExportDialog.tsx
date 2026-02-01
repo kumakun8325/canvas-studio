@@ -51,13 +51,13 @@ export function ExportDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">エクスポート</h2>
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+        <h2 className="text-xl font-bold dark:text-gray-100 mb-4">エクスポート</h2>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">出力形式</label>
-          <div className="space-y-2">
+          <label className="block text-sm font-medium dark:text-gray-200 mb-2">出力形式</label>
+          <div className="space-y-2 dark:text-gray-300">
             <label className="flex items-center gap-2">
               <input
                 type="radio"
@@ -93,7 +93,7 @@ export function ExportDialog({
 
         {format === 'jpeg' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium dark:text-gray-200 mb-2">
               品質: {quality}%
             </label>
             <input
@@ -109,7 +109,7 @@ export function ExportDialog({
 
         {format === 'pdf' && (
           <div className="mb-4 space-y-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 dark:text-gray-300">
               <input
                 type="checkbox"
                 id="cmyk"
@@ -123,7 +123,7 @@ export function ExportDialog({
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium dark:text-gray-200 mb-2">
                 塗り足し（bleed）: {bleed}mm
               </label>
               <input
@@ -135,12 +135,12 @@ export function ExportDialog({
                 onChange={(e) => setBleed(Number(e.target.value))}
                 className="w-full"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 印刷時の断ち落としを考慮した余白
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 dark:text-gray-300">
               <input
                 type="checkbox"
                 id="trimMarks"
@@ -159,7 +159,7 @@ export function ExportDialog({
           <button
             onClick={onClose}
             disabled={isExporting}
-            className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
+            className="px-4 py-2 border dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 disabled:opacity-50"
           >
             キャンセル
           </button>
