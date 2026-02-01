@@ -260,11 +260,10 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           echo "Checking PR #$PR_NUMBER for auto-merge..."
 
-          # まとめてPR情報を取得（効率化）
-          PR_INFO=$(gh pr view $PR_NUMBER --json mergeable,statusCheckRollup -q '.mergeable, .statusCheckRollup[] | select(.conclusion != "success" and .conclusion != null) | {name: .name, conclusion: .conclusion}')
- 
-          MERGEABLE=$(echo "$PR_INFO" | jq -r '.mergeable // "false"')
-          FAILED_CHECKS=$(echo "$PR_INFO" | jq -r '.statusCheckRollup // [] | length')
+          MERGEABLE=$(gh pr view $PR_NUMBER --json mergeable --jq '.mergeable')
+
+          FAILED_CHECKS=$(gh pr view $PR_NUMBER --json statusCheckRollup \
+            --jq '[.statusCheckRollup[] | select(.conclusion != "SUCCESS" and .conclusion != "SKIPPED" and .conclusion != null and .conclusion != "")] | length')
 
           if [ "$FAILED_CHECKS" -eq 0 ]; then
             echo "All required checks passed, triggering auto-merge..."
