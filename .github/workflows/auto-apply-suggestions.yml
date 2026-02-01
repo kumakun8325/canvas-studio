@@ -196,7 +196,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr edit ${{ env.PR_NUMBER }} \
-            --remove-label "auto-fix"
+            --remove-label "auto-fix" 2>/dev/null || true
 
       - name: Add attempt label
         if: steps.check-count.outputs.exceeded_max == 'false'
@@ -205,6 +205,7 @@ jobs:
           FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
         run: |
           ATTEMPT_LABEL="auto-fix-attempt-$FIX_COUNT"
+          gh label create "$ATTEMPT_LABEL" --description "Auto-fix attempt $FIX_COUNT" --color "fbca04" 2>/dev/null || true
           gh pr edit ${{ env.PR_NUMBER }} \
             --add-label "$ATTEMPT_LABEL"
 

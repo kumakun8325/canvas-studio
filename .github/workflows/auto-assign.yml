@@ -108,6 +108,14 @@ jobs:
             echo "No critical issues found"
           fi
 
+      - name: Ensure labels exist
+        if: steps.changed.outputs.files != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "claude-reviewed" --description "Claude Code Review completed" --color "6f42c1" 2>/dev/null || true
+          gh label create "auto-fix" --description "Auto-fix triggered by review" --color "d93f0b" 2>/dev/null || true
+
       - name: Trigger auto-fix workflow
         if: steps.check-issues.outputs.needs_fix == 'true'
         env:
