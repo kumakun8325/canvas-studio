@@ -193,6 +193,29 @@ jobs:
 
           gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/codex_review_comment.md
 
+      - name: Submit formal PR review
+        if: steps.changed.outputs.has_files == 'true' && steps.review.outputs.review_available == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+
+          if grep -q "REQUEST_CHANGES" review_result.md; then
+            VERDICT="REQUEST_CHANGES"
+          elif grep -q "Critical Issues:" review_result.md && grep -A 100 "Critical Issues:" review_result.md | grep -q "^-"; then
+            VERDICT="REQUEST_CHANGES"
+          else
+            VERDICT="APPROVE"
+          fi
+
+          if [ "$VERDICT" == "REQUEST_CHANGES" ]; then
+            gh pr review "$PR_NUMBER" --request-changes \
+              --body "GPT-5.2-Codex review detected critical issues. See the review comment for details."
+          else
+            gh pr review "$PR_NUMBER" --approve \
+              --body "GPT-5.2-Codex review passed. No critical issues found."
+          fi
+
       - name: Post skip message
         if: steps.changed.outputs.has_files == 'false'
         uses: peter-evans/create-or-update-comment@v4
