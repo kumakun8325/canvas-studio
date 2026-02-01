@@ -137,25 +137,24 @@ jobs:
         if: steps.changed.outputs.has_files == 'true'
         id: review
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN }}
+          # Copilot CLI は COPILOT_GITHUB_TOKEN → GH_TOKEN → GITHUB_TOKEN の順で認証を試行
+          # Copilot用PATがあればそちらを優先、なければデフォルトトークンにフォールバック
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           # Copilot CLIでレビュー実行
-          # Note: GitHub Actions環境ではCopilotアクセス権のあるトークンが必要
           REVIEW_AVAILABLE=true
 
-          if [ -z "${COPILOT_TOKEN:-}" ]; then
+          if [ -z "${COPILOT_GITHUB_TOKEN:-}" ]; then
             REVIEW_AVAILABLE=false
-            echo "⚠️ COPILOT_TOKEN is not set." > review_result.md
+            echo "⚠️ No authentication token available." > review_result.md
             echo "" >> review_result.md
             echo "Copilot CLI requires a token with Copilot access." >> review_result.md
-            echo "Set up a PAT with \`copilot\` scope as \`COPILOT_TOKEN\` secret." >> review_result.md
+            echo "Set \`COPILOT_TOKEN\` or \`COPILOT_GITHUB_TOKEN\` secret with a PAT that has copilot scope." >> review_result.md
           elif ! command -v copilot &> /dev/null; then
             REVIEW_AVAILABLE=false
             echo "⚠️ Copilot CLI is not available." > review_result.md
             echo "" >> review_result.md
-            echo "Copilot CLI requires a token with Copilot access." >> review_result.md
-            echo "Set up a PAT with \`copilot\` scope as \`COPILOT_TOKEN\` secret." >> review_result.md
+            echo "Install with: \`npm install -g @github/copilot\`" >> review_result.md
           else
             if ! copilot -p "$(cat review_prompt.txt)" \
               --model gpt-5.2-codex \

@@ -266,8 +266,7 @@ jobs:
       - name: Apply fixes via GPT-5.2-Codex (medium, 2nd attempt)
         if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count == '2'
         env:
-          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           cat > fix_prompt.txt << EOF
           以下のレビュー指摘に基づいて、コードを修正してください。
@@ -306,8 +305,7 @@ jobs:
       - name: Apply fixes via GPT-5.2-Codex (xhigh, 3rd+ attempt)
         if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count >= '3'
         env:
-          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           cat > fix_prompt.txt << EOF
           以下のレビュー指摘に基づいて、コードを修正してください。
