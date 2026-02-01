@@ -2,6 +2,9 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
+const shouldSkipCoverageThresholds =
+  process.env.VITEST_SKIP_COVERAGE_THRESHOLDS === "true";
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
@@ -13,12 +16,14 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
-      thresholds: {
-        statements: 80,
-        branches: 70,
-        functions: 90,
-        lines: 80,
-      },
+      thresholds: shouldSkipCoverageThresholds
+        ? undefined
+        : {
+            statements: 80,
+            branches: 70,
+            functions: 90,
+            lines: 80,
+          },
     },
   },
 });

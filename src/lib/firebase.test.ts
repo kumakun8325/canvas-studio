@@ -179,7 +179,11 @@ describe('firebase', () => {
       process.env.VITE_FIREBASE_APP_ID = mockConfig.appId
 
       const mockApp = { name: 'test-app' } as FirebaseApp
-      const mockStorage = { type: 'storage' } as FirebaseStorage
+      const mockStorage = {
+        app: mockApp,
+        maxOperationRetryTime: 0,
+        maxUploadRetryTime: 0,
+      } as FirebaseStorage
       vi.mocked(getApps).mockReturnValue([])
       vi.mocked(initializeApp).mockReturnValue(mockApp)
       vi.mocked(getStorage).mockReturnValue(mockStorage)
@@ -207,7 +211,11 @@ describe('firebase', () => {
       const mockApp = { name: 'test-app' } as FirebaseApp
       const mockAuth = { currentUser: null } as Auth
       const mockDb = { type: 'firestore' } as Firestore
-      const mockStorage = { type: 'storage' } as FirebaseStorage
+      const mockStorage = {
+        app: mockApp,
+        maxOperationRetryTime: 0,
+        maxUploadRetryTime: 0,
+      } as FirebaseStorage
 
       vi.mocked(getApps).mockReturnValue([])
       vi.mocked(initializeApp).mockReturnValue(mockApp)
