@@ -95,3 +95,6 @@ export interface ObjectProperties {
   strokeWidth?: number
   opacity: number
 }
+
+// Theme mode
+export type ThemeMode = 'light' | 'dark' | 'system'
