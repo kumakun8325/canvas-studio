@@ -2,24 +2,66 @@ import { useEffect, useRef, useCallback } from "react";
 import * as fabric from "fabric";
 import { useEditorStore } from "../stores/editorStore";
 import { useSlideStore } from "../stores/slideStore";
-import { useHistory } from "./useHistory";
+import { createHistoryAction, useHistory } from "./useHistory";
 
 export function useCanvas(canvasId: string) {
   const canvasRef = useRef<fabric.Canvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const previousSlideIdRef = useRef<string | null>(null);
-  const currentSlideIdRef = useRef<string | null>(null);
-  // 内部更新中かどうかを判定するフラグ（イベントループ防止）
-  const isInternalUpdateRef = useRef(false);
+  const slideStateRef = useRef({
+    previousSlideId: null as string | null,
+    currentSlideId: null as string | null,
+    isInternalUpdate: false,
+  });
 
   const { setSelectedObjects } = useEditorStore();
   const { slides, updateSlide, getTemplateConfig } = useSlideStore();
   const currentSlideId = useEditorStore((s) => s.currentSlideId);
   const { recordAction } = useHistory();
 
+  const setInternalUpdate = useCallback((value: boolean) => {
+    slideStateRef.current.isInternalUpdate = value;
+  }, []);
+
+  const serializeCanvas = useCallback((canvas: fabric.Canvas): string => {
+    return JSON.stringify(canvas.toJSON());
+  }, []);
+
+  const loadCanvasJson = useCallback(
+    async (canvas: fabric.Canvas, json: string | null) => {
+      setInternalUpdate(true);
+      try {
+        if (json && json !== "{}") {
+          const parsed = JSON.parse(json);
+          await canvas.loadFromJSON(parsed);
+        }
+      } catch (error) {
+        console.error("Failed to load canvas state:", error);
+      } finally {
+        canvas.renderAll();
+        setInternalUpdate(false);
+      }
+    },
+    [setInternalUpdate],
+  );
+
+  const applyCanvasJson = useCallback(
+    (json: string) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      previousStateRef.current = json;
+      void loadCanvasJson(canvas, json);
+    },
+    [loadCanvasJson],
+  );
+
+  const getCurrentSlideId = useCallback(() => {
+    return slideStateRef.current.currentSlideId;
+  }, []);
+
   // currentSlideId の最新値を ref に保持
   useEffect(() => {
-    currentSlideIdRef.current = currentSlideId;
+    slideStateRef.current.currentSlideId = currentSlideId;
   }, [currentSlideId]);
 
   // 操作前のキャンバス状態を保持（履歴用）
@@ -31,8 +73,7 @@ export function useCanvas(canvasId: string) {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      // Use toJSON to save the canvas state
-      const json = JSON.stringify(canvas.toJSON());
+      const json = serializeCanvas(canvas);
 
       // 履歴を記録（recordHistory が true の場合）
       if (recordHistory && previousStateRef.current !== null) {
@@ -40,36 +81,20 @@ export function useCanvas(canvasId: string) {
 
         // 状態が実際に変更された場合のみ履歴に記録
         if (previousJson !== json) {
-          recordAction({
-            type: "canvas:modified",
-            description: "キャンバス操作",
-            undo: () => {
-              isInternalUpdateRef.current = true;
-              updateSlide(slideId, previousJson);
-              // キャンバスに反映
-              const canvas = canvasRef.current;
-              if (canvas) {
-                canvas.loadFromJSON(JSON.parse(previousJson)).then(() => {
-                  canvas.renderAll();
-                  previousStateRef.current = previousJson;
-                  isInternalUpdateRef.current = false;
-                });
-              }
-            },
-            redo: () => {
-              isInternalUpdateRef.current = true;
-              updateSlide(slideId, json);
-              // キャンバスに反映
-              const canvas = canvasRef.current;
-              if (canvas) {
-                canvas.loadFromJSON(JSON.parse(json)).then(() => {
-                  canvas.renderAll();
-                  previousStateRef.current = json;
-                  isInternalUpdateRef.current = false;
-                });
-              }
-            },
-          });
+          recordAction(
+            createHistoryAction(
+              "canvas:modified",
+              "キャンバス操作",
+              () => {
+                updateSlide(slideId, previousJson);
+                applyCanvasJson(previousJson);
+              },
+              () => {
+                updateSlide(slideId, json);
+                applyCanvasJson(json);
+              },
+            ),
+          );
         }
       }
 
@@ -77,7 +102,7 @@ export function useCanvas(canvasId: string) {
       updateSlide(slideId, json);
       previousStateRef.current = json;
     },
-    [updateSlide, recordAction],
+    [updateSlide, recordAction, serializeCanvas, applyCanvasJson],
   );
 
   // Load canvas state from slide store
@@ -93,32 +118,12 @@ export function useCanvas(canvasId: string) {
       canvas.clear();
       canvas.backgroundColor = "#ffffff";
 
-      // 内部更新開始
-      isInternalUpdateRef.current = true;
-
-      // If there is saved JSON, load it
-      if (slide.canvasJson && slide.canvasJson !== "{}") {
-        try {
-          const json = JSON.parse(slide.canvasJson);
-          canvas.loadFromJSON(json).then(() => {
-            canvas.renderAll();
-            isInternalUpdateRef.current = false;
-          });
-        } catch (e) {
-          console.error("Failed to load canvas state:", e);
-          canvas.renderAll();
-          isInternalUpdateRef.current = false;
-        }
-      } else {
-        // Empty canvas (default background)
-        canvas.renderAll();
-        isInternalUpdateRef.current = false;
-      }
-
       // 読み込んだ状態を記録（履歴用のベースライン）
       previousStateRef.current = slide.canvasJson;
+      void loadCanvasJson(canvas, slide.canvasJson);
+
     },
-    [slides],
+    [slides, loadCanvasJson],
   );
 
   // Handle slide switching
@@ -127,17 +132,17 @@ export function useCanvas(canvasId: string) {
 
     // 1. Save state of the previous slide before switching (履歴記録なし)
     if (
-      previousSlideIdRef.current &&
-      previousSlideIdRef.current !== currentSlideId
+      slideStateRef.current.previousSlideId &&
+      slideStateRef.current.previousSlideId !== currentSlideId
     ) {
-      saveCanvasToSlide(previousSlideIdRef.current, false);
+      saveCanvasToSlide(slideStateRef.current.previousSlideId, false);
     }
 
     // 2. Load state of the new slide
     loadCanvasFromSlide(currentSlideId);
 
     // 3. Update previous ID
-    previousSlideIdRef.current = currentSlideId;
+    slideStateRef.current.previousSlideId = currentSlideId;
   }, [currentSlideId]); // Dependencies intentionally limited to avoid loops on save
 
   // Initialize canvas
@@ -162,9 +167,9 @@ export function useCanvas(canvasId: string) {
 
     canvasRef.current = canvas;
 
-    // Initialize previousSlideIdRef
+    // Initialize previousSlideId
     if (currentSlideId) {
-      previousSlideIdRef.current = currentSlideId;
+      slideStateRef.current.previousSlideId = currentSlideId;
       // Also try to load initial state if available
       loadCanvasFromSlide(currentSlideId);
     }
@@ -184,9 +189,9 @@ export function useCanvas(canvasId: string) {
     // Auto-save events
     const handleSave = () => {
       // 内部更新中は保存しない
-      if (isInternalUpdateRef.current) return;
+      if (slideStateRef.current.isInternalUpdate) return;
 
-      const slideId = currentSlideIdRef.current;
+      const slideId = getCurrentSlideId();
       if (slideId) {
         saveCanvasToSlide(slideId, true);
       }
@@ -359,45 +364,39 @@ export function useCanvas(canvasId: string) {
       const active = canvas.getActiveObject();
       if (!active) return;
 
-      const slideId = currentSlideIdRef.current;
+      const slideId = getCurrentSlideId();
       if (!slideId) return;
 
       // 操作前の状態を保存
-      const beforeJson = JSON.stringify(canvas.toJSON());
+      const beforeJson = serializeCanvas(canvas);
 
       // 操作を実行
       operation(canvas, active);
 
       // 操作後の状態を保存
-      const afterJson = JSON.stringify(canvas.toJSON());
+      const afterJson = serializeCanvas(canvas);
 
       // 履歴を記録
-      recordAction({
-        type: actionType,
-        description,
-        undo: () => {
-          isInternalUpdateRef.current = true;
-          updateSlide(slideId, beforeJson);
-          canvas.loadFromJSON(JSON.parse(beforeJson)).then(() => {
-            canvas.renderAll();
-            isInternalUpdateRef.current = false;
-          });
-        },
-        redo: () => {
-          isInternalUpdateRef.current = true;
-          updateSlide(slideId, afterJson);
-          canvas.loadFromJSON(JSON.parse(afterJson)).then(() => {
-            canvas.renderAll();
-            isInternalUpdateRef.current = false;
-          });
-        },
-      });
+      recordAction(
+        createHistoryAction(
+          actionType,
+          description,
+          () => {
+            updateSlide(slideId, beforeJson);
+            applyCanvasJson(beforeJson);
+          },
+          () => {
+            updateSlide(slideId, afterJson);
+            applyCanvasJson(afterJson);
+          },
+        ),
+      );
 
       // スライドを更新
       updateSlide(slideId, afterJson);
       previousStateRef.current = afterJson;
     },
-    [updateSlide, recordAction],
+    [updateSlide, recordAction, serializeCanvas, applyCanvasJson, getCurrentSlideId],
   );
 
   // Layer operations

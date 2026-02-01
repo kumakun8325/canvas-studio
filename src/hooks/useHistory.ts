@@ -2,6 +2,15 @@ import { useCallback, useEffect } from 'react'
 import { useHistoryStore } from '../stores/historyStore'
 import type { HistoryAction } from '../types'
 
+export function createHistoryAction(
+  type: HistoryAction['type'],
+  description: HistoryAction['description'],
+  undo: HistoryAction['undo'],
+  redo: HistoryAction['redo'],
+): HistoryAction {
+  return { type, description, undo, redo }
+}
+
 export function useHistory() {
   const { push, undo, redo, canUndo, canRedo, clear } = useHistoryStore()
 
