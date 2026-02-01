@@ -23,6 +23,8 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
 
   push: (action) =>
     set((state) => {
+      // undo/redo 中に発火した自動保存による二重記録を防止
+      if (state.isUndoRedoInProgress) return state
       const newUndoStack = [...state.undoStack, action]
       // スタックサイズを制限
       if (newUndoStack.length > state.maxHistory) {
