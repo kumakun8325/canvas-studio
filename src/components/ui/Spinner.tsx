@@ -33,7 +33,7 @@ export function Spinner({
           <span className="sr-only">{message}</span>
         </div>
         {showMessage && (
-          <p className="mt-4 text-gray-600">{message}</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">{message}</p>
         )}
       </div>
     </div>
