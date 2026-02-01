@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { useEditorStore } from "../../stores/editorStore";
 import { useSlideStore } from "../../stores/slideStore";
 import { UndoRedoButtons } from "../ui/UndoRedoButtons";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import type { ToolType } from "../../types";
 
 interface CanvasActions {
@@ -25,8 +26,12 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
   const activeTool = useEditorStore((state) => state.activeTool);
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
   const setCurrentSlide = useEditorStore((state) => state.setCurrentSlide);
+  const { toggleSlideList, togglePropertyPanel } = useEditorStore();
   const { project, clearProject } = useSlideStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // レスポンシブ判定
+  const isTablet = useMediaQuery("(max-width: 1023px)");
 
   const handleBackToHome = () => {
     setCurrentSlide(null);
@@ -91,12 +96,12 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
 
   return (
     <form className="contents" onSubmit={(e) => e.preventDefault()}>
-      <div className="bg-white border-b px-4 py-2 flex gap-2 items-center justify-between">
-        <div className="flex gap-2 items-center">
+      <div className="bg-white border-b px-2 lg:px-4 py-2 flex gap-2 items-center justify-between overflow-x-auto">
+        <div className="flex gap-1 lg:gap-2 items-center">
           {/* ホームに戻る */}
           <button
             onClick={handleBackToHome}
-            className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 flex items-center gap-1"
+            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 hover:bg-gray-200 flex items-center gap-1"
             title="プロジェクト一覧に戻る"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,9 +109,9 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
             </svg>
           </button>
 
-          {/* プロジェクト名 */}
+          {/* プロジェクト名（タブレット以下では非表示） */}
           {project && (
-            <span className="text-sm font-medium text-gray-700 ml-2">
+            <span className="hidden lg:block text-sm font-medium text-gray-700 ml-2">
               {project.title}
             </span>
           )}
@@ -123,7 +128,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
             <button
               key={tool.id}
               onClick={() => handleToolClick(tool.id)}
-              className={`px-3 py-2 rounded transition-colors ${
+              className={`p-2 lg:px-3 lg:py-2 rounded transition-colors ${
                 activeTool === tool.id
                   ? "bg-blue-500 text-white"
                   : "bg-gray-100 hover:bg-gray-200"
@@ -148,7 +153,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
           {/* レイヤー操作 */}
           <button
             onClick={bringToFront}
-            className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
+            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
             title="最前面に移動"
             aria-label="選択したオブジェクトを最前面に移動"
           >
@@ -156,7 +161,7 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
           </button>
           <button
             onClick={sendToBack}
-            className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
+            className="p-2 lg:px-3 lg:py-2 rounded bg-gray-100 hover:bg-gray-200 text-lg"
             title="最背面に移動"
             aria-label="選択したオブジェクトを最背面に移動"
           >
@@ -164,9 +169,31 @@ export function Toolbar({ canvasActions, isSaving = false, lastSaved = null, sav
           </button>
         </div>
 
+        {/* パネル開閉ボタン（タブレット以下で表示） */}
+        {isTablet && (
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={toggleSlideList}
+              className="p-2 rounded bg-gray-100 hover:bg-gray-200"
+              title="スライド一覧を開閉"
+              aria-label="スライド一覧を開閉"
+            >
+              📋
+            </button>
+            <button
+              onClick={togglePropertyPanel}
+              className="p-2 rounded bg-gray-100 hover:bg-gray-200"
+              title="プロパティパネルを開閉"
+              aria-label="プロパティパネルを開閉"
+            >
+              ⚙️
+            </button>
+          </div>
+        )}
+
         {/* 保存ステータス */}
         {saveStatus.text && (
-          <div className={`text-sm ${saveStatus.color} font-medium`}>
+          <div className={`text-xs lg:text-sm ${saveStatus.color} font-medium whitespace-nowrap`}>
             {saveStatus.text}
           </div>
         )}

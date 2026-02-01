@@ -202,6 +202,64 @@ export function useCanvas(canvasId: string) {
     };
   }, [canvasId, setSelectedObjects]); // Removed currentSlideId from deps to allow manual handling in the other useEffect
 
+  // ResizeObserver for container tracking (responsive support)
+  useEffect(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    let rafId: number | null = null;
+
+    const resizeCanvas = () => {
+      if (!canvas) return;
+
+      // requestAnimationFrame で描画負荷を抑制
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+
+      rafId = requestAnimationFrame(() => {
+        const containerWidth = container.clientWidth - 32; // p-4 (16px * 2)
+        const containerHeight = container.clientHeight - 32;
+
+        const config = getTemplateConfig();
+        const canvasAspect = config.width / config.height;
+        const containerAspect = containerWidth / containerHeight;
+
+        let newWidth: number;
+        let newHeight: number;
+
+        if (containerAspect > canvasAspect) {
+          // コンテナが横長なので高さ基準
+          newHeight = containerHeight;
+          newWidth = newHeight * canvasAspect;
+        } else {
+          // コンテナが縦長なので幅基準
+          newWidth = containerWidth;
+          newHeight = newWidth / canvasAspect;
+        }
+
+        // Canvas のサイズを更新（Fabric.js のキャンバス要素自体のサイズ）
+        if (canvas.width !== newWidth || canvas.height !== newHeight) {
+          canvas.setDimensions({ width: newWidth, height: newHeight });
+          canvas.renderAll();
+        }
+
+        rafId = null;
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [containerRef]);
+
   // Add rectangle
   const addRect = useCallback(() => {
     const canvas = canvasRef.current;

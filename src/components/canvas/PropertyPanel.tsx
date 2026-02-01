@@ -7,9 +7,19 @@ interface PropertyPanelProps {
   canvas: fabric.Canvas | null;
 }
 
+/**
+ * プロパティパネルコンポーネント
+ * 選択したオブジェクトのプロパティ編集機能を提供
+ * レスポンシブ対応: 開閉状態に応じて表示/非表示を切り替え
+ */
 export function PropertyPanel({ canvas }: PropertyPanelProps) {
-  const { selectedObjectIds } = useEditorStore();
+  const { selectedObjectIds, isPropertyPanelOpen } = useEditorStore();
   const [properties, setProperties] = useState<ObjectProperties | null>(null);
+
+  // パネルが閉じている場合は非表示
+  if (!isPropertyPanelOpen) {
+    return null;
+  }
 
   useEffect(() => {
     if (!canvas || selectedObjectIds.length === 0) {
@@ -53,14 +63,14 @@ export function PropertyPanel({ canvas }: PropertyPanelProps) {
 
   if (!properties) {
     return (
-      <div className="w-64 p-4 border-l bg-white text-gray-500 text-sm">
+      <div className="w-56 lg:w-64 p-4 border-l bg-white text-gray-500 text-sm">
         オブジェクトを選択してください
       </div>
     );
   }
 
   return (
-    <div className="w-64 p-4 border-l bg-white overflow-y-auto">
+    <div className="w-56 lg:w-64 p-4 border-l bg-white overflow-y-auto">
       <h3 className="font-bold mb-4">プロパティ</h3>
 
       <div className="space-y-4">

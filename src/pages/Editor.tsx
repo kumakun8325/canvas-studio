@@ -1,76 +1,48 @@
-import { useEffect, useRef, useState } from "react";
-import { CanvasView } from "../components/canvas/CanvasView";
-import { Toolbar } from "../components/canvas/Toolbar";
-import { PropertyPanel } from "../components/canvas/PropertyPanel";
-import { SlideList } from "../components/slides/SlideList";
-import { useSlideStore } from "../stores/slideStore";
+import { EditorContent } from "./EditorContent";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useEditorStore } from "../stores/editorStore";
-import { useCanvas } from "../hooks/useCanvas";
-import { useClipboard } from "../hooks/useClipboard";
-import { useAutoSave } from "../hooks/useAutoSave";
 
+/**
+ * エディタページコンポーネント
+ * レスポンシブ対応: モバイル(<768px)では編集不可メッセージを表示
+ */
 export function Editor() {
-  const { project, slides } = useSlideStore();
-  const { currentSlideId, setCurrentSlide } = useEditorStore();
+  const { setCurrentSlide } = useEditorStore();
 
-  // Track if auto-save is ready (prevents race condition on initial load)
-  const [isAutoSaveReady, setIsAutoSaveReady] = useState(false);
-  const hasInitialized = useRef(false);
+  // モバイル判定（< 768px）
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
-  // Single source of truth for canvas
-  const canvasActions = useCanvas("main-canvas");
+  // クリーンアップ時にスライド状態をリセット
+  const handleBackToHome = () => {
+    setCurrentSlide(null);
+    window.location.href = "/";
+  };
 
-  // Clipboard functionality
-  const clipboard = useClipboard(canvasActions.canvasRef);
-
-  // Auto-save functionality (disabled until canvas is ready)
-  const {
-    isSaving,
-    lastSaved,
-    error: saveError,
-  } = useAutoSave(project, isAutoSaveReady);
-
-  // Set initial slide when project loads
-  useEffect(() => {
-    if (slides.length > 0 && !currentSlideId) {
-      setCurrentSlide(slides[0].id);
-    }
-  }, [slides, currentSlideId, setCurrentSlide]);
-
-  // Enable auto-save after project and canvas are ready
-  // This prevents the race condition where empty canvas data overwrites loaded data
-  useEffect(() => {
-    if (!hasInitialized.current && currentSlideId && project) {
-      hasInitialized.current = true;
-      // Delay to ensure canvas has finished loading data from slideStore
-      const timer = setTimeout(() => {
-        setIsAutoSaveReady(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [project, currentSlideId]);
-
-  return (
-    <div className="h-screen flex flex-col">
-      <Toolbar
-        canvasActions={canvasActions}
-        isSaving={isSaving}
-        lastSaved={lastSaved}
-        saveError={saveError}
-      />
-      <div className="flex-1 flex">
-        <SlideList />
-        <CanvasView
-          slideId={currentSlideId ?? undefined}
-          canvasActions={{
-            ...canvasActions,
-            copy: clipboard.copy,
-            paste: clipboard.paste,
-            cut: clipboard.cut,
-          }}
-        />
-        <PropertyPanel canvas={canvasActions.canvasRef.current} />
+  // モバイルでは編集不可メッセージを表示
+  if (isMobile) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">📱💻</div>
+          <h1 className="text-xl font-bold text-gray-800 mb-2">
+            このデバイスには対応していません
+          </h1>
+          <p className="text-gray-600 mb-6">
+            Canvas Studio は、デスクトップまたはタブレット（768px以上）での使用を推奨しています。
+            <br />
+            モバイルデバイスでは編集機能を制限しています。
+          </p>
+          <button
+            onClick={handleBackToHome}
+            className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            ホームに戻る
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // デスクトップ/タブレットではエディタを表示
+  return <EditorContent />;
 }
