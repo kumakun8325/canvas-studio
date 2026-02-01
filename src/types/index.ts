@@ -41,6 +41,8 @@ export interface EditorState {
   selectedObjectIds: string[]
   activeTool: ToolType
   zoom: number
+  isSlideListOpen: boolean
+  isPropertyPanelOpen: boolean
 }
 
 // Tool types

@@ -22,3 +22,18 @@ if (typeof window !== 'undefined') {
     }
   })
 }
+
+// Polyfill MediaQueryListEvent for jsdom environment
+// jsdom does not provide this constructor by default
+if (typeof window !== 'undefined' && !window.MediaQueryListEvent) {
+  window.MediaQueryListEvent = class MediaQueryListEvent extends Event {
+    matches: boolean
+    media: string
+
+    constructor(type: string, eventInitDict: { matches: boolean; media: string }) {
+      super(type)
+      this.matches = eventInitDict.matches
+      this.media = eventInitDict.media
+    }
+  } as any
+}

@@ -12,9 +12,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Toolbar } from './Toolbar'
 import { useEditorStore } from '../../stores/editorStore'
+import { useSlideStore } from '../../stores/slideStore'
+import type { EditorStore } from '../../stores/editorStore'
 
-// Mock the useEditorStore
+// Mock the useEditorStore and useSlideStore
 vi.mock('../../stores/editorStore')
+vi.mock('../../stores/slideStore')
 
 describe('Toolbar - Issue #75: レイヤー操作ボタンのUI改善', () => {
   const mockCanvasActions = {
@@ -28,10 +31,25 @@ describe('Toolbar - Issue #75: レイヤー操作ボタンのUI改善', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // Mock useEditorStore
-    vi.mocked(useEditorStore).mockReturnValue({
-      activeTool: 'select',
-      setActiveTool: vi.fn(),
+    // Mock useEditorStore with minimal required properties
+    vi.mocked(useEditorStore).mockImplementation((selector) => {
+      const state = {
+        activeTool: 'select',
+        setActiveTool: vi.fn(),
+        setCurrentSlide: vi.fn(),
+        toggleSlideList: vi.fn(),
+        togglePropertyPanel: vi.fn(),
+      } as Partial<EditorStore>
+      return selector ? selector(state as EditorStore) : (state as never)
+    })
+
+    // Mock useSlideStore with minimal required properties
+    vi.mocked(useSlideStore).mockImplementation((selector) => {
+      const state = {
+        project: { title: 'Test Project' },
+        clearProject: vi.fn(),
+      }
+      return selector ? selector(state as never) : (state as never)
     })
   })
 
@@ -114,7 +132,7 @@ describe('Toolbar - Issue #75: レイヤー操作ボタンのUI改善', () => {
         />
       )
 
-      const imageButton = screen.getByTitle('Image')
+      const imageButton = screen.getByTitle('画像')
       fireEvent.click(imageButton)
 
       // fileInputRef.current?.click() が呼ばれることを確認

@@ -7,6 +7,7 @@ import { useSlideHistory } from '../../hooks/useSlideHistory'
 /**
  * スライド一覧サイドバーコンポーネント
  * スライドの追加、削除、選択、並べ替え機能を提供
+ * レスポンシブ対応: タブレットでは幅が縮小、パネル開閉状態に対応
  */
 export function SlideList() {
   // Issue #87: Zustand selector optimization for performance
@@ -14,6 +15,7 @@ export function SlideList() {
   const slides = useSlideStore((state) => state.slides)
   const currentSlideId = useEditorStore((state) => state.currentSlideId)
   const setCurrentSlide = useEditorStore((state) => state.setCurrentSlide)
+  const isSlideListOpen = useEditorStore((state) => state.isSlideListOpen)
 
   const { addSlide, deleteSlide, reorderSlides } = useSlideHistory()
 
@@ -46,8 +48,13 @@ export function SlideList() {
     [reorderSlides]
   )
 
+  // パネルが閉じている場合は非表示
+  if (!isSlideListOpen) {
+    return null
+  }
+
   return (
-    <div className="shrink-0 w-52 min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
+    <div className="shrink-0 w-40 lg:w-52 min-w-40 lg:min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
       <div className="flex flex-col gap-2">
         {slides.map((slide, index) => (
           <div
@@ -72,9 +79,9 @@ export function SlideList() {
       {/* スライド追加ボタン */}
       <button
         onClick={addSlide}
-        className="w-full mt-2 py-2 border-2 border-dashed border-gray-300 rounded text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
+        className="w-full mt-2 py-2 border-2 border-dashed border-gray-300 rounded text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors text-sm"
       >
-        + スライド追加
+        + 追加
       </button>
     </div>
   )

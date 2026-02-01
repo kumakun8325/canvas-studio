@@ -187,6 +187,8 @@ describe('SlideList', () => {
       selectedObjectIds: [],
       activeTool: 'select',
       zoom: 1,
+      isSlideListOpen: true,
+      isPropertyPanelOpen: true,
     })
   })
 
@@ -229,7 +231,7 @@ describe('SlideList', () => {
     it('should render add slide button', () => {
       render(<SlideList />)
 
-      expect(screen.getByText('+ スライド追加')).toBeInTheDocument()
+      expect(screen.getByText('+ 追加')).toBeInTheDocument()
     })
   })
 
@@ -239,7 +241,7 @@ describe('SlideList', () => {
 
       const initialSlideCount = useSlideStore.getState().slides.length
 
-      const addButton = screen.getByText('+ スライド追加')
+      const addButton = screen.getByText('+ 追加')
       fireEvent.click(addButton)
 
       const newSlideCount = useSlideStore.getState().slides.length

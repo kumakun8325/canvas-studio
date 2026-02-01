@@ -8,10 +8,85 @@ import { useEditorStore } from "../stores/editorStore";
 import { useCanvas } from "../hooks/useCanvas";
 import { useClipboard } from "../hooks/useClipboard";
 import { useAutoSave } from "../hooks/useAutoSave";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
+const MOBILE_BREAKPOINT = "(max-width: 767px)";
+
+/**
+ * Mobile view - shows message that mobile is not supported
+ */
+function MobileUnsupportedMessage() {
+  return (
+    <div className="h-screen flex items-center justify-center bg-gray-100 p-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+        <div className="text-6xl mb-4">📱💻</div>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">
+          モバイルではご利用いただけません
+        </h2>
+        <p className="text-gray-600">
+          Canvas Studioはタブレット以上の画面サイズでご利用ください。
+        </p>
+        <p className="text-sm text-gray-500 mt-4">
+          推奨環境: 幅768px以上のデバイス
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Editor content - contains canvas and is only rendered on desktop/tablet
+ * This separation prevents useCanvas from being called on mobile devices
+ */
+function EditorContent({
+  canvasActions,
+  clipboard,
+  isSaving,
+  lastSaved,
+  saveError,
+}: {
+  canvasActions: ReturnType<typeof useCanvas>;
+  clipboard: ReturnType<typeof useClipboard>;
+  isSaving: boolean;
+  lastSaved: Date | null;
+  saveError: Error | null;
+}) {
+  const { currentSlideId } = useEditorStore();
+
+  return (
+    <div className="h-screen flex flex-col">
+      <Toolbar
+        canvasActions={canvasActions}
+        isSaving={isSaving}
+        lastSaved={lastSaved}
+        saveError={saveError}
+      />
+      <div className="flex-1 flex">
+        <SlideList />
+        <CanvasView
+          slideId={currentSlideId ?? undefined}
+          canvasActions={{
+            ...canvasActions,
+            copy: clipboard.copy,
+            paste: clipboard.paste,
+            cut: clipboard.cut,
+          }}
+        />
+        <PropertyPanel canvas={canvasActions.canvasRef.current} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Editor page - routes to mobile message or desktop content based on screen size
+ */
 export function Editor() {
   const { project, slides } = useSlideStore();
   const { currentSlideId, setCurrentSlide } = useEditorStore();
+
+  // Detect mobile screen size
+  const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
 
   // Track if auto-save is ready (prevents race condition on initial load)
   const [isAutoSaveReady, setIsAutoSaveReady] = useState(false);
@@ -50,27 +125,19 @@ export function Editor() {
     }
   }, [project, currentSlideId]);
 
+  // Mobile: show unsupported message
+  if (isMobile) {
+    return <MobileUnsupportedMessage />;
+  }
+
+  // Desktop/Tablet: show editor content
   return (
-    <div className="h-screen flex flex-col">
-      <Toolbar
-        canvasActions={canvasActions}
-        isSaving={isSaving}
-        lastSaved={lastSaved}
-        saveError={saveError}
-      />
-      <div className="flex-1 flex">
-        <SlideList />
-        <CanvasView
-          slideId={currentSlideId ?? undefined}
-          canvasActions={{
-            ...canvasActions,
-            copy: clipboard.copy,
-            paste: clipboard.paste,
-            cut: clipboard.cut,
-          }}
-        />
-        <PropertyPanel canvas={canvasActions.canvasRef.current} />
-      </div>
-    </div>
+    <EditorContent
+      canvasActions={canvasActions}
+      clipboard={clipboard}
+      isSaving={isSaving}
+      lastSaved={lastSaved}
+      saveError={saveError}
+    />
   );
 }

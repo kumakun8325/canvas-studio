@@ -7,8 +7,13 @@ interface PropertyPanelProps {
   canvas: fabric.Canvas | null;
 }
 
+/**
+ * プロパティパネルコンポーネント
+ * 選択したオブジェクトのプロパティを編集
+ * レスポンシブ対応: タブレットでは幅が縮小、パネル開閉状態に対応
+ */
 export function PropertyPanel({ canvas }: PropertyPanelProps) {
-  const { selectedObjectIds } = useEditorStore();
+  const { selectedObjectIds, isPropertyPanelOpen } = useEditorStore();
   const [properties, setProperties] = useState<ObjectProperties | null>(null);
 
   useEffect(() => {
@@ -51,60 +56,65 @@ export function PropertyPanel({ canvas }: PropertyPanelProps) {
     canvas.renderAll();
   };
 
+  // パネルが閉じている場合は非表示
+  if (!isPropertyPanelOpen) {
+    return null;
+  }
+
   if (!properties) {
     return (
-      <div className="w-64 p-4 border-l bg-white text-gray-500 text-sm">
-        オブジェクトを選択してください
+      <div className="w-56 lg:w-64 p-4 border-l bg-white text-gray-500 text-sm">
+        オブジェクトを選択
       </div>
     );
   }
 
   return (
-    <div className="w-64 p-4 border-l bg-white overflow-y-auto">
-      <h3 className="font-bold mb-4">プロパティ</h3>
+    <div className="w-56 lg:w-64 p-4 border-l bg-white overflow-y-auto">
+      <h3 className="font-bold mb-4 text-sm lg:text-base">プロパティ</h3>
 
       <div className="space-y-4">
         {/* 位置 */}
         <div>
-          <label className="text-sm text-gray-600 block mb-1">位置 (X, Y)</label>
+          <label className="text-xs lg:text-sm text-gray-600 block mb-1">位置 (X, Y)</label>
           <div className="flex gap-2">
             <input
               type="number"
               value={properties.left}
               onChange={(e) => updateProperty("left", Number(e.target.value))}
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="w-full border rounded px-2 py-1 text-xs lg:text-sm"
             />
             <input
               type="number"
               value={properties.top}
               onChange={(e) => updateProperty("top", Number(e.target.value))}
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="w-full border rounded px-2 py-1 text-xs lg:text-sm"
             />
           </div>
         </div>
 
         {/* サイズ */}
         <div>
-          <label className="text-sm text-gray-600 block mb-1">サイズ (W, H)</label>
+          <label className="text-xs lg:text-sm text-gray-600 block mb-1">サイズ (W, H)</label>
           <div className="flex gap-2">
             <input
               type="number"
               value={properties.width}
               onChange={(e) => updateProperty("width", Number(e.target.value))}
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="w-full border rounded px-2 py-1 text-xs lg:text-sm"
             />
             <input
               type="number"
               value={properties.height}
               onChange={(e) => updateProperty("height", Number(e.target.value))}
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="w-full border rounded px-2 py-1 text-xs lg:text-sm"
             />
           </div>
         </div>
 
         {/* 回転 */}
         <div>
-          <label className="text-sm text-gray-600 block mb-1">回転 ({properties.angle}°)</label>
+          <label className="text-xs lg:text-sm text-gray-600 block mb-1">回転 ({properties.angle}°)</label>
           <input
             type="range"
             min="0"
@@ -118,7 +128,7 @@ export function PropertyPanel({ canvas }: PropertyPanelProps) {
 
         {/* 塗りつぶし色 */}
         <div>
-          <label className="text-sm text-gray-600 block mb-1">塗りつぶし</label>
+          <label className="text-xs lg:text-sm text-gray-600 block mb-1">塗りつぶし</label>
           <div className="flex gap-2 items-center">
             <input
               type="color"
@@ -130,14 +140,14 @@ export function PropertyPanel({ canvas }: PropertyPanelProps) {
               type="text"
               value={properties.fill}
               onChange={(e) => updateProperty("fill", e.target.value)}
-              className="flex-1 border rounded px-2 py-1 text-sm"
+              className="flex-1 border rounded px-2 py-1 text-xs lg:text-sm"
             />
           </div>
         </div>
 
         {/* 透明度 */}
         <div>
-          <label className="text-sm text-gray-600 block mb-1">
+          <label className="text-xs lg:text-sm text-gray-600 block mb-1">
             透明度 ({Math.round(properties.opacity * 100)}%)
           </label>
           <input

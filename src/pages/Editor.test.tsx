@@ -8,6 +8,17 @@ import { Editor } from './Editor'
 import { useAutoSave } from '../hooks/useAutoSave'
 import type { Project, Slide } from '../types'
 
+// Mock matchMedia for useMediaQuery hook
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false, // Default to desktop (not mobile)
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })),
+})
+
 // Mock other hooks and components
 vi.mock('../hooks/useCanvas', () => ({
   useCanvas: vi.fn(() => ({
