@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react'
 import * as fabric from 'fabric'
-import { useHistory } from './useHistory'
+import { createHistoryAction, useHistory } from './useHistory'
 import type { ClipboardData, ClipboardObjectData } from '../types'
 
 interface UseClipboardReturn {
@@ -66,54 +66,56 @@ export function useClipboard(canvasRef: React.RefObject<fabric.Canvas | null>): 
       }
 
       // Undo/Redo履歴を記録
-      recordAction({
-        type: 'paste',
-        description: 'オブジェクトを貼り付け',
-        undo: () => {
-          const canvas = canvasRef.current
-          if (!canvas) return
-          // ペーストしたオブジェクトを削除
-          const objects = canvas.getObjects()
-          pastedObjectIds.forEach((id) => {
-            const obj = objects.find((o) => o.get('id') === id)
-            if (obj) {
-              canvas.remove(obj)
-            }
-          })
-          canvas.renderAll()
-        },
-        redo: () => {
-          const canvas = canvasRef.current
-          if (!canvas || !clipboardRef.current) return
-          const { objects } = clipboardRef.current
+      recordAction(
+        createHistoryAction(
+          'paste',
+          'オブジェクトを貼り付け',
+          () => {
+            const canvas = canvasRef.current
+            if (!canvas) return
+            // ペーストしたオブジェクトを削除
+            const objects = canvas.getObjects()
+            pastedObjectIds.forEach((id) => {
+              const obj = objects.find((o) => o.get('id') === id)
+              if (obj) {
+                canvas.remove(obj)
+              }
+            })
+            canvas.renderAll()
+          },
+          () => {
+            const canvas = canvasRef.current
+            if (!canvas || !clipboardRef.current) return
+            const { objects } = clipboardRef.current
 
-          const redoPromises = objects.map((objData: ClipboardObjectData) => {
-            return new Promise<void>((resolve) => {
-              fabric.util.enlivenObjects([objData]).then((results) => {
-                const obj = results[0]
-                if (obj instanceof fabric.FabricObject) {
-                  obj.set({
-                    id: crypto.randomUUID(),
-                    left: (objData.left ?? 0) + 20,
-                    top: (objData.top ?? 0) + 20,
-                  })
-                  canvas.add(obj)
-                }
-                resolve()
+            const redoPromises = objects.map((objData: ClipboardObjectData) => {
+              return new Promise<void>((resolve) => {
+                fabric.util.enlivenObjects([objData]).then((results) => {
+                  const obj = results[0]
+                  if (obj instanceof fabric.FabricObject) {
+                    obj.set({
+                      id: crypto.randomUUID(),
+                      left: (objData.left ?? 0) + 20,
+                      top: (objData.top ?? 0) + 20,
+                    })
+                    canvas.add(obj)
+                  }
+                  resolve()
+                })
               })
             })
-          })
 
-          Promise.all(redoPromises).then(() => {
-            canvas.renderAll()
-            const allObjects = canvas.getObjects()
-            if (allObjects.length > 0) {
-              const lastObject = allObjects[allObjects.length - 1]
-              canvas.setActiveObject(lastObject)
-            }
-          })
-        },
-      })
+            Promise.all(redoPromises).then(() => {
+              canvas.renderAll()
+              const allObjects = canvas.getObjects()
+              if (allObjects.length > 0) {
+                const lastObject = allObjects[allObjects.length - 1]
+                canvas.setActiveObject(lastObject)
+              }
+            })
+          },
+        ),
+      )
     })
   }, [canvasRef, recordAction])
 
