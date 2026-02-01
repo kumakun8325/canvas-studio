@@ -245,9 +245,12 @@ jobs:
               --add-label "auto-fix"
 
             # workflow_dispatch で自動修正ワークフローを起動
-            gh workflow run auto-apply-suggestions.yml \
-              -f pr_number=${{ github.event.pull_request.number }}
-            echo "✅ Triggered auto-fix workflow via workflow_dispatch"
+            if gh workflow run auto-apply-suggestions.yml \
+              -f pr_number=${{ github.event.pull_request.number }} 2>/dev/null; then
+              echo "✅ Triggered auto-fix workflow via workflow_dispatch"
+            else
+              echo "::warning::workflow_dispatch trigger not available yet (requires merge to main)"
+            fi
           fi
 
       - name: Trigger auto-merge

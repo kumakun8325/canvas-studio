@@ -434,9 +434,13 @@ jobs:
         run: |
           # 5回未満であれば、workflow_dispatch で再トリガー
           if [ "$FIX_COUNT" -lt 5 ]; then
-            gh workflow run auto-apply-suggestions.yml \
-              -f pr_number=${{ env.PR_NUMBER }}
-            echo "🔄 Re-triggered auto-fix via workflow_dispatch (attempt #$FIX_COUNT completed)"
+            if gh workflow run auto-apply-suggestions.yml \
+              -f pr_number=${{ env.PR_NUMBER }} 2>/dev/null; then
+              echo "🔄 Re-triggered auto-fix via workflow_dispatch (attempt #$FIX_COUNT completed)"
+            else
+              echo "::warning::workflow_dispatch re-trigger not available, adding auto-fix label as fallback"
+              gh pr edit ${{ env.PR_NUMBER }} --add-label "auto-fix" || true
+            fi
           fi
 
       - name: Comment on PR (success)

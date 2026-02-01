@@ -129,9 +129,15 @@ jobs:
           # workflow_dispatch で自動修正ワークフローを起動
           # Note: GITHUB_TOKEN でのラベル追加は他のワークフローをトリガーしないため
           # workflow_dispatch を使用（これは例外的にトリガー可能）
-          gh workflow run auto-apply-suggestions.yml \
-            -f pr_number=${{ github.event.pull_request.number }}
-          echo "Triggered auto-fix workflow via workflow_dispatch"
+          # Note: workflow_dispatch はデフォルトブランチのワークフロー定義を参照するため
+          # 初回マージ後から有効になる
+          if gh workflow run auto-apply-suggestions.yml \
+            -f pr_number=${{ github.event.pull_request.number }} 2>/dev/null; then
+            echo "Triggered auto-fix workflow via workflow_dispatch"
+          else
+            echo "::warning::workflow_dispatch trigger not available yet (requires merge to main)"
+            echo "auto-fix label has been added for manual triggering"
+          fi
 
       - name: Add reviewed label (no issues)
         if: steps.changed.outputs.files != '' && steps.check-issues.outputs.needs_fix == 'false'
