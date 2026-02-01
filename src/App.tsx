@@ -1,23 +1,18 @@
-import { Editor } from "./pages/Editor";
-import { Home } from "./pages/Home";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { useAuth } from "./hooks/useAuth";
-import { useSlideStore } from "./stores/slideStore";
+import { Editor } from './pages/Editor'
+import { Home } from './pages/Home'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { Toast } from './components/ui/Toast'
+import { Spinner } from './components/ui/Spinner'
+import { useAuth } from './hooks/useAuth'
+import { useSlideStore } from './stores/slideStore'
 
 function App() {
-  const { user, loading } = useAuth();
-  const { project } = useSlideStore();
+  const { user, loading } = useAuth()
+  const { project } = useSlideStore()
 
   // Show loading state while checking authentication
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <Spinner message="Loading..." />
   }
 
   // Route based on authentication state and project selection
@@ -27,8 +22,9 @@ function App() {
   return (
     <ErrorBoundary>
       {user && project ? <Editor /> : <Home />}
+      <Toast />
     </ErrorBoundary>
-  );
+  )
 }
 
-export default App;
+export default App
