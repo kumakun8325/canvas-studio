@@ -72,8 +72,14 @@ export interface HistoryAction {
 }
 
 // Clipboard data
+export interface ClipboardObjectData {
+  id?: string
+  left?: number
+  top?: number
+}
+
 export interface ClipboardData {
-  objects: object[]
+  objects: ClipboardObjectData[]
   timestamp: number
 }
 

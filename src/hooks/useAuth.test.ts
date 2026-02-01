@@ -3,7 +3,14 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth'
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  type NextOrObserver,
+  type User,
+  type UserCredential,
+} from 'firebase/auth'
 import { useAuth } from './useAuth'
 
 // Mock Firebase auth
@@ -22,6 +29,20 @@ vi.mock('../lib/firebase', () => ({
     currentUser: null,
   })),
 }))
+
+const invokeAuthCallback = (
+  callback: NextOrObserver<User> | null,
+  user: User | null
+) => {
+  if (!callback) {
+    return
+  }
+  if (typeof callback === 'function') {
+    callback(user)
+    return
+  }
+  callback.next?.(user)
+}
 
 describe('useAuth', () => {
   const mockUser = {
@@ -83,9 +104,9 @@ describe('useAuth', () => {
   describe('onAuthStateChanged', () => {
     it('should set user when authenticated', async () => {
       // Setup
-      let authCallback: ((user: User | null) => void) | null = null
+      let authCallback: NextOrObserver<User> | null = null
       vi.mocked(onAuthStateChanged).mockImplementation((_auth, callback) => {
-        authCallback = callback as any
+        authCallback = callback
         return () => {}
       })
 
@@ -94,7 +115,7 @@ describe('useAuth', () => {
 
       // Simulate authentication
       await act(async () => {
-        authCallback!(mockUser)
+        invokeAuthCallback(authCallback, mockUser)
       })
 
       // Assert
@@ -106,9 +127,9 @@ describe('useAuth', () => {
 
     it('should clear user when signed out', async () => {
       // Setup
-      let authCallback: ((user: User | null) => void) | null = null
+      let authCallback: NextOrObserver<User> | null = null
       vi.mocked(onAuthStateChanged).mockImplementation((_auth, callback) => {
-        authCallback = callback as any
+        authCallback = callback
         return () => {}
       })
 
@@ -117,7 +138,7 @@ describe('useAuth', () => {
 
       // Simulate authentication
       await act(async () => {
-        authCallback!(mockUser)
+        invokeAuthCallback(authCallback, mockUser)
       })
 
       await waitFor(() => {
@@ -126,7 +147,7 @@ describe('useAuth', () => {
 
       // Simulate sign out
       await act(async () => {
-        authCallback!(null)
+        invokeAuthCallback(authCallback, null)
       })
 
       // Assert
@@ -163,7 +184,12 @@ describe('useAuth', () => {
       vi.mocked(onAuthStateChanged).mockImplementation(() => {
         return () => {}
       })
-      vi.mocked(signInWithPopup).mockResolvedValue({ user: mockUser } as any)
+      const mockCredential: UserCredential = {
+        user: mockUser,
+        providerId: 'google.com',
+        operationType: 'signIn',
+      }
+      vi.mocked(signInWithPopup).mockResolvedValue(mockCredential)
 
       // Test
       const { result } = renderHook(() => useAuth())
@@ -194,7 +220,7 @@ describe('useAuth', () => {
       await act(async () => {
         try {
           await result.current.signInWithGoogle()
-        } catch (err) {
+        } catch {
           // The hook throws the error after setting it
         }
       })
@@ -240,7 +266,7 @@ describe('useAuth', () => {
       await act(async () => {
         try {
           await result.current.signOut()
-        } catch (err) {
+        } catch {
           // The hook throws the error after setting it
         }
       })

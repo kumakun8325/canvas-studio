@@ -21,7 +21,7 @@ const minimalPngBase64 =
 
 // CanvasのtoDataURLをモックして有効なPNGを返すようにする
 function mockCanvasToDataURL(canvas: Canvas) {
-  // @ts-ignore - toDataURLの型をオーバーライド
+  // @ts-expect-error - toDataURLの型をオーバーライド
   canvas.toDataURL = () => {
     return Promise.resolve(`data:image/png;base64,${minimalPngBase64}`)
   }

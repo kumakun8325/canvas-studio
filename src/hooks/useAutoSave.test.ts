@@ -15,7 +15,7 @@ vi.mock("../services/projectService", () => ({
 // Mock slideStore
 const mockSlides: Slide[] = [];
 vi.mock("../stores/slideStore", () => ({
-  useSlideStore: (selector: (state: any) => any) => {
+  useSlideStore: <T,>(selector: (state: { slides: Slide[] }) => T) => {
     const state = {
       slides: mockSlides,
     };
