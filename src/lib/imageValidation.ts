@@ -128,7 +128,7 @@ export function isValidImageUrl(url: string): boolean {
     }
 
     return false
-  } catch (e) {
+  } catch {
     // 予期しないエラーの場合は安全のため拒否
     return false
   }
