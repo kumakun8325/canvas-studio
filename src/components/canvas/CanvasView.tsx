@@ -55,7 +55,7 @@ export function CanvasView({ canvasActions }: CanvasViewProps) {
   return (
     <div
       ref={containerRef}
-      className="flex-1 bg-gray-100 flex items-center justify-center p-4"
+      className="flex-1 bg-gray-100 dark:bg-gray-800 flex items-center justify-center p-4"
     >
       <div className="shadow-lg">
         <canvas id="main-canvas" />

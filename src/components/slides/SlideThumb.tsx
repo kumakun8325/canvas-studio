@@ -36,7 +36,7 @@ export function SlideThumb({
       </div>
 
       {/* サムネイルまたはプレースホルダー */}
-      <div className="w-44 h-24 bg-white border rounded shadow-sm flex items-center justify-center">
+      <div className="w-44 h-24 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded shadow-sm flex items-center justify-center">
         {isThumbnailValid ? (
           <img
             src={thumbnail}
@@ -44,7 +44,7 @@ export function SlideThumb({
             className="w-full h-full object-cover rounded"
           />
         ) : (
-          <span className="text-gray-400 text-xs">Slide {index + 1}</span>
+          <span className="text-gray-400 dark:text-gray-500 text-xs">Slide {index + 1}</span>
         )}
       </div>
 
