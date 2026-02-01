@@ -26,14 +26,14 @@ export function Spinner({
     <div className={`flex items-center justify-center ${className}`}>
       <div className="text-center">
         <div
-          className={`animate-spin rounded-full border-b-2 border-blue-600 mx-auto ${SIZE_MAP[size]}`}
+          className={`animate-spin rounded-full border-b-2 border-blue-600 dark:border-blue-400 mx-auto ${SIZE_MAP[size]}`}
           role="status"
           aria-live="polite"
         >
           <span className="sr-only">{message}</span>
         </div>
         {showMessage && (
-          <p className="mt-4 text-gray-600">{message}</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">{message}</p>
         )}
       </div>
     </div>

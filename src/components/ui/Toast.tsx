@@ -5,9 +5,9 @@
 import { useToastStore } from '../../stores/toastStore'
 
 const STYLES_MAP = {
-  success: 'bg-green-500',
-  error: 'bg-red-500',
-  info: 'bg-blue-500',
+  success: 'bg-green-500 dark:bg-green-600',
+  error: 'bg-red-500 dark:bg-red-600',
+  info: 'bg-blue-500 dark:bg-blue-600',
 }
 
 const ICONS_MAP = {

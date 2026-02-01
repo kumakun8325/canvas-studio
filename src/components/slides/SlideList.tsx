@@ -54,7 +54,7 @@ export function SlideList() {
   }
 
   return (
-    <div className="shrink-0 w-40 lg:w-52 min-w-40 lg:min-w-52 bg-gray-50 border-r p-2 overflow-y-auto">
+    <div className="shrink-0 w-40 lg:w-52 min-w-40 lg:min-w-52 bg-gray-50 dark:bg-gray-900 border-r dark:border-gray-700 p-2 overflow-y-auto">
       <div className="flex flex-col gap-2">
         {slides.map((slide, index) => (
           <div
@@ -79,7 +79,7 @@ export function SlideList() {
       {/* スライド追加ボタン */}
       <button
         onClick={addSlide}
-        className="w-full mt-2 py-2 border-2 border-dashed border-gray-300 rounded text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors text-sm"
+        className="w-full mt-2 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors text-sm"
       >
         + 追加
       </button>
