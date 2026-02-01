@@ -5,18 +5,26 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useSlideStore } from '../stores/slideStore'
+import { useToast } from '../hooks/useToast'
 import { TemplateSelector } from '../components/templates/TemplateSelector'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { Spinner } from '../components/ui/Spinner'
 import { listProjects, deleteProject } from '../services/projectService'
 import type { Project, TemplateType, TemplateConfig } from '../types'
 
 export function Home() {
   const { user, loading, signInWithGoogle, signOut, error } = useAuth()
   const { setProject, createProject } = useSlideStore()
+  const { error: showError } = useToast()
 
   const [projects, setProjects] = useState<Project[]>([])
   const [loadingProjects, setLoadingProjects] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   const [projectError, setProjectError] = useState<string | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    projectId: string | null
+  }>({ isOpen: false, projectId: null })
 
   // Load user's projects when logged in
   useEffect(() => {
@@ -56,17 +64,25 @@ export function Home() {
     setShowTemplateSelector(false)
   }
 
-  const handleDeleteProject = async (projectId: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (projectId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm('このプロジェクトを削除しますか？')) return
+    setConfirmDialog({ isOpen: true, projectId })
+  }
+
+  const handleDeleteConfirm = async () => {
+    const projectId = confirmDialog.projectId
+    if (!projectId) return
 
     try {
       await deleteProject(projectId)
-      setProjects(projects.filter(p => p.id !== projectId))
+      setProjects(projects.filter((p) => p.id !== projectId))
     } catch (err) {
+      showError('プロジェクトの削除に失敗しました')
       if (import.meta.env.DEV) {
         console.error('Failed to delete project:', err)
       }
+    } finally {
+      setConfirmDialog({ isOpen: false, projectId: null })
     }
   }
 
@@ -82,14 +98,7 @@ export function Home() {
 
   // Loading state
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
+    return <Spinner message="Loading..." />
   }
 
   // Error state
@@ -186,16 +195,23 @@ export function Home() {
 
         {/* Loading projects */}
         {loadingProjects ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">プロジェクトを読み込み中...</p>
-          </div>
+          <Spinner message="プロジェクトを読み込み中..." className="py-12" />
         ) : projects.length === 0 ? (
           /* No projects */
           <div className="text-center py-12 bg-white rounded-lg shadow-sm">
             <div className="text-gray-400 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <svg
+                className="w-16 h-16 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
               </svg>
             </div>
             <p className="text-gray-600 mb-2">プロジェクトがありません</p>
@@ -217,8 +233,18 @@ export function Home() {
                   {/* Thumbnail placeholder */}
                   <div className="h-32 bg-gray-100 rounded-t-lg flex items-center justify-center">
                     <div className="text-gray-400">
-                      <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <svg
+                        className="w-12 h-12"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -235,12 +261,22 @@ export function Home() {
                         </p>
                       </div>
                       <button
-                        onClick={(e) => handleDeleteProject(project.id, e)}
+                        onClick={(e) => handleDeleteClick(project.id, e)}
                         className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
                         title="削除"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -260,6 +296,17 @@ export function Home() {
           showCustomOption={true}
         />
       )}
+
+      {/* Confirm dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="プロジェクトの削除"
+        message="このプロジェクトを削除しますか？この操作は取り消せません。"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, projectId: null })}
+        confirmLabel="削除"
+        isDanger={true}
+      />
     </div>
   )
 }
