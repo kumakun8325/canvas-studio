@@ -156,9 +156,10 @@ jobs:
           echo "$ISSUE_BODY" > issue_body.md
 
       - name: Extract task
+        env:
+          ISSUE_NUMBER: ${{ steps.issue.outputs.issue_number }}
+          ISSUE_TITLE: ${{ steps.issue.outputs.issue_title }}
         run: |
-          ISSUE_NUMBER="${{ steps.issue.outputs.issue_number }}"
-          ISSUE_TITLE="${{ steps.issue.outputs.issue_title }}"
 
           {
             echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
@@ -292,7 +293,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
 
           if [ -n "$(git status --porcelain)" ]; then
-            git add .
+            git add --all -- ':!.env*' ':!*.key' ':!*.pem' ':!credentials*' ':!serviceAccount*'
 
             if [ "${{ inputs.mode }}" == "tdd" ]; then
               git commit -m "feat(tdd): Implementation for #${{ matrix.issue_number }}

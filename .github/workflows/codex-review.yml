@@ -70,6 +70,8 @@ jobs:
 
       - name: Prepare review context
         if: steps.changed.outputs.has_files == 'true'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # レビュー用のコンテキストを準備
           {
@@ -77,7 +79,7 @@ jobs:
             echo ""
             echo "## PR Information"
             echo "- PR #${{ github.event.pull_request.number }}"
-            echo "- Title: ${{ github.event.pull_request.title }}"
+            echo "- Title: $PR_TITLE"
             echo ""
             echo "## Changed Files"
             cat changed_files.txt
@@ -294,7 +296,7 @@ jobs:
             if [ "$MERGEABLE" == "true" ]; then
               gh pr merge $PR_NUMBER \
                 --squash \
-                --subject "Auto-merge after Codex review: ${{ github.event.pull_request.title }}"
+                --subject "Auto-merge after Codex review: $(gh pr view $PR_NUMBER --json title --jq .title)"
               echo "✅ Auto-merge triggered"
             else
               echo "⚠️ PR has conflicts, cannot auto-merge"

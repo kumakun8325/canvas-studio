@@ -167,7 +167,7 @@ jobs:
 
           gh issue create \
             --title "Batch Review Complete ($BATCH_ISSUES)" \
-            --assignee kumakun8325 \
+            --assignee ${{ github.repository_owner }} \
             --label "batch-review-complete" \
             --body-file /tmp/issue_body.md
 

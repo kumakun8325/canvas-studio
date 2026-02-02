@@ -159,7 +159,7 @@ jobs:
           ISSUE_NUMBER=$(gh issue create \
             --title "Workflow Alert: Maximum Retries Reached - $WORKFLOW_NAME" \
             --label "workflow-alert" \
-            --assignee kumakun8325 \
+            --assignee ${{ github.repository_owner }} \
             --body-file alert_issue.md \
             --jq '.number')
 
