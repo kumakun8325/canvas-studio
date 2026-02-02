@@ -13,7 +13,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # Weekly scan on Monday at 9AM JST
+    # Weekly scan on Monday at 0:00 UTC (= 9:00 JST)
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
