@@ -400,7 +400,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
 
           if [ -n "$(git status --porcelain)" ]; then
-            git add .
+            git add --all -- ':!.env*' ':!*.key' ':!*.pem' ':!credentials*' ':!serviceAccount*'
 
             TEST_STATUS="${{ steps.tests.outputs.test_status }}"
             LINT_STATUS="${{ steps.lint.outputs.lint_status }}"

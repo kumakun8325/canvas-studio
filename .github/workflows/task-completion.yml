@@ -39,13 +39,17 @@ jobs:
         id: extract
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT_ISSUE_TITLE: ${{ github.event.issue.title }}
+          EVENT_PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          if [ "${{ github.event_name }}" == "issues" ]; then
-            ISSUE_NUMBER="${{ github.event.issue.number }}"
-            ISSUE_TITLE="${{ github.event.issue.title }}"
+          if [ "$EVENT_NAME" == "issues" ]; then
+            ISSUE_NUMBER="$EVENT_ISSUE_NUMBER"
+            ISSUE_TITLE="$EVENT_ISSUE_TITLE"
           else
             # PRからクローズされるIssue番号を取得
-            PR_BODY="${{ github.event.pull_request.body }}"
+            PR_BODY="$EVENT_PR_BODY"
             # "Closes #N" または "Fixes #N" からIssue番号を抽出
             ISSUE_NUMBER=$(echo "$PR_BODY" | grep -oP '(?:Closes|Fixes|Resolves)\s*#\K\d+' | head -1)
 
@@ -83,10 +87,11 @@ jobs:
 
       - name: Update tasks.md
         if: steps.extract.outputs.skip != 'true'
+        env:
+          PHASE: ${{ steps.extract.outputs.phase }}
+          TASK: ${{ steps.extract.outputs.task }}
+          ISSUE_TITLE: ${{ steps.extract.outputs.issue_title }}
         run: |
-          PHASE="${{ steps.extract.outputs.phase }}"
-          TASK="${{ steps.extract.outputs.task }}"
-          ISSUE_TITLE="${{ steps.extract.outputs.issue_title }}"
 
           if [ ! -f "docs/tasks.md" ]; then
             echo "docs/tasks.md not found"
@@ -167,11 +172,15 @@ jobs:
 
       - name: Summary
         if: steps.extract.outputs.skip != 'true'
+        env:
+          ISSUE_NUMBER: ${{ steps.extract.outputs.issue_number }}
+          ISSUE_TITLE: ${{ steps.extract.outputs.issue_title }}
+          PHASE: ${{ steps.extract.outputs.phase }}
         run: |
           echo "## ✅ Task Completion" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Issue**: #${{ steps.extract.outputs.issue_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Title**: ${{ steps.extract.outputs.issue_title }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Phase**: ${{ steps.extract.outputs.phase }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Issue**: #$ISSUE_NUMBER" >> $GITHUB_STEP_SUMMARY
+          echo "**Title**: $ISSUE_TITLE" >> $GITHUB_STEP_SUMMARY
+          echo "**Phase**: $PHASE" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Updated \`docs/tasks.md\` automatically." >> $GITHUB_STEP_SUMMARY

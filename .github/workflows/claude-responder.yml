@@ -202,7 +202,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
 
           if [ -n "$(git status --porcelain)" ]; then
-            git add .
+            git add --all -- ':!.env*' ':!*.key' ':!*.pem' ':!credentials*' ':!serviceAccount*'
             if [ "${{ steps.mode.outputs.mode }}" == "tdd" ]; then
               git commit -m "feat(tdd): Implementation for #${{ steps.mode.outputs.issue_number }}
 
