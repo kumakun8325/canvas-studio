@@ -436,8 +436,7 @@ jobs:
               -f pr_number=${{ env.PR_NUMBER }} 2>/dev/null; then
               echo "🔄 Re-triggered auto-fix via workflow_dispatch (attempt #$FIX_COUNT completed)"
             else
-              echo "::warning::workflow_dispatch re-trigger not available, adding auto-fix label as fallback"
-              gh pr edit ${{ env.PR_NUMBER }} --add-label "auto-fix" || true
+              echo "::warning::workflow_dispatch re-trigger not available. Manual re-trigger required."
             fi
           fi
 

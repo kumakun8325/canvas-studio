@@ -177,7 +177,8 @@ jobs:
       - name: Run tests
         continue-on-error: true
         run: |
-          npm test -- --no-color 2>&1 | tee test_results.txt || true
+          set -o pipefail
+          npm run test:run -- --no-color 2>&1 | tee test_results.txt || true
 
           echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

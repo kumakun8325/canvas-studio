@@ -242,8 +242,9 @@ jobs:
         id: tests
         continue-on-error: true
         run: |
-          npm test -- --no-color 2>&1 | tee test_results.txt
-          TEST_EXIT=$?
+          set -o pipefail
+          npm run test:run -- --no-color 2>&1 | tee test_results.txt
+          TEST_EXIT=${PIPESTATUS[0]}
 
           echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
@@ -408,12 +409,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH_NAME: ${{ env.branch_name }}
         run: |
-          # 空のコミットを作成して pull_request イベントをトリガー
-          # これにより test.yml と codeql.yml が自動実行される
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git commit --allow-empty -m "chore: Trigger CI workflows"
-          git push origin "$BRANCH_NAME"
+          # PR作成/プッシュにより pull_request イベントが自動トリガーされるため
+          # 空コミットは不要。フォールバックとして check suite の再リクエストを行う
+          SHA=$(git rev-parse HEAD)
+          # check suite の再リクエスト（CI が自動トリガーされなかった場合の保険）
+          gh api "repos/${{ github.repository }}/check-suites" \
+            -X POST -f head_sha="$SHA" || echo "Check suite request skipped (may already exist)"
 
       - name: Comment on issue (no changes)
         if: steps.commit.outputs.has_changes == 'false'
