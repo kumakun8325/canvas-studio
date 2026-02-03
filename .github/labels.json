@@ -1,0 +1,77 @@
+[
+  {
+    "name": "claude-auto",
+    "description": "Automated implementation by Claude Code",
+    "color": "7c3aed"
+  },
+  {
+    "name": "claude-tdd",
+    "description": "TDD implementation by Claude Code",
+    "color": "8b5cf6"
+  },
+  {
+    "name": "claude-batch",
+    "description": "Part of batch parallel implementation",
+    "color": "a78bfa"
+  },
+  {
+    "name": "claude-reviewed",
+    "description": "Claude Code Review completed",
+    "color": "6f42c1"
+  },
+  {
+    "name": "codex-reviewed",
+    "description": "Codex Review completed",
+    "color": "0e8a16"
+  },
+  {
+    "name": "auto-fix",
+    "description": "Auto-fix triggered by review",
+    "color": "d93f0b"
+  },
+  {
+    "name": "auto-fix-attempt-1",
+    "description": "Auto-fix attempt 1",
+    "color": "fbca04"
+  },
+  {
+    "name": "auto-fix-attempt-2",
+    "description": "Auto-fix attempt 2",
+    "color": "fbca04"
+  },
+  {
+    "name": "auto-fix-attempt-3",
+    "description": "Auto-fix attempt 3",
+    "color": "fbca04"
+  },
+  {
+    "name": "auto-fix-attempt-4",
+    "description": "Auto-fix attempt 4",
+    "color": "fbca04"
+  },
+  {
+    "name": "auto-fix-attempt-5",
+    "description": "Auto-fix attempt 5",
+    "color": "fbca04"
+  },
+  {
+    "name": "human-review-needed",
+    "description": "Requires manual human review",
+    "color": "e11d48"
+  },
+  {
+    "name": "batch-review-complete",
+    "description": "All batch PRs have been reviewed",
+    "color": "22c55e"
+  },
+  {
+    "name": "workflow-alert",
+    "description": "Workflow failure alert after max retries",
+    "color": "dc2626"
+  },
+  {
+    "name": "skip-codex-review",
+    "description": "Skip automated Codex review for this PR",
+    "color": "6b7280"
+  }
+]

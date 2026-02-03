@@ -26,6 +26,10 @@ on:
         required: true
         type: number
 
+concurrency:
+  group: auto-fix-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+  cancel-in-progress: false
+
 jobs:
   apply-fixes:
     runs-on: ubuntu-latest
@@ -67,14 +71,17 @@ jobs:
           ref: ${{ env.HEAD_REF }}
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+      - name: Load shared config
+        run: |
+          source .github/config.env
+          echo "CRITICAL_ISSUE_PATTERN=$CRITICAL_ISSUE_PATTERN" >> $GITHUB_ENV
+          echo "MAX_FIX_ATTEMPTS=$MAX_FIX_ATTEMPTS" >> $GITHUB_ENV
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Setup AI tools
+        uses: ./.github/actions/setup-ai-tools
+        with:
+          install-claude: 'true'
+          install-copilot: 'true'
 
       - name: Extract review suggestions
         id: extract
@@ -82,9 +89,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ env.PR_NUMBER }}
         run: |
-          # Codex Review と Claude Code Review の両方からコメントを取得
+          # Codex Review と Claude Code Review の最新コメントを取得
           gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-            --jq '.[] | select(.body | test("GPT-5.2-Codex Review|Claude Code Review")) | .body' \
+            --jq '[.[] | select(.body | test("GPT-5.2-Codex Review|Claude Code Review"))] | sort_by(.created_at) | last | .body' \
             > review_comments.txt || true
 
           if [ ! -s review_comments.txt ]; then
@@ -96,12 +103,12 @@ jobs:
           cat review_comments.txt
 
           # Critical Issues の検出（両方のレビュー形式に対応）
-          if grep -qiE "(Critical Issues|REQUEST_CHANGES|🔴|severity.*critical)" review_comments.txt; then
+          if grep -qiE "$CRITICAL_ISSUE_PATTERN" review_comments.txt; then
             echo "has_critical_issues=true" >> $GITHUB_OUTPUT
 
             # Critical Issues セクションを抽出
             {
-              grep -A 100 "Critical Issues" review_comments.txt | grep -E "^\s*(-\s|###\s|\*\*)" || true
+              grep -A 100 -i "Critical Issues" review_comments.txt | grep -E "^\s*(-\s|###\s|\*\*)" || true
               grep -B 2 -A 5 "🔴" review_comments.txt || true
               grep -B 2 -A 5 -i "severity.*critical" review_comments.txt || true
             } | sort -u > critical_issues.txt
@@ -154,7 +161,7 @@ jobs:
           PR_LABELS=$(gh pr view ${{ env.PR_NUMBER }} --json labels -q '.labels[].name')
 
           FIX_COUNT=0
-          for i in 1 2 3 4 5; do
+          for i in $(seq 1 "$MAX_FIX_ATTEMPTS"); do
             if echo "$PR_LABELS" | grep -q "auto-fix-attempt-$i"; then
               FIX_COUNT=$i
             fi
@@ -162,13 +169,13 @@ jobs:
 
           FIX_COUNT=$((FIX_COUNT + 1))
           echo "fix_count=$FIX_COUNT" >> $GITHUB_OUTPUT
+          echo "max_fix_attempts=$MAX_FIX_ATTEMPTS" >> $GITHUB_OUTPUT
 
-          if [ $FIX_COUNT -gt 5 ]; then
+          if [ $FIX_COUNT -gt "$MAX_FIX_ATTEMPTS" ]; then
             echo "exceeded_max=true" >> $GITHUB_OUTPUT
-            echo "❌ Fix attempts exceeded maximum (5)"
+            echo "::warning::Fix attempts exceeded maximum ($MAX_FIX_ATTEMPTS)"
           else
             echo "exceeded_max=false" >> $GITHUB_OUTPUT
-            echo "🔧 Fix attempt #$FIX_COUNT"
           fi
 
       - name: Determine AI model
@@ -205,7 +212,6 @@ jobs:
           FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
         run: |
           ATTEMPT_LABEL="auto-fix-attempt-$FIX_COUNT"
-          gh label create "$ATTEMPT_LABEL" --description "Auto-fix attempt $FIX_COUNT" --color "fbca04" 2>/dev/null || true
           gh pr edit ${{ env.PR_NUMBER }} \
             --add-label "$ATTEMPT_LABEL"
 
@@ -219,210 +225,142 @@ jobs:
             --body "🔧 **Auto-fix started (${{ steps.select-model.outputs.model }})**
 
             Critical issues found in review. Applying automatic fixes...
-            Attempt #${{ steps.check-count.outputs.fix_count }}/5
+            Attempt #${{ steps.check-count.outputs.fix_count }}/${{ steps.check-count.outputs.max_fix_attempts }}
 
             This may take a few minutes.
 
             ---
             [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
-      - name: Apply fixes via Claude Code (1st attempt)
+      - name: Generate fix prompt
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
+        env:
+          FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
+        run: |
+          # 3回目以降は試行回数とセルフレビューチェックリストを追加
+          ATTEMPT_HEADER=""
+          SELF_REVIEW=""
+          if [ "$FIX_COUNT" -ge 3 ]; then
+            ATTEMPT_HEADER="これは第${FIX_COUNT}回目の修正試行です。"
+            SELF_REVIEW="
+          ## Self-Review Checklist
+          - 修正によって新たな問題が発生していないか
+          - テストがすべて通過しているか
+          - lintエラーがないか
+          - type errorがないか"
+          fi
+
+          cat > fix_prompt.txt << EOF
+          以下のレビュー指摘に基づいて、コードを修正してください。
+          ${ATTEMPT_HEADER}
+
+          ## Critical Issues to Fix
+          $(cat critical_issues.txt)
+
+          ## Instructions
+          1. 上記のCritical Issuesを修正してください
+          2. 修正後にテストを実行してください (npm run test:run)
+          3. テストに失敗した場合は修正を続けてください
+          ${SELF_REVIEW}
+
+          ## Requirements
+          - Type Safety: anyを使用しない
+          - Architecture: レイヤー構造に従う (components -> hooks -> services)
+          - Security: ハードコードされたシークレットなし
+          - Performance: 適切なメモ化、不要な再レンダリングなし
+          - Testing: 新機能のテストが必要
+
+          重要: 日本語で説明してください。
+          重要: コミットは作成しないでください。変更を適用するだけです。
+          EOF
+
+      - name: Apply fixes via Claude Code
         if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count == '1'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
-          cat > fix_prompt.txt << EOF
-          以下のレビュー指摘に基づいて、コードを修正してください。
+          claude --dangerously-skip-permissions --print "$(cat fix_prompt.txt)" > ai_fix_output.txt 2>&1 || true
 
-          ## Critical Issues to Fix
-          $(cat critical_issues.txt)
-
-          ## Instructions
-          1. 上記のCritical Issuesを修正してください
-          2. 修正後にテストを実行してください (npm run test:run)
-          3. テストに失敗した場合は修正を続けてください
-          4. 重要: 修正が完了したら、コミットはしないでください（ワークフローが処理します）
-
-          ## Requirements
-          - Type Safety: anyを使用しない
-          - Architecture: レイヤー構造に従う (components -> hooks -> services)
-          - Security: ハードコードされたシークレットなし
-          - Performance: 適切なメモ化、不要な再レンダリングなし
-          - Testing: 新機能のテストが必要
-
-          重要: 日本語で説明してください。
-          EOF
-
-          npm install -g @anthropic-ai/claude-code
-
-          claude --dangerously-skip-permissions --print "$(cat fix_prompt.txt)" > claude_fix_output.txt 2>&1 || true
-
-          echo "## 🤖 Claude Fix Output" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          head -200 claude_fix_output.txt >> $GITHUB_STEP_SUMMARY || true
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-      - name: Apply fixes via GPT-5.2-Codex (medium, 2nd attempt)
-        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count == '2'
+      - name: Apply fixes via GPT-5.2-Codex
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count >= 2
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          cat > fix_prompt.txt << EOF
-          以下のレビュー指摘に基づいて、コードを修正してください。
-
-          ## Critical Issues to Fix
-          $(cat critical_issues.txt)
-
-          ## Instructions
-          1. 上記のCritical Issuesを修正してください
-          2. 修正後にテストを実行してください (npm run test:run)
-          3. テストに失敗した場合は修正を続けてください
-
-          ## Requirements
-          - Type Safety: anyを使用しない
-          - Architecture: レイヤー構造に従う (components -> hooks -> services)
-          - Security: ハードコードされたシークレットなし
-          - Performance: 適切なメモ化、不要な再レンダリングなし
-          - Testing: 新機能のテストが必要
-
-          重要: 日本語で説明してください。
-          重要: コミットは作成しないでください。変更を適用するだけです。
-          EOF
-
-          npm install -g @github/copilot
-
           copilot -p "$(cat fix_prompt.txt)" \
             --model gpt-5.2-codex \
             --allow-all-tools \
-            > codex_fix_output.txt 2>&1 || true
+            > ai_fix_output.txt 2>&1 || true
 
-          echo "## 🤖 GPT-5.2-Codex (medium) Fix Output" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          head -200 codex_fix_output.txt >> $GITHUB_STEP_SUMMARY || true
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-      - name: Apply fixes via GPT-5.2-Codex (xhigh, 3rd+ attempt)
-        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.check-count.outputs.fix_count >= '3'
+      - name: Post fix output to summary
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
         env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.COPILOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          MODEL: ${{ steps.select-model.outputs.model }}
         run: |
-          cat > fix_prompt.txt << EOF
-          以下のレビュー指摘に基づいて、コードを修正してください。
-          これは第${{ steps.check-count.outputs.fix_count }}回目の修正試行です。
-
-          ## Critical Issues to Fix
-          $(cat critical_issues.txt)
-
-          ## Instructions
-          1. 上記のCritical Issuesを修正してください
-          2. 修正後にテストを実行してください (npm run test:run)
-          3. テストに失敗した場合は修正を続けてください
-          4. 修正完了後に自己レビューを行い、残った問題がないか確認してください
-
-          ## Self-Review Checklist
-          - 修正によって新たな問題が発生していないか
-          - テストがすべて通過しているか
-          - lintエラーがないか
-          - type errorがないか
-
-          ## Requirements
-          - Type Safety: anyを使用しない
-          - Architecture: レイヤー構造に従う (components -> hooks -> services)
-          - Security: ハードコードされたシークレットなし
-          - Performance: 適切なメモ化、不要な再レンダリングなし
-          - Testing: 新機能のテストが必要
-
-          重要: 日本語で説明してください。
-          重要: コミットは作成しないでください。変更を適用するだけです。
-          EOF
-
-          npm install -g @github/copilot
-
-          copilot -p "$(cat fix_prompt.txt)" \
-            --model gpt-5.2-codex \
-            --allow-all-tools \
-            > codex_fix_output.txt 2>&1 || true
-
-          echo "## 🤖 GPT-5.2-Codex (xhigh) Fix Output" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          head -200 codex_fix_output.txt >> $GITHUB_STEP_SUMMARY || true
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "## 🤖 ${MODEL} Fix Output" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -200 ai_fix_output.txt >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Run tests
         if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
         id: tests
-        continue-on-error: true
         run: |
           set -o pipefail
-          npm run test:run -- --no-color 2>&1 | tee test_results.txt
-          TEST_EXIT=${PIPESTATUS[0]}
-
-          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          tail -50 test_results.txt >> $GITHUB_STEP_SUMMARY || true
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-          if [ $TEST_EXIT -eq 0 ]; then
+          if npm run test:run -- --no-color 2>&1 | tee test_results.txt; then
             echo "test_status=success" >> $GITHUB_OUTPUT
             echo "test_desc=Tests passed" >> $GITHUB_OUTPUT
           else
             echo "test_status=failure" >> $GITHUB_OUTPUT
             echo "test_desc=Tests failed" >> $GITHUB_OUTPUT
+            echo "::warning::Tests failed after auto-fix"
           fi
+
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -50 test_results.txt >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Run lint
         if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
         id: lint
-        continue-on-error: true
         run: |
           set -o pipefail
-          npm run lint -- --no-color 2>&1 | tee lint_results.txt
-          LINT_EXIT=${PIPESTATUS[0]}
-
-          if [ $LINT_EXIT -eq 0 ]; then
+          if npm run lint -- --no-color 2>&1 | tee lint_results.txt; then
             echo "lint_status=success" >> $GITHUB_OUTPUT
           else
             echo "lint_status=failure" >> $GITHUB_OUTPUT
+            echo "::warning::Lint check failed after auto-fix"
           fi
 
-      - name: Clean up work files
-        if: always()
+      - name: Determine commit message
+        if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
+        id: msg
+        env:
+          TEST_STATUS: ${{ steps.tests.outputs.test_status }}
+          LINT_STATUS: ${{ steps.lint.outputs.lint_status }}
+          FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
+          MODEL: ${{ steps.select-model.outputs.model }}
         run: |
-          rm -f claude_fix_output.txt codex_fix_output.txt fix_prompt.txt critical_issues.txt
-          rm -f review_comments.txt test_results.txt lint_results.txt
+          if [ "$TEST_STATUS" != "success" ]; then
+            MSG="fix: apply code review suggestions (tests need review) [attempt $FIX_COUNT, $MODEL]"
+          elif [ "$LINT_STATUS" != "success" ]; then
+            MSG="fix: apply code review suggestions (linting issues) [attempt $FIX_COUNT, $MODEL]"
+          else
+            MSG="fix: apply code review suggestions [attempt $FIX_COUNT, $MODEL]"
+          fi
+          echo "commit_message=${MSG}" >> $GITHUB_OUTPUT
 
       - name: Commit and push fixes
         if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false'
         id: commit
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
+        uses: ./.github/actions/git-commit-push
+        with:
+          message: |
+            ${{ steps.msg.outputs.commit_message }}
 
-          if [ -n "$(git status --porcelain)" ]; then
-            git add .
-
-            TEST_STATUS="${{ steps.tests.outputs.test_status }}"
-            LINT_STATUS="${{ steps.lint.outputs.lint_status }}"
-            FIX_COUNT="${{ steps.check-count.outputs.fix_count }}"
-            MODEL="${{ steps.select-model.outputs.model }}"
-
-            if [ "$TEST_STATUS" != "success" ]; then
-              COMMIT_MSG="fix: apply code review suggestions (tests need review) [attempt $FIX_COUNT, $MODEL]"
-            elif [ "$LINT_STATUS" != "success" ]; then
-              COMMIT_MSG="fix: apply code review suggestions (linting issues) [attempt $FIX_COUNT, $MODEL]"
-            else
-              COMMIT_MSG="fix: apply code review suggestions [attempt $FIX_COUNT, $MODEL]"
-            fi
-
-            git commit -m "$COMMIT_MSG
-
-            Auto-generated by GitHub Actions based on review feedback."
-            git push origin HEAD:${{ env.HEAD_REF }}
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          fi
+            Auto-generated by GitHub Actions based on review feedback.
+          branch: ${{ env.HEAD_REF }}
 
       - name: Re-trigger auto-fix if needed
         if: steps.extract.outputs.has_critical_issues == 'true' && steps.check-count.outputs.exceeded_max == 'false' && steps.commit.outputs.has_changes == 'true'
@@ -430,8 +368,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIX_COUNT: ${{ steps.check-count.outputs.fix_count }}
         run: |
-          # 5回未満であれば、workflow_dispatch で再トリガー
-          if [ "$FIX_COUNT" -lt 5 ]; then
+          MAX_FIX_ATTEMPTS="${{ steps.check-count.outputs.max_fix_attempts }}"
+          if [ "$FIX_COUNT" -lt "$MAX_FIX_ATTEMPTS" ]; then
             if gh workflow run auto-apply-suggestions.yml \
               -f pr_number=${{ env.PR_NUMBER }} 2>/dev/null; then
               echo "🔄 Re-triggered auto-fix via workflow_dispatch (attempt #$FIX_COUNT completed)"
@@ -460,7 +398,7 @@ jobs:
 
             Fixes have been applied and pushed.
 
-            - Attempt: $FIX_COUNT/5
+            - Attempt: $FIX_COUNT/${{ steps.check-count.outputs.max_fix_attempts }}
             - Tests: $TEST_STATUS
             - Lint: $LINT_STATUS
 
@@ -554,7 +492,7 @@ jobs:
           cat > issue_body.md << EOF
           ## Manual Review Required
 
-          Auto-fix attempts have exceeded the maximum (5 attempts).
+          Auto-fix attempts have exceeded the maximum.
 
           ### Pull Request
           - PR: #${{ env.PR_NUMBER }}
@@ -579,7 +517,7 @@ jobs:
           gh pr comment ${{ env.PR_NUMBER }} \
             --body "❌ **Auto-fix stopped**
 
-          Maximum attempts (5) reached. Human review required.
+          Maximum attempts reached. Human review required.
 
           Please review Issue #$ISSUE_NUMBER for details.
 
@@ -598,3 +536,9 @@ jobs:
 
             ---
             [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      - name: Clean up work files
+        if: always()
+        run: |
+          rm -f ai_fix_output.txt fix_prompt.txt critical_issues.txt
+          rm -f review_comments.txt test_results.txt lint_results.txt

@@ -1,0 +1,334 @@
+# Reusable Claude Code Implementation Workflow
+#
+# Shared implementation logic for claude-batch.yml and claude-responder.yml.
+# Handles: branch creation, issue fetching, Claude Code execution,
+# tests, commit/push, PR creation, and issue status comments.
+
+name: Claude Implement
+
+on:
+  workflow_call:
+    inputs:
+      issue-number:
+        type: string
+        required: true
+      mode:
+        type: string
+        default: 'auto'
+      batch-context:
+        type: string
+        default: ''
+      run-url:
+        type: string
+        required: true
+    secrets:
+      anthropic-api-key:
+        required: true
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    concurrency:
+      group: claude-implement-${{ inputs.issue-number }}
+      cancel-in-progress: false
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup AI tools
+        uses: ./.github/actions/setup-ai-tools
+        with:
+          install-claude: 'true'
+
+      - name: Get issue details
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISSUE_NUMBER="${{ inputs.issue-number }}"
+
+          if ! [[ "$ISSUE_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Error: Invalid issue number: $ISSUE_NUMBER"
+            exit 1
+          fi
+
+          ISSUE_JSON=$(gh issue view $ISSUE_NUMBER --json title,body,state)
+          ISSUE_TITLE=$(echo "$ISSUE_JSON" | jq -r '.title')
+          ISSUE_BODY=$(echo "$ISSUE_JSON" | jq -r '.body')
+          ISSUE_STATE=$(echo "$ISSUE_JSON" | jq -r '.state')
+
+          if [ "$ISSUE_STATE" != "OPEN" ]; then
+            echo "Warning: Issue #$ISSUE_NUMBER is not open (state: $ISSUE_STATE)"
+          fi
+
+          echo "issue_title=$ISSUE_TITLE" >> $GITHUB_OUTPUT
+          echo "issue_state=$ISSUE_STATE" >> $GITHUB_OUTPUT
+
+          echo "$ISSUE_BODY" > issue_body.md
+
+      - name: Extract task prompt
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue-number }}
+          ISSUE_TITLE: ${{ steps.issue.outputs.issue_title }}
+        run: |
+          {
+            echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+            echo ""
+            cat issue_body.md | sed 's/@claude//g'
+            echo ""
+            echo "# Quality Assurance Protocol"
+            echo "Follow this 3-phase process strictly:"
+            echo ""
+            echo "## Phase 1: Implementation (Coder)"
+            echo "Reference: .claude/skills/tdd-workflow/SKILL.md"
+            echo "- If TDD mode, write failing tests first (RED)."
+            echo "- BUG FIXING: You MUST reproduce the bug with a code based test case. Do not say 'no issues found' if the user reported a bug."
+            echo "- Implement minimal code to pass tests (GREEN)."
+            echo ""
+            echo "## Phase 2: Refactoring (Refactorer)"
+            echo "Reference: .claude/skills/refactoring/SKILL.md"
+            echo "- Improve code quality after passing tests."
+            echo "- Remove duplication, improve naming, use early returns."
+            echo ""
+            echo "## Phase 3: Review (Reviewer)"
+            echo "Reference: .claude/skills/code-review/SKILL.md"
+            echo "- Perform a self-review of your changes."
+            echo "- Check against the criteria in the skill file."
+            echo "- If issues found, fix them before finishing."
+            echo ""
+            echo "IMPORTANT: Output all explanations, comments, and PR descriptions in Japanese."
+          } > task_prompt.txt
+
+      - name: Checkout or create branch
+        run: |
+          BRANCH_NAME="claude/issue-${{ inputs.issue-number }}"
+
+          if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
+            echo "Branch $BRANCH_NAME exists remotely. Checking out..."
+            git fetch origin $BRANCH_NAME
+            git checkout -B $BRANCH_NAME FETCH_HEAD -f
+          else
+            echo "Creating new branch $BRANCH_NAME..."
+            git checkout -b $BRANCH_NAME
+          fi
+
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Comment on issue (started)
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ inputs.issue-number }}
+          body: |
+            🤖 **Claude Code has started${{ inputs.batch-context != '' && ' (Batch Mode)' || '' }}**
+
+            **Mode**: ${{ inputs.mode == 'tdd' && '🧪 TDD (Test-Driven Development)' || '🤖 Auto Implementation' }}
+            **Branch**: `${{ env.branch_name }}`
+            ${{ inputs.batch-context != '' && format('**Batch Run**: Part of parallel execution ({0})', inputs.batch-context) || '' }}
+
+            ---
+            [View Actions Log](${{ inputs.run-url }})
+
+      - name: Run Claude Code
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
+          ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
+        run: |
+          if [ "${{ inputs.mode }}" == "tdd" ]; then
+            {
+              echo "/tdd"
+              echo ""
+              cat task_prompt.txt
+            } > prompt.txt
+          else
+            cp task_prompt.txt prompt.txt
+          fi
+
+          claude --dangerously-skip-permissions --print "$(cat prompt.txt)" > claude_response.txt 2>&1 || true
+
+          echo "## 🤖 Claude Response for Issue #${{ inputs.issue-number }}" >> $GITHUB_STEP_SUMMARY
+          head -100 claude_response.txt >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Run tests
+        id: tests
+        run: |
+          set -o pipefail
+          if npm run test:run -- --no-color 2>&1 | tee test_results.txt; then
+            echo "test_status=success" >> $GITHUB_OUTPUT
+            echo "test_desc=Tests passed" >> $GITHUB_OUTPUT
+          else
+            echo "test_status=failure" >> $GITHUB_OUTPUT
+            echo "test_desc=Tests failed" >> $GITHUB_OUTPUT
+            echo "::warning::Tests failed"
+          fi
+
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -50 test_results.txt >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Check coverage (TDD mode only)
+        if: inputs.mode == 'tdd'
+        run: |
+          npm run test:coverage -- --no-color 2>&1 | tee coverage_results.txt || true
+
+          echo "## 📊 Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -30 coverage_results.txt >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Save PR description content
+        id: pr-content
+        run: |
+          {
+            echo 'task_summary<<TASK_EOF'
+            head -30 task_prompt.txt 2>/dev/null || echo "No task prompt available"
+            echo 'TASK_EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Clean up work files
+        run: |
+          rm -f claude_response.txt prompt.txt task_prompt.txt test_results.txt
+          rm -f coverage_results.txt issue_body.md
+          rm -rf coverage/
+
+      - name: Commit and push
+        id: commit
+        uses: ./.github/actions/git-commit-push
+        with:
+          message: |
+            ${{ inputs.mode == 'tdd' && format('feat(tdd): Implementation for #{0}', inputs.issue-number) || format('feat: Implementation for #{0}', inputs.issue-number) }}
+
+            ${{ inputs.mode == 'tdd' && '- Tests written first (TDD)
+            - Implementation follows tests
+            - Refactored for quality' || '' }}
+            ${{ inputs.batch-context != '' && format('Part of batch run: {0}', inputs.batch-context) || '' }}
+          branch: ${{ env.branch_name }}
+
+      - name: Report commit status
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          STATE="${{ steps.tests.outputs.test_status || 'failure' }}"
+          DESC="${{ steps.tests.outputs.test_desc || 'Tests not run' }}"
+
+          gh api "repos/${{ github.repository }}/statuses/${SHA}" \
+            -f state="$STATE" \
+            -f description="$DESC" \
+            -f context="Claude / tests" \
+            -f target_url="${{ inputs.run-url }}" || true
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue-number }}
+          MODE: ${{ inputs.mode }}
+          BRANCH_NAME: ${{ env.branch_name }}
+          BATCH_CONTEXT: ${{ inputs.batch-context }}
+        run: |
+          if [ "$MODE" == "tdd" ]; then
+            TITLE="🧪 Implementation for #${ISSUE_NUMBER}"
+            MODE_TEXT="🧪 **TDD Implementation** - Tests written before code"
+            LABEL_ARGS="--label claude-auto --label claude-tdd"
+          else
+            TITLE="🤖 Implementation for #${ISSUE_NUMBER}"
+            MODE_TEXT="🤖 **Auto Implementation** by Claude Code"
+            LABEL_ARGS="--label claude-auto"
+          fi
+
+          if [ -n "$BATCH_CONTEXT" ]; then
+            LABEL_ARGS="$LABEL_ARGS --label claude-batch"
+          fi
+
+          {
+            echo "## Summary"
+            echo ""
+            echo "$MODE_TEXT"
+            echo ""
+            if [ -n "$BATCH_CONTEXT" ]; then
+              echo "**Batch Run**: Part of parallel execution ($BATCH_CONTEXT)"
+              echo ""
+            fi
+            echo "Closes #${ISSUE_NUMBER}"
+            echo ""
+            echo "## Task"
+            echo ""
+            echo "${{ steps.pr-content.outputs.task_summary }}"
+            echo ""
+            echo "## Checklist"
+            echo ""
+            echo "- [ ] Tests pass"
+            echo "- [ ] Coverage meets requirements (80%+)"
+            echo "- [ ] Code review completed"
+            echo "- [ ] Documentation updated (if needed)"
+            echo ""
+            echo "---"
+            echo ""
+            echo "> 🤖 Auto-generated by [Claude Code](${{ inputs.run-url }})"
+          } > pr_body.txt
+
+          gh pr create \
+            --title "$TITLE" \
+            --body-file pr_body.txt \
+            --base main \
+            --head "$BRANCH_NAME" \
+            $LABEL_ARGS || echo "PR likely already exists, skipping creation."
+
+          rm -f pr_body.txt
+
+      - name: Trigger CI workflows for PR
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          gh api "repos/${{ github.repository }}/check-suites" \
+            -X POST -f head_sha="$SHA" || true
+
+      - name: Comment on issue (completed)
+        if: steps.commit.outputs.has_changes == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ inputs.issue-number }}
+          body: |
+            ✅ **Claude Code completed${{ inputs.batch-context != '' && ' (Batch Mode)' || '' }}**
+
+            **Mode**: ${{ inputs.mode == 'tdd' && '🧪 TDD' || '🤖 Auto' }}
+            **Branch**: `${{ env.branch_name }}`
+            **Status**: PR created
+
+            Please review the Pull Request.
+
+            ---
+            [View Actions Log](${{ inputs.run-url }})
+
+      - name: Comment on issue (no changes)
+        if: steps.commit.outputs.has_changes == 'false'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ inputs.issue-number }}
+          body: |
+            ⚠️ **Claude Code completed without changes${{ inputs.batch-context != '' && ' (Batch Mode)' || '' }}**
+
+            No code changes were made. This could mean:
+            - The feature already exists
+            - The task requires clarification
+            - There was an error during execution
+
+            Please check the Actions log for details.
+
+            ---
+            [View Actions Log](${{ inputs.run-url }})

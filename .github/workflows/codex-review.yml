@@ -13,7 +13,7 @@ name: Codex Review
 
 on:
   pull_request:
-    types: [opened, synchronize, labeled]
+    types: [opened, synchronize, ready_for_review]
     branches: [main]
 
 # 同じPRへの重複実行を防止
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15  # Copilotレビューのタイムアウト
     # すべてのPRをレビュー（skip-codex-review ラベルでオプトアウト可能）
-    if: "!contains(github.event.pull_request.labels.*.name, 'skip-codex-review')"
+    if: "!contains(github.event.pull_request.labels.*.name, 'skip-codex-review') && github.event.pull_request.draft == false"
 
     permissions:
       contents: read
@@ -39,16 +39,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+      - name: Load shared config
+        run: |
+          source .github/config.env
+          echo "CRITICAL_ISSUE_PATTERN=$CRITICAL_ISSUE_PATTERN" >> $GITHUB_ENV
 
-      - name: Install GitHub Copilot CLI
-        id: install-copilot
-        continue-on-error: true
-        run: npm install -g @github/copilot
+      - name: Setup AI tools
+        id: setup
+        uses: ./.github/actions/setup-ai-tools
+        with:
+          install-copilot: 'true'
+          install-deps: 'false'
 
       - name: Get changed files
         id: changed
@@ -70,14 +71,17 @@ jobs:
 
       - name: Prepare review context
         if: steps.changed.outputs.has_files == 'true'
+        env:
+          PR_NUMBER_VAL: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # レビュー用のコンテキストを準備
           {
             echo "# Code Review Request"
             echo ""
             echo "## PR Information"
-            echo "- PR #${{ github.event.pull_request.number }}"
-            echo "- Title: ${{ github.event.pull_request.title }}"
+            echo "- PR #${PR_NUMBER_VAL}"
+            echo "- Title: ${PR_TITLE}"
             echo ""
             echo "## Changed Files"
             cat changed_files.txt
@@ -146,36 +150,31 @@ jobs:
 
           if [ -z "${COPILOT_GITHUB_TOKEN:-}" ]; then
             REVIEW_AVAILABLE=false
-            echo "⚠️ No authentication token available." > review_result.md
-            echo "" >> review_result.md
-            echo "Copilot CLI requires a token with Copilot access." >> review_result.md
-            echo "Set \`COPILOT_TOKEN\` or \`COPILOT_GITHUB_TOKEN\` secret with a PAT that has copilot scope." >> review_result.md
+            echo "::warning::No Copilot authentication token available"
+            echo "Copilot CLI requires a token with Copilot access." > review_result.md
+            echo "Set COPILOT_TOKEN or COPILOT_GITHUB_TOKEN secret." >> review_result.md
           elif ! command -v copilot &> /dev/null; then
             REVIEW_AVAILABLE=false
-            echo "⚠️ Copilot CLI is not available." > review_result.md
-            echo "" >> review_result.md
-            echo "Install with: \`npm install -g @github/copilot\`" >> review_result.md
+            echo "::warning::Copilot CLI is not available"
+            echo "Copilot CLI not found. Setup may have failed." > review_result.md
           else
             if ! copilot -p "$(cat review_prompt.txt)" \
               --model gpt-5.2-codex \
-              --allow-all-tools \
               > review_result.md 2>&1; then
               REVIEW_AVAILABLE=false
+              echo "::warning::Codex review execution failed"
             fi
           fi
 
-          # 結果が空の場合のフォールバック
           if [ ! -s review_result.md ]; then
             REVIEW_AVAILABLE=false
-            echo "## Review Result" > review_result.md
-            echo "" >> review_result.md
-            echo "Codex review could not be completed. Please review manually." >> review_result.md
+            echo "Codex review could not be completed. Please review manually." > review_result.md
           fi
 
           echo "review_available=$REVIEW_AVAILABLE" >> $GITHUB_OUTPUT
 
       - name: Post review comment
-        if: steps.changed.outputs.has_files == 'true'
+        if: steps.changed.outputs.has_files == 'true' && steps.review.outputs.review_available == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -200,9 +199,7 @@ jobs:
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
 
-          if grep -q "REQUEST_CHANGES" review_result.md; then
-            VERDICT="REQUEST_CHANGES"
-          elif grep -q "Critical Issues:" review_result.md && grep -A 100 "Critical Issues:" review_result.md | grep -q "^-"; then
+          if grep -qiE "$CRITICAL_ISSUE_PATTERN" review_result.md; then
             VERDICT="REQUEST_CHANGES"
           else
             VERDICT="APPROVE"
@@ -233,24 +230,13 @@ jobs:
         if: steps.changed.outputs.has_files == 'true' && steps.review.outputs.review_available == 'true'
         id: check-fix
         run: |
-          if grep -q "REQUEST_CHANGES" review_result.md; then
-            echo "needs_fix=true" >> $GITHUB_OUTPUT
-            echo "Critical issues detected, will trigger auto-fix"
-          elif grep -q "Critical Issues:" review_result.md && grep -A 100 "Critical Issues:" review_result.md | grep -q "^-"; then
+          if grep -qiE "$CRITICAL_ISSUE_PATTERN" review_result.md; then
             echo "needs_fix=true" >> $GITHUB_OUTPUT
             echo "Critical issues found, will trigger auto-fix"
           else
             echo "needs_fix=false" >> $GITHUB_OUTPUT
             echo "No critical issues, no auto-fix needed"
           fi
-
-      - name: Ensure labels exist
-        if: steps.review.outputs.review_available == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh label create "codex-reviewed" --description "Codex Review completed" --color "0e8a16" 2>/dev/null || true
-          gh label create "auto-fix" --description "Auto-fix triggered by review" --color "d93f0b" 2>/dev/null || true
 
       - name: Add labels and trigger auto-fix
         if: steps.review.outputs.review_available == 'true'
@@ -275,46 +261,36 @@ jobs:
             fi
           fi
 
-      - name: Trigger auto-merge
+      - name: Check merge conditions
         if: steps.check-fix.outputs.needs_fix == 'false' && steps.review.outputs.review_available == 'true'
+        id: merge-check
+        uses: ./.github/actions/check-pr-mergeable
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          merge-if-ready: 'true'
+          merge-subject: 'Auto-merge after Codex review: ${{ github.event.pull_request.title }}'
+
+      - name: Comment on pending merge
+        if: steps.merge-check.outputs.can_merge == 'false' && steps.merge-check.outputs.reason != 'blocking_reviews'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REASON: ${{ steps.merge-check.outputs.reason }}
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
-          echo "Checking PR #$PR_NUMBER for auto-merge..."
+          case "$REASON" in
+            failed_checks)
+              MSG="Codex review approved, but some checks have not passed yet. Auto-merge will be triggered once all checks pass." ;;
+            pending_checks)
+              MSG="Codex review approved, but some checks are still running. Auto-merge will be triggered once all checks complete." ;;
+            not_mergeable)
+              MSG="Codex review approved, but PR has conflicts that need to be resolved. Please resolve conflicts and merge manually." ;;
+          esac
+          gh pr comment $PR_NUMBER \
+            --body "ℹ️ **Auto-merge pending**
 
-          MERGEABLE=$(gh pr view $PR_NUMBER --json mergeable --jq '.mergeable')
+          $MSG
 
-          FAILED_CHECKS=$(gh pr view $PR_NUMBER --json statusCheckRollup \
-            --jq '[.statusCheckRollup[] | select(.conclusion != "SUCCESS" and .conclusion != "SKIPPED" and .conclusion != null and .conclusion != "")] | length')
-
-          if [ "$FAILED_CHECKS" -eq 0 ]; then
-            echo "All required checks passed, triggering auto-merge..."
- 
-            if [ "$MERGEABLE" == "true" ]; then
-              gh pr merge $PR_NUMBER \
-                --squash \
-                --subject "Auto-merge after Codex review: ${{ github.event.pull_request.title }}"
-              echo "✅ Auto-merge triggered"
-            else
-              echo "⚠️ PR has conflicts, cannot auto-merge"
-              gh pr comment $PR_NUMBER \
-                --body "ℹ️ **Auto-merge skipped**
-
-                Codex review approved, but PR has conflicts that need to be resolved.
-                Please resolve conflicts and merge manually.
-
-                ---
-                [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-            fi
-          else
-            echo "⚠️ Some checks have not passed ($FAILED_CHECKS failed)"
-            gh pr comment $PR_NUMBER \
-              --body "ℹ️ **Auto-merge pending**
-
-              Codex review approved, but some checks have not passed yet ($FAILED_CHECKS failed).
-              Auto-merge will be triggered once all checks pass.
-
-              ---
-              [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          fi
+          ---
+          [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"

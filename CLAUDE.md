@@ -28,7 +28,7 @@ Canvas Studio - Fabric.jsを使用したブラウザベースのデザインア�
 | 🟣 | Opus | 複雑な設計・アーキテクチャ | Pro消費 |
 | 🟡 | Sonnet | 設計改善・判断・承認 | Pro消費（軽量） |
 | 🟢 | GPT-5.2-Codex | レビュー・分析 | Copilot Pro (1 PR/回) |
-| 🔵 | GLM-4.7 | 実装・自己点検 | Pro消費なし |
+| 🔵 | Claude Code (GitHub Actions) | 実装・自己点検・自動レビュー | Pro消費なし |
 
 ### GPT-5.2-Codex 実行環境
 
@@ -61,8 +61,8 @@ Step 4: タスクDispatch    → 🟣 Opus (ローカル)
         ↓ GitHub Issues 自動作成
         ↓ Batch workflow 自動トリガー
         ↓
-Step 5: 並列実装          → 🔵 GLM-4.7 (GitHub Actions)
-Step 6: 自己点検          → 🔵 GLM-4.7 (GitHub Actions)
+Step 5: 並列実装          → 🔵 Claude Code (GitHub Actions)
+Step 6: 自己点検          → 🔵 Claude Code (GitHub Actions)
 ```
 
 - Step 4: `/dispatch` で設計からタスクをIssue化し、並列実装を自動起動
@@ -77,7 +77,7 @@ Step 6: 自己点検          → 🔵 GLM-4.7 (GitHub Actions)
                     ↓
 ┌──────────┬──────────┬──────────┐
 │ Issue #1 │ Issue #2 │ Issue #3 │
-│ 🔵GLM4.7│ 🔵GLM4.7│ 🔵GLM4.7│  ← 並列実行
+│ 🔵Claude│ 🔵Claude│ 🔵Claude│  ← 並列実行
 │ Task A   │ Task B   │ Task C   │
 └──────────┴──────────┴──────────┘
                     ↓
@@ -87,17 +87,19 @@ Step 6: 自己点検          → 🔵 GLM-4.7 (GitHub Actions)
 ### Phase 3: レビュー
 
 ```
-Step 7: 実装チェック      → 🟢 GPT-5.2-Codex (medium) via GitHub Actions
-Step 8: 修正Issue作成     → 🟡 Sonnet (必要時のみ)
+Step 7: 実装チェック      → 🟢 GPT-5.2-Codex (medium) + 🔵 Claude Code (GitHub Actions)
+Step 8: 自動修正          → 🔵 Claude Code / 🟢 GPT-5.2-Codex
+Step 9: 修正Issue作成     → 🟡 Sonnet (必要時のみ)
 ```
 
-- Step 7: PRがopenされると自動でレビュー（`codex-review.yml`）
-- Step 8: 問題があればIssue作成
+- Step 7: PRがopenされると自動でレビュー（`codex-review.yml`, `claude-review.yml`）
+- Step 8: Critical Issues 検出時は `auto-apply-suggestions.yml` で自動修正
+- Step 9: 問題が残る場合はIssue作成
 
 ### Phase 4: 最終レビュー
 
 ```
-Step 9: 最終チェック
+Step 10: 最終チェック
   - 詳細分析             → 🟢 GPT-5.2-Codex (xhigh) via copilot CLI
   - 判断・承認           → 🟡 Sonnet
 
@@ -116,6 +118,7 @@ Step 9: 最終チェック
 | 実装 | `/dispatch` | タスクをIssue化し並列実装を自動起動 |
 | 実装 | `/start`, `/finish` | 手動実装用 |
 | レビュー | `/review`, `/verify` | コードレビュー・検証 |
+| 実装 | `/tdd` | TDDワークフロー開始 |
 
 ## コーディング規約
 
@@ -195,3 +198,20 @@ src/
 | `docs/handoff.md` | AI間引き継ぎ |
 | `.claude/rules/` | コーディングルール |
 | `.claude/memory/` | セッション記憶 |
+
+## GitHub Actions 自動化概要
+
+| 項目 | ワークフロー | 概要 |
+|------|-------------|------|
+| 実装（単体） | `claude-responder.yml` | @claude/ラベルでClaude Codeを起動 |
+| 実装（並列） | `claude-batch.yml` | 複数Issueを並列実装 |
+| 実装ロジック | `claude-implement.yml` | 実装共通フロー（テスト/PR作成） |
+| 自動レビュー | `codex-review.yml`, `claude-review.yml` | Codex/ClaudeのPRレビュー |
+| 自動修正 | `auto-apply-suggestions.yml` | Critical Issuesを自動修正 |
+| テスト/品質 | `test.yml` | lint/typecheck/test/dep review |
+| セキュリティ | `codeql.yml` | CodeQLスキャン |
+| リリース | `release.yml` | release-please自動リリース |
+| 再試行 | `auto-retry-failed.yml`, `retry-failed-handler.yml` | 失敗ワークフローの自動再試行 |
+| プロジェクト連携 | `project-integration.yml` | Project自動追加/ラベル連携 |
+| 通知 | `batch-review-notify.yml` | バッチレビュー完了通知 |
+| PRマージ後処理 | `auto-merge-retry.yml`, `task-completion.yml`, `claude-auto-continue.yml` | 自動マージ再試行/タスク更新/次Issue起動 |

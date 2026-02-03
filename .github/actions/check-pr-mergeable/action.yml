@@ -1,0 +1,79 @@
+name: Check PR Mergeable
+description: Validate PR merge conditions (reviews, checks, mergeable state)
+
+inputs:
+  pr-number:
+    description: 'Pull request number'
+    required: true
+  merge-if-ready:
+    description: 'Automatically merge if all conditions pass'
+    default: 'false'
+  merge-subject:
+    description: 'Squash merge commit subject'
+    default: ''
+
+outputs:
+  can_merge:
+    description: 'Whether the PR can be merged'
+    value: ${{ steps.validate.outputs.can_merge }}
+  reason:
+    description: 'Reason if merge is blocked'
+    value: ${{ steps.validate.outputs.reason }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate merge conditions
+      id: validate
+      shell: bash
+      env:
+        GH_TOKEN: ${{ env.GH_TOKEN }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+      run: |
+        BLOCKING_REVIEWS=$(gh pr view $PR_NUMBER --json reviews \
+          --jq '[.reviews[] | select(.state == "CHANGES_REQUESTED")] | length')
+        if [ "$BLOCKING_REVIEWS" -gt 0 ]; then
+          echo "can_merge=false" >> $GITHUB_OUTPUT
+          echo "reason=blocking_reviews" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        FAILED_CHECKS=$(gh pr view $PR_NUMBER --json statusCheckRollup \
+          --jq '[.statusCheckRollup[] | select(.conclusion != "SUCCESS" and .conclusion != "SKIPPED" and .conclusion != null and .conclusion != "")] | length')
+        if [ "$FAILED_CHECKS" -gt 0 ]; then
+          echo "can_merge=false" >> $GITHUB_OUTPUT
+          echo "reason=failed_checks" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        PENDING_CHECKS=$(gh pr view $PR_NUMBER --json statusCheckRollup \
+          --jq '[.statusCheckRollup[] | select(.conclusion == null or .conclusion == "")] | length')
+        if [ "$PENDING_CHECKS" -gt 0 ]; then
+          echo "can_merge=false" >> $GITHUB_OUTPUT
+          echo "reason=pending_checks" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        MERGEABLE=$(gh pr view $PR_NUMBER --json mergeable --jq '.mergeable')
+        if [ "$MERGEABLE" != "MERGEABLE" ]; then
+          echo "can_merge=false" >> $GITHUB_OUTPUT
+          echo "reason=not_mergeable" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        echo "can_merge=true" >> $GITHUB_OUTPUT
+        echo "reason=" >> $GITHUB_OUTPUT
+
+    - name: Merge PR
+      if: inputs.merge-if-ready == 'true' && steps.validate.outputs.can_merge == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ env.GH_TOKEN }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+        MERGE_SUBJECT: ${{ inputs.merge-subject }}
+      run: |
+        if [ -n "$MERGE_SUBJECT" ]; then
+          gh pr merge $PR_NUMBER --squash --subject "$MERGE_SUBJECT"
+        else
+          gh pr merge $PR_NUMBER --squash
+        fi

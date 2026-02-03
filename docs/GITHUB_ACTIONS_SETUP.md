@@ -38,7 +38,7 @@ Issueを作成して、本文に `@claude` を含める：
 
 ### GLM API (Z.AI) を使用する場合
 
-コスト削減のためGLM-4.7を使用できます。
+コスト削減のためClaude Codeの実行先をGLM互換APIに切り替えられます。
 
 **Secrets:**
 | Secret名 | 値 |

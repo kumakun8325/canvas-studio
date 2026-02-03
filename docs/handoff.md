@@ -18,16 +18,17 @@ Phase 2: 実装（並列処理）  ← 現在
 ├── Step 4: /dispatch           🟣 Opus (ローカル)
 │   ├── GitHub Issues 自動作成
 │   └── Batch workflow 自動トリガー
-├── Step 5: 並列実装            🔵 GLM-4.7 (GitHub Actions)
-└── Step 6: 自己点検            🔵 GLM-4.7 (GitHub Actions)
+├── Step 5: 並列実装            🔵 Claude Code (GitHub Actions)
+└── Step 6: 自己点検            🔵 Claude Code (GitHub Actions)
 
 Phase 3: レビュー
-├── Step 7: 実装チェック        🟢 GPT-5.2-Codex (medium) via GitHub Actions
-└── Step 8: 修正Issue作成       🟡 Sonnet (必要時のみ)
+├── Step 7: 実装チェック        🟢 GPT-5.2-Codex (medium) + 🔵 Claude Code
+├── Step 8: 自動修正            🔵 Claude Code / 🟢 GPT-5.2-Codex
+└── Step 9: 修正Issue作成       🟡 Sonnet (必要時のみ)
 
 Phase 4: 最終レビュー
-├── Step 9a: 詳細分析           🟢 GPT-5.2-Codex (xhigh) via copilot CLI
-└── Step 9b: 判断・承認         🟡 Sonnet
+├── Step 10a: 詳細分析          🟢 GPT-5.2-Codex (xhigh) via copilot CLI
+└── Step 10b: 判断・承認        🟡 Sonnet
     └── 【例外】重大変更時      🟣 Opus
 ```
 
@@ -43,7 +44,7 @@ Phase 4: 最終レビュー
                     ↓
 ┌──────────┬──────────┬──────────┐
 │ Issue #1 │ Issue #2 │ Issue #3 │
-│ 🔵GLM4.7│ 🔵GLM4.7│ 🔵GLM4.7│  ← 並列実行 (GitHub Actions)
+│ 🔵Claude│ 🔵Claude│ 🔵Claude│  ← 並列実行 (GitHub Actions)
 │ Task A   │ Task B   │ Task C   │
 └──────────┴──────────┴──────────┘
                     ↓
@@ -94,7 +95,7 @@ Opus (ローカル) で `/dispatch` を実行:
 これにより:
 1. 各タスクがGitHub Issueとして自動作成
 2. claude-batch.yml ワークフローが自動トリガー
-3. GLM-4.7 が各Issueを並列実装
+3. Claude Code が各Issueを並列実装
 4. 各タスクのPRが自動作成
 
 ### 手動実装（従来方式）
@@ -121,7 +122,7 @@ Create branch: `feature/task-04-undo`
 
 ## After Implementation (Phase 2 → Phase 3)
 
-### Step 6: 自己点検 (🔵 GLM-4.7)
+### Step 6: 自己点検 (🔵 Claude Code)
 GitHub Actions が自動実行:
 1. セルフレビュー実施
 2. Build/Lint 確認
@@ -130,15 +131,18 @@ GitHub Actions が自動実行:
 
 ※ 手動実装の場合は各 Worker が `/finish` を実行
 
-### Step 7: 実装チェック (🟢 GPT-5.2-Codex medium via GitHub Actions)
+### Step 7: 実装チェック (🟢 GPT-5.2-Codex medium + 🔵 Claude Code via GitHub Actions)
 - コード品質チェック
 - 設計適合性確認
 - テストカバレッジ確認
 
-### Step 8: 修正Issue作成 (🟡 Sonnet)
-問題があれば Issue 作成
+### Step 8: 自動修正 (🔵 Claude Code / 🟢 GPT-5.2-Codex)
+Critical Issues 検出時は auto-apply-suggestions.yml が自動修正
 
-### Step 9: 最終レビュー (🟢 GPT-5.2-Codex xhigh → 🟡 Sonnet)
+### Step 9: 修正Issue作成 (🟡 Sonnet)
+問題が残る場合は Issue 作成
+
+### Step 10: 最終レビュー (🟢 GPT-5.2-Codex xhigh → 🟡 Sonnet)
 1. GPT-5.2-Codex (copilot CLI) で詳細分析
 2. Sonnet で判断・承認
 3. PR マージ (02 → 03 → 04 の順)

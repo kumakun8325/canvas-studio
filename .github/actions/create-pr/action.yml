@@ -1,0 +1,75 @@
+name: Create Pull Request
+description: Create a PR with labels and optional issue linking
+
+inputs:
+  title:
+    description: 'PR title'
+    required: true
+  body:
+    description: 'PR body content'
+    required: true
+  branch:
+    description: 'Head branch'
+    required: true
+  base:
+    description: 'Base branch'
+    default: 'main'
+  labels:
+    description: 'Comma-separated labels to apply'
+    default: ''
+  issue-number:
+    description: 'Issue number to comment on'
+    default: ''
+
+outputs:
+  pr_url:
+    description: 'URL of the created PR'
+    value: ${{ steps.create.outputs.pr_url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create PR
+      id: create
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # Build label args as array
+        LABEL_CMD=()
+        if [ -n "${{ inputs.labels }}" ]; then
+          IFS=',' read -ra LABEL_ARRAY <<< "${{ inputs.labels }}"
+          for label in "${LABEL_ARRAY[@]}"; do
+            label=$(echo "$label" | xargs)  # trim whitespace
+            LABEL_CMD+=(--label "$label")
+          done
+        fi
+
+        # Write body to temp file to avoid shell escaping issues
+        cat > /tmp/pr_body.md << 'PRBODYEOF'
+        ${{ inputs.body }}
+        PRBODYEOF
+
+        # Create PR (skip if already exists)
+        PR_URL=$(gh pr create \
+          --title "${{ inputs.title }}" \
+          --body-file /tmp/pr_body.md \
+          --base "${{ inputs.base }}" \
+          --head "${{ inputs.branch }}" \
+          "${LABEL_CMD[@]}" 2>&1) || {
+          echo "PR likely already exists or creation failed: $PR_URL"
+          PR_URL=""
+        }
+
+        echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+
+    - name: Comment on linked issue
+      if: inputs.issue-number != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        if [ -n "${{ inputs.issue-number }}" ]; then
+          gh issue comment "${{ inputs.issue-number }}" \
+            --body "PR created for this issue: ${{ steps.create.outputs.pr_url }}" 2>/dev/null || true
+        fi
