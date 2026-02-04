@@ -208,7 +208,7 @@ src/
 | 実装ロジック | `claude-implement.yml` | 実装共通フロー（テスト/PR作成） |
 | 自動レビュー | `codex-review.yml`, `claude-review.yml` | Codex/ClaudeのPRレビュー |
 | 自動修正 | `auto-apply-suggestions.yml` | Critical Issuesを自動修正 |
-| テスト/品質 | `test.yml` | lint/typecheck/test/dep review |
+| テスト/品質 | `test.yml` | lint/typecheck/test |
 | セキュリティ | `codeql.yml` | CodeQLスキャン |
 | リリース | `release.yml` | release-please自動リリース |
 | 再試行 | `auto-retry-failed.yml`, `retry-failed-handler.yml` | 失敗ワークフローの自動再試行 |
