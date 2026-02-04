@@ -4,7 +4,7 @@ Antigravity (PM/設計/検証) と Claude Code (実装/GitHub Actions) の分業
 
 ---
 
-## � 役割分担
+## 役割分担
 
 ### 🧠 Antigravity (あなた)
 
@@ -104,7 +104,7 @@ gh issue create --title "feat: 新機能名" --body "@claude
 
 ---
 
-## � ドキュメント管理
+## ドキュメント管理
 
 - **.kiro/steering/**: 上流設計ドキュメント (要件定義、全体設計)
 - **docs/**: プロジェクト固有ドキュメント
@@ -113,7 +113,7 @@ gh issue create --title "feat: 新機能名" --body "@claude
 
 ---
 
-## � コマンドリファレンス
+## コマンドリファレンス
 
 ### Issue作成 (実装開始)
 

@@ -15,6 +15,7 @@ jobs:
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'claude-auto')
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     permissions:
       issues: write

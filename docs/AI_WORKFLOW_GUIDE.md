@@ -37,13 +37,13 @@
 /plan ワークフローに従い:
 1. GitHub Issueを作成
 2. docs/task_XX.md を作成
-3. docs/handoff.md を READY_FOR_CLAUDE に更新
+3. docs/handoff.md を READY_FOR_IMPLEMENTATION に更新
 ```
 
 ### Output
 - GitHub Issue created
 - `docs/task_XX.md` created
-- `docs/handoff.md` status → `READY_FOR_CLAUDE`
+- `docs/handoff.md` status → `READY_FOR_IMPLEMENTATION`
 
 ---
 
@@ -59,10 +59,8 @@ That's it. Claude reads `handoff.md` automatically.
 ### What Claude Does
 1. Reads `docs/handoff.md`
 2. Reads task document
-3. **Presents impact analysis and implementation plan**
-4. **Waits for user approval**
-5. Creates feature branch
-6. Implements changes + tests
+3. Creates feature branch
+4. Implements changes + tests
 
 ---
 
@@ -74,13 +72,10 @@ That's it. Claude reads `handoff.md` automatically.
 ```
 
 ### What Claude Does
-1. Runs `/review` on changed files
-2. Runs `npm run test` (if tests exist)
-3. Runs lint/build
-4. Updates docs (requirements.md, design.md if needed)
-5. Updates `docs/handoff.md` → `READY_FOR_VERIFY`
-6. Commits and pushes
-7. Creates PR
+1. Runs tests (workflow-defined)
+2. Runs lint/typecheck if configured
+3. Commits and pushes
+4. Creates PR
 
 ---
 
@@ -96,6 +91,7 @@ That's it. Claude reads `handoff.md` automatically.
 2. Runs `npm run build`
 3. Tests the implementation
 4. Checks acceptance criteria
+5. Confirms AI reviews (Codex/Claude) and auto-fix results
 
 ### If PASS
 - Updates status → `VERIFIED`
@@ -103,7 +99,7 @@ That's it. Claude reads `handoff.md` automatically.
 
 ### If FAIL
 - Adds feedback to `docs/handoff.md`
-- Sets status → `READY_FOR_CLAUDE`
+- Sets status → `READY_FOR_IMPLEMENTATION`
 
 ---
 
@@ -127,7 +123,7 @@ handoff.md の Feedback Loop を確認し、指摘を修正してください。
 │                                                                │
 │    → Issue #50 created                                         │
 │    → docs/task_50_touch.md created                             │
-│    → handoff.md → READY_FOR_CLAUDE                             │
+│    → handoff.md → READY_FOR_IMPLEMENTATION                     │
 └────────────────────────────────────────────────────────────────┘
                               ↓
 ┌────────────────────────────────────────────────────────────────┐
@@ -143,7 +139,6 @@ handoff.md の Feedback Loop を確認し、指摘を修正してください。
 │ 3. [Claude]                                                    │
 │    Prompt: /finish                                             │
 │                                                                │
-│    → Updates handoff.md → READY_FOR_VERIFY                     │
 │    → Commits and pushes                                        │
 │    → Creates PR                                                │
 └────────────────────────────────────────────────────────────────┘
@@ -154,7 +149,7 @@ handoff.md の Feedback Loop を確認し、指摘を修正してください。
 │                                                                │
 │    → Tests implementation                                      │
 │    → PASS: handoff.md → VERIFIED, update tasks.md              │
-│    → FAIL: handoff.md → add feedback, READY_FOR_CLAUDE         │
+│    → FAIL: handoff.md → add feedback, READY_FOR_IMPLEMENTATION │
 └────────────────────────────────────────────────────────────────┘
                               ↓
 ┌────────────────────────────────────────────────────────────────┐
@@ -176,17 +171,17 @@ handoff.md の Feedback Loop を確認し、指摘を修正してください。
 |------|---------|
 | `docs/handoff.md` | Task handoff between AIs |
 | `docs/task_XX.md` | Detailed task document |
-| `.claude/commands/start.md` | Claude's start command |
-| `.claude/commands/finish.md` | Claude's finish command |
-| `.agent/workflows/plan.md` | Antigravity's plan workflow |
-| `.agent/workflows/verify.md` | Antigravity's verify workflow |
+| `.github/workflows/claude-responder.yml` | Claude自動実装トリガー |
+| `.github/workflows/claude-batch.yml` | 並列実装 |
+| `.github/workflows/codex-review.yml` | Codex自動レビュー |
+| `.github/workflows/claude-review.yml` | Claude自動レビュー |
 
 ---
 
 ## Status Flow
 
 ```
-IDLE → PLANNING → READY_FOR_CLAUDE → IMPLEMENTING → READY_FOR_VERIFY → VERIFIED
+IDLE → PLANNING → READY_FOR_IMPLEMENTATION → IMPLEMENTING → READY_FOR_VERIFY → VERIFIED
                          ↑                                    │
                          └──────────── (if FAIL) ─────────────┘
 ```

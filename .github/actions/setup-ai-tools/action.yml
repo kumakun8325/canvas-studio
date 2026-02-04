@@ -1,0 +1,61 @@
+name: Setup AI Tools
+description: Common setup for Node.js, dependencies, and AI CLI tools
+
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    default: '20'
+  install-claude:
+    description: 'Install Claude Code CLI'
+    default: 'false'
+  install-copilot:
+    description: 'Install GitHub Copilot CLI'
+    default: 'false'
+  install-deps:
+    description: 'Install project dependencies via npm ci'
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+
+    - name: Cache npm global packages
+      if: inputs.install-claude == 'true' || inputs.install-copilot == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm-global
+        key: npm-global-${{ runner.os }}-${{ inputs.install-claude }}-${{ inputs.install-copilot }}
+
+    - name: Configure npm global prefix
+      if: inputs.install-claude == 'true' || inputs.install-copilot == 'true'
+      shell: bash
+      run: |
+        mkdir -p ~/.npm-global
+        npm config set prefix ~/.npm-global
+        echo "$HOME/.npm-global/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: npm ci
+
+    - name: Install Claude Code
+      if: inputs.install-claude == 'true'
+      shell: bash
+      run: |
+        if ! command -v claude &> /dev/null; then
+          npm install -g @anthropic-ai/claude-code
+        fi
+
+    - name: Install GitHub Copilot CLI
+      if: inputs.install-copilot == 'true'
+      shell: bash
+      run: |
+        if ! command -v copilot &> /dev/null; then
+          npm install -g @github/copilot
+        fi

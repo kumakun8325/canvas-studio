@@ -1,0 +1,49 @@
+name: Git Commit and Push
+description: Configure git, stage changes (excluding secrets), commit, and push
+
+inputs:
+  message:
+    description: 'Commit message'
+    required: true
+  branch:
+    description: 'Target branch to push to'
+    required: true
+  push:
+    description: 'Push after commit'
+    default: 'true'
+
+outputs:
+  has_changes:
+    description: 'Whether there were changes to commit'
+    value: ${{ steps.commit.outputs.has_changes }}
+
+runs:
+  using: composite
+  steps:
+    - name: Commit and push
+      id: commit
+      shell: bash
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+
+        if [ -n "$(git status --porcelain)" ]; then
+          git add .
+          git reset HEAD -- '*.env*' '*.key' '*.pem' 'credentials*' 'serviceAccount*' || true
+
+          # Check if there are still staged changes after reset
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          git commit -m "${{ inputs.message }}"
+
+          if [ "${{ inputs.push }}" == "true" ]; then
+            git push origin "${{ inputs.branch }}"
+          fi
+
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        fi

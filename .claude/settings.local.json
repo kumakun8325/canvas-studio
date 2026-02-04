@@ -38,7 +38,22 @@
       "Bash(npm outdated:*)",
       "Bash(copilot:*)",
       "Bash(gh issue create:*)",
-      "Bash(gh label list:*)"
+      "Bash(gh label list:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run test:run:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create --title \"feat: add dark mode support \\(TASK-074\\)\" --body \"$\\(cat <<''EOF''\n## Summary\n- TASK-074: ダークモード対応の完全実装\n- `useTheme` hook を新規作成（localStorage永続化、OS設定追従、型安全なバリデーション）\n- Toolbar / Home ページにテーマ切り替えトグル（Sun/Moon アイコン）を配置\n- 全19コンポーネントに Tailwind `dark:` クラスを適用\n- useTheme テスト（13件）、editorStore テスト（4件）を追加\n- 既存 Toolbar テストを useTheme モック対応に修正\n\n## Changes\n| カテゴリ | ファイル |\n|---------|---------|\n| Hook（新規） | `src/hooks/useTheme.ts` |\n| App統合 | `src/App.tsx` |\n| テーマトグル | `Toolbar.tsx`, `Home.tsx` |\n| dark: クラス | `Editor.tsx`, `EditorContent.tsx`, `CanvasView.tsx`, `PropertyPanel.tsx`, `SlideList.tsx`, `SlideThumb.tsx`, `Toast.tsx`, `ConfirmDialog.tsx`, `Spinner.tsx`, `UndoRedoButtons.tsx`, `ErrorBoundary.tsx`, `TemplateSelector.tsx`, `ExportDialog.tsx`, `CMYKPreview.tsx`, `PrintSettingsPanel.tsx` |\n| テスト（新規） | `useTheme.test.ts`, `editorStore.test.ts` |\n| テスト修正 | `Toolbar.test.tsx` |\n| 設計書 | `docs/task_74.md`, `docs/reviews/design-task-74-20260201.md` |\n\n## Design decisions\n- **Tailwind v4 class-based dark mode**: `@custom-variant dark \\(&:where\\(.dark, .dark *\\)\\)` で `<html class=\"dark\">` ベース\n- **FOUC防止**: `index.html` のインラインスクリプトで React 初期化前にクラス付与（PR #111 で実装済み）\n- **editorStore 拡張**: 設計書通り `isDarkMode` / `setDarkMode` を既存ストアに追加（別ストア不要）\n- **useMediaQuery 再利用**: OS の `prefers-color-scheme` 監視に既存フックを活用\n- **キャンバス独立**: Fabric.js canvas 要素自体はテーマ影響なし（外枠のみ `dark:bg-gray-800`）\n\n## Test plan\n- [x] TypeScript 型チェック通過\n- [x] ESLint 通過\n- [x] 全テスト通過（28ファイル、261テスト）\n- [x] プロダクションビルド成功\n- [ ] ライトモード↔ダークモードの手動切り替え確認\n- [ ] OS設定変更時の自動追従確認（systemモード）\n- [ ] localStorage 永続化確認（リロード後も維持）\n\nCloses #96\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\nEOF\n\\)\")",
+      "Bash(python3:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh label create:*)",
+      "Bash(git pull:*)",
+      "Bash(gh pr create:*)",
+      "Bash(find:*)",
+      "WebSearch"
     ],
     "deny": [
       "Bash(rm -rf /)",

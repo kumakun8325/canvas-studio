@@ -13,6 +13,7 @@ name: Auto Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
+    branches: [main]
 
 # 同じPRへの重複実行を防止
 concurrency:
@@ -29,20 +30,23 @@ jobs:
       contents: read
       pull-requests: write
       actions: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+
+      - name: Load shared config
+        run: |
+          source .github/config.env
+          echo "CRITICAL_ISSUE_PATTERN=$CRITICAL_ISSUE_PATTERN" >> $GITHUB_ENV
+
+      - name: Setup AI tools
+        uses: ./.github/actions/setup-ai-tools
         with:
-          node-version: '20'
-      
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+          install-claude: 'true'
+          install-deps: 'false'
       
       - name: Get changed files
         id: changed
@@ -52,21 +56,42 @@ jobs:
       
       - name: Run Claude Code Review
         if: steps.changed.outputs.files != ''
+        id: review
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
         run: |
           echo "Reviewing changed files..."
+          REVIEW_AVAILABLE=true
           
-          # Use code-review skill
-          claude --print "Review the following files for quality, performance, and security: ${{ steps.changed.outputs.files }}" > review_output.txt 2>&1 || true
-          
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            REVIEW_AVAILABLE=false
+            echo "::warning::ANTHROPIC_API_KEY is not set"
+            echo "Claude Code requires ANTHROPIC_API_KEY." > review_output.txt
+          elif ! command -v claude &> /dev/null; then
+            REVIEW_AVAILABLE=false
+            echo "::warning::Claude Code CLI is not available"
+            echo "Claude Code CLI not found. Setup may have failed." > review_output.txt
+          else
+            if ! claude --dangerously-skip-permissions --print "Review the following files for quality, performance, and security: ${{ steps.changed.outputs.files }}" > review_output.txt 2>&1; then
+              REVIEW_AVAILABLE=false
+              echo "::warning::Claude Code review execution failed"
+            fi
+          fi
+
+          if [ ! -s review_output.txt ]; then
+            REVIEW_AVAILABLE=false
+            echo "Claude review could not be completed. Please review manually." > review_output.txt
+          fi
+
+          echo "review_available=$REVIEW_AVAILABLE" >> $GITHUB_OUTPUT
+
           echo "::group::Review Output"
           cat review_output.txt
           echo "::endgroup::"
       
       - name: Comment on PR
-        if: steps.changed.outputs.files != ''
+        if: steps.changed.outputs.files != '' && steps.review.outputs.review_available == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -91,7 +116,7 @@ jobs:
           gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/review_comment.md
 
       - name: Submit formal PR review
-        if: steps.changed.outputs.files != ''
+        if: steps.changed.outputs.files != '' && steps.review.outputs.review_available == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -102,7 +127,7 @@ jobs:
             exit 0
           fi
 
-          if grep -qiE "(Critical Issues|REQUEST_CHANGES|🔴|severity.*critical)" review_output.txt; then
+          if grep -qiE "$CRITICAL_ISSUE_PATTERN" review_output.txt; then
             gh pr review "$PR_NUMBER" --request-changes \
               --body "Claude Code review detected critical issues. See the review comment for details."
           else
@@ -111,16 +136,11 @@ jobs:
           fi
 
       - name: Check for critical issues
-        if: steps.changed.outputs.files != ''
+        if: steps.changed.outputs.files != '' && steps.review.outputs.review_available == 'true'
         id: check-issues
         run: |
-          if [ ! -f review_output.txt ]; then
-            echo "needs_fix=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
           # Critical Issues / REQUEST_CHANGES / 🔴 のいずれかがあれば修正が必要
-          if grep -qiE "(Critical Issues|REQUEST_CHANGES|🔴|severity.*critical)" review_output.txt; then
+          if grep -qiE "$CRITICAL_ISSUE_PATTERN" review_output.txt; then
             echo "needs_fix=true" >> $GITHUB_OUTPUT
             echo "Critical issues detected in Claude review"
           else
@@ -128,16 +148,8 @@ jobs:
             echo "No critical issues found"
           fi
 
-      - name: Ensure labels exist
-        if: steps.changed.outputs.files != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh label create "claude-reviewed" --description "Claude Code Review completed" --color "6f42c1" 2>/dev/null || true
-          gh label create "auto-fix" --description "Auto-fix triggered by review" --color "d93f0b" 2>/dev/null || true
-
       - name: Trigger auto-fix workflow
-        if: steps.check-issues.outputs.needs_fix == 'true'
+        if: steps.check-issues.outputs.needs_fix == 'true' && steps.review.outputs.review_available == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -160,7 +172,7 @@ jobs:
           fi
 
       - name: Add reviewed label (no issues)
-        if: steps.changed.outputs.files != '' && steps.check-issues.outputs.needs_fix == 'false'
+        if: steps.changed.outputs.files != '' && steps.check-issues.outputs.needs_fix == 'false' && steps.review.outputs.review_available == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

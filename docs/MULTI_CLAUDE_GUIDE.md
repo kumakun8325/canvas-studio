@@ -46,14 +46,14 @@ cd /mnt/c/tool/my-project
 
 ---
 
-## ⚙️ GLM-4.7 設定（コスト削減）
+## ⚙️ GLM互換API 設定（コスト削減）
 
 ### 方法1: settings.jsonを切り替え
 
 ```bash
 ~/.claude/
 ├── settings.json           # 現在の設定
-├── settings-zai.json       # GLM-4.7用
+├── settings-zai.json       # GLM互換API用
 └── settings-anthropic.json # Anthropic API用
 ```
 
@@ -68,7 +68,7 @@ cd /mnt/c/tool/my-project
 
 **切り替えコマンド:**
 ```bash
-# GLM-4.7に切り替え
+# GLM互換APIに切り替え
 cp ~/.claude/settings-zai.json ~/.claude/settings.json
 
 # Anthropicに戻す
@@ -83,14 +83,14 @@ export ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic"
 claude
 ```
 
-### 方法3: 混在利用（PM:Opus、ワーカー:GLM）
+### 方法3: 混在利用（PM:Opus、ワーカー:GLM互換API）
 
 ```bash
 # PM用（Anthropic Opus）
 cp ~/.claude/settings-anthropic.json ~/.claude/settings.json
 claude --model claude-opus-4-20250514
 
-# ワーカー用（GLM-4.7）
+# ワーカー用（GLM互換API）
 cp ~/.claude/settings-zai.json ~/.claude/settings.json
 claude
 ```

@@ -15,12 +15,17 @@ on:
   pull_request:
     types: [labeled]
 
+concurrency:
+  group: batch-notify-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   check-batch-complete:
     runs-on: ubuntu-latest
-    # codex-reviewed ラベルが追加された AND claude-batch ラベル付きPR
+    timeout-minutes: 5
+    # codex-reviewed or claude-reviewed ラベルが追加された AND claude-batch ラベル付きPR
     if: >-
-      github.event.label.name == 'codex-reviewed' &&
+      (github.event.label.name == 'codex-reviewed' || github.event.label.name == 'claude-reviewed') &&
       contains(github.event.pull_request.labels.*.name, 'claude-batch')
 
     permissions:
@@ -82,14 +87,14 @@ jobs:
             PR_NUMBER=$(echo "$PR_JSON" | jq -r '.[0].number')
             PR_TITLE=$(echo "$PR_JSON" | jq -r '.[0].title')
             PR_STATE=$(echo "$PR_JSON" | jq -r '.[0].state')
-            HAS_REVIEWED=$(echo "$PR_JSON" | jq -r '.[0].labels | map(.name) | any(. == "codex-reviewed")')
+            HAS_REVIEWED=$(echo "$PR_JSON" | jq -r '.[0].labels | map(.name) | any(. == "codex-reviewed" or . == "claude-reviewed")')
 
             if [ "$HAS_REVIEWED" == "true" ]; then
               REVIEWED=$((REVIEWED + 1))
 
               # レビューコメントからVerdictを抽出
               VERDICT=$(gh pr view "$PR_NUMBER" --comments --json comments \
-                | jq -r '.comments[] | select(.body | contains("Codex Review")) | .body' \
+                | jq -r '.comments[] | select(.body | contains("Codex Review") or contains("Claude Code Review")) | .body' \
                 | grep -oiP '(?:Verdict|判定)[:\s]*\K\S+' | tail -1 || echo "N/A")
 
               [ -z "$VERDICT" ] && VERDICT="N/A"
@@ -128,6 +133,16 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Checkout for config
+        if: >-
+          steps.batch.outputs.found == 'true' &&
+          steps.check.outputs.all_reviewed == 'true' &&
+          steps.existing.outputs.exists == 'false'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: '.github/config.env'
+          sparse-checkout-cone-mode: false
+
       - name: Create summary notification issue
         if: >-
           steps.batch.outputs.found == 'true' &&
@@ -139,10 +154,11 @@ jobs:
           TOTAL: ${{ steps.check.outputs.total }}
           REVIEWED: ${{ steps.check.outputs.reviewed }}
         run: |
+          source .github/config.env
+
           SUMMARY=$(cat /tmp/batch_summary.txt)
           ACTIONS_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          # Issue本文をファイルに書き出し（インデント問題を回避）
           {
             echo "## Batch Review Complete"
             echo ""
@@ -167,7 +183,7 @@ jobs:
 
           gh issue create \
             --title "Batch Review Complete ($BATCH_ISSUES)" \
-            --assignee kumakun8325 \
+            --assignee "$ASSIGNEE" \
             --label "batch-review-complete" \
             --body-file /tmp/issue_body.md
 

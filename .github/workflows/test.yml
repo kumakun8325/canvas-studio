@@ -11,9 +11,21 @@ name: Test
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
   workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   quality-checks:
@@ -24,10 +36,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load shared config
+        run: |
+          source .github/config.env
+          echo "NODE_VERSION=$NODE_VERSION" >> $GITHUB_ENV
+
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -41,9 +58,16 @@ jobs:
         id: typecheck
         run: npx tsc --noEmit
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         id: test
-        run: npm run test:run
+        run: npm run test:coverage -- --no-color
+
+      - name: Upload coverage artifact
+        if: always() && steps.test.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
 
       - name: Check security vulnerabilities
         id: security

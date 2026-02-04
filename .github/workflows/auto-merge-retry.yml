@@ -1,0 +1,65 @@
+# Auto-merge Retry
+#
+# トリガー:
+# - Test / CodeQL ワークフロー完了時
+#
+# 機能:
+# - 既に Codex/Claude Review が承認済みのPRを再評価し、条件が揃えば auto-merge を実行
+
+name: Auto Merge Retry
+
+on:
+  workflow_run:
+    workflows: ["Test", "CodeQL"]
+    types: [completed]
+
+concurrency:
+  group: auto-merge-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  retry-auto-merge:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Find related PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+
+          # codex-reviewed または claude-reviewed ラベル付きPRを検索
+          PR_NUMBER=$(gh pr list --search "head:${BRANCH} base:main is:open label:codex-reviewed" --json number --limit 1 --jq '.[0].number')
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            PR_NUMBER=$(gh pr list --search "head:${BRANCH} base:main is:open label:claude-reviewed" --json number --limit 1 --jq '.[0].number')
+          fi
+
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "No reviewed PR found for branch."
+            echo "found=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "found=true" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        if: steps.pr.outputs.found == 'true'
+        uses: actions/checkout@v4
+
+      - name: Check and merge PR
+        if: steps.pr.outputs.found == 'true'
+        id: merge
+        uses: ./.github/actions/check-pr-mergeable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          pr-number: ${{ steps.pr.outputs.pr_number }}
+          merge-if-ready: 'true'
+          merge-subject: 'Auto-merge after checks completed'
